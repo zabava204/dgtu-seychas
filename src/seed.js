@@ -33,9 +33,9 @@ function seed(db) {
   });
   const ilya = user({
     login: 'ilya', pass_hash: hash, role: 'student', full_name: 'Смирнов Илья Андреевич', short_name: 'Илья Смирнов',
-    name_dat: 'Смирнову Илье Андреевичу', first_name: 'Илья', gender: 'm', group_name: 'ММН-11', course: 1, level: 'магистратура',
-    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '26-1186', curator: 'Ким А. С.',
-    demo_note: 'магистрант · 1 курс · вечерние пары, НИР',
+    name_dat: 'Смирнову Илье Андреевичу', first_name: 'Илья', gender: 'm', group_name: 'ММН-21', course: 2, level: 'магистратура',
+    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '25-1186', curator: 'Ким А. С.',
+    demo_note: 'магистрант · 2 курс, контракт · вечерние пары, НИР',
   });
   const staff = user({
     login: 'dekanat', pass_hash: hash, role: 'staff', full_name: 'Соколова Елена Викторовна', short_name: 'Соколова Е. В.',
@@ -68,11 +68,11 @@ function seed(db) {
   S('МН-31', 5, 'all', ...P2, 'Экономика организации', 'практика', '8-206', 'Соколов Д. А.');
   S('МН-31', 5, 'num', ...P3, 'Иностранный язык', 'практика', '8-410', 'Морозова Т. А.');
 
-  S('ММН-11', 1, 'all', '18:30', '20:05', 'Методы анализа в менеджменте', 'лекция', '2-501', 'Белова Е. Н.');
-  S('ММН-11', 2, 'all', '18:30', '20:05', 'Иностранный язык в профессиональной сфере', 'практика', '8-305', 'Морозова Т. А.');
-  S('ММН-11', 3, 'all', '18:30', '20:05', 'Финансовый анализ', 'лекция', '2-118', 'Карпов В. И.');
-  const innovThu = S('ММН-11', 4, 'all', '18:00', '19:35', 'Инновационные подходы к принятию решений', 'практика', '2-318', 'Соколов Д. А.');
-  S('ММН-11', 6, 'all', '10:15', '11:50', 'Методы анализа в менеджменте', 'практика', null, 'Белова Е. Н.', 1);
+  S('ММН-21', 1, 'all', '18:30', '20:05', 'Методы анализа в менеджменте', 'лекция', '2-501', 'Белова Е. Н.');
+  S('ММН-21', 2, 'all', '18:30', '20:05', 'Иностранный язык в профессиональной сфере', 'практика', '8-305', 'Морозова Т. А.');
+  S('ММН-21', 3, 'all', '18:30', '20:05', 'Финансовый анализ', 'лекция', '2-118', 'Карпов В. И.');
+  const innovThu = S('ММН-21', 4, 'all', '18:00', '19:35', 'Инновационные подходы к принятию решений', 'практика', '2-318', 'Соколов Д. А.');
+  S('ММН-21', 6, 'all', '10:15', '11:50', 'Методы анализа в менеджменте', 'практика', null, 'Белова Е. Н.', 1);
 
   // Изменения: ближайшая «Экономика организации» во вторник — другая аудитория; у Ильи перенос в четверг
   const nextOn = (wd, endMin) => {
@@ -149,11 +149,18 @@ function seed(db) {
     created_at: ago(3), submitted_at: ago(3), eta_at: iso(estimateEta('visa', 'pdf', new Date(ago(3)))) }, [[ago(3), ilya, 'submitted']]);
 
   // Оплата обучения Ильи по договору (для справки на вычет) и черновик заявки
-  const payYear = today >= `${today.slice(0, 4)}-10-16` ? Number(today.slice(0, 4)) : Number(today.slice(0, 4)) - 1;
+  // Илья поступил в прошлом году: справку можно заказать только за закончившийся год,
+  // оплаты текущего года войдут в справку после 1 января.
+  const curYear = Number(today.slice(0, 4)); const prevYear = curYear - 1;
+  const contract = `Д-${prevYear}/1186`;
   const insP = db.prepare('INSERT INTO payments (student_id, contract, paid_on, amount, payer, note) VALUES (?,?,?,?,?,?)');
-  insP.run(ilya, `Д-${payYear}/1186`, `${payYear}-08-20`, 48000, 'Смирнов Илья Андреевич', '1 семестр, часть 1');
-  insP.run(ilya, `Д-${payYear}/1186`, `${payYear}-10-15`, 48000, 'Смирнов Илья Андреевич', '1 семестр, часть 2');
-  R({ number: 'draft-' + ilya, student_id: ilya, type: 'tax', purpose: String(payYear), format: 'pdf', status: 'draft', created_at: ago(1) }, []);
+  const pay = (date, amount, note) => { if (date <= today) insP.run(ilya, contract, date, amount, 'Смирнов Илья Андреевич', note); };
+  pay(`${prevYear}-08-20`, 48000, '1 семестр, часть 1');
+  pay(`${prevYear}-10-15`, 48000, '1 семестр, часть 2');
+  pay(`${curYear}-02-10`, 96000, '2 семестр');
+  pay(`${curYear}-08-20`, 48000, '3 семестр, часть 1');
+  pay(`${curYear}-10-15`, 48000, '3 семестр, часть 2');
+  R({ number: 'draft-' + ilya, student_id: ilya, type: 'tax', purpose: String(prevYear), format: 'pdf', status: 'draft', created_at: ago(1) }, []);
 
   // Другие студенты
   R({ number: num(33), student_id: others.kim, type: 'aid', purpose: 'Студенческая семья', details: 'Рождение ребёнка в октябре.', status: 'in_work',

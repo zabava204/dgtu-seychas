@@ -184,7 +184,7 @@ function nir(ctx) {
     title: 'НИР', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'nir')}
-<section class="hero" style="margin-top:14px"><div class="small" style="color:#AFC3FF;font-weight:600">НИР · 1 СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
+<section class="hero" style="margin-top:14px"><div class="small" style="color:#AFC3FF;font-weight:600">НИР · ${user.course * 2 - 1} СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
 <div class="big">${sum} <span style="font-size:18px;font-weight:500">из 100 баллов</span></div>
 <div class="progress" style="background:#3A4766"><i style="width:${sum}%"></i></div>
 <div class="small" style="color:#D5DDF0">До «отлично» ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
@@ -272,45 +272,46 @@ ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="h
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
 <div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/me">Неверно?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
-<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.length ? raw('disabled') : ''}>Отправить заявку</button>
+<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>Отправить заявку</button>
 </form>`,
   });
 }
 
-// Справка для вычета: сначала проверяем условия по данным кабинета, потом спрашиваем только год
+// Справка для вычета: сначала проверяем условия по данным кабинета, потом спрашиваем только год.
+// Справку выдают за закончившийся календарный год — текущий год показываем, но выбрать его нельзя.
 function taxFields(payments, years, v, user) {
   const contract = payments[0]?.contract;
   const self = payments.length && payments.every((p) => p.payer === user.full_name);
   const ok = (text) => html`<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px"><span aria-hidden="true" style="color:var(--green);font-weight:700">✓</span><span>${text}</span></div>`;
   if (!years.length) return html`<div class="note amber" style="margin-top:16px">В кабинете нет оплат по договору за 2024 год и позже. Если обучение платное — напиши в деканат по любой заявке, проверим договор.</div>`;
-  const sel = years.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : String(years[0].year);
+  const closed = years.filter((y) => y.closed);
+  const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Условия проверены по данным кабинета</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
 ${self ? ok('Платил(а) ты сам(а) — за своё обучение вычет положен при любой форме обучения') : ''}
 ${ok('Оплата с 2024 года — для налоговой хватит одной этой справки, договор и чеки не нужны')}</div></div>
-<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты</legend>
-<div class="options" style="grid-template-columns:1fr">${years.map((y) => html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
-<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Вернуть можно до ${TAX.rub(y.refund)}*</small></span></label>`)}</div></fieldset>
-<label class="field">ИНН <span class="hint">необязательно · 12 цифр. Если не указать, в справке будут паспортные данные из личного дела</span>
-<input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\d{12}" value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
-<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если зарплата облагается по ставке 13%.</p>
-<a class="link" style="padding-left:0" href="/help/tax">Как получить вычет: через работу или налоговую</a>
+<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты <span class="hint">справку выдают за закончившийся год</span></legend>
+<div class="options" style="grid-template-columns:1fr">${[...closed, ...years.filter((y) => !y.closed)].map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
+<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Вернуть можно до ${TAX.rub(y.refund)}*</small></span></label>`
+    : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Год ещё идёт — справку за ${y.year} можно заказать с января ${y.year + 1}${y.sum > TAX.OWN_LIMIT ? `. Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года` : ''}</small></div>`)}</div></fieldset>
+${closed.length ? html`<label class="field">ИНН <span class="hint">необязательно · 12 цифр. Если не указать, в справке будут паспортные данные из личного дела</span>
+<input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
+<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если доход облагается по ставке 13%.</p>` : ''}
+<a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
 <p class="small muted" style="margin:6px 0 0">Если платили родители или супруг(а), справку оформляют на их имя — в первой версии такую заявку подают в деканате.</p>`;
 }
 
 function taxHelp(ctx) {
   const step = (cls, t, w) => html`<div class="stage ${cls}"><div class="st">${t}</div><div class="when" style="font-size:14px;line-height:1.4">${w}</div></div>`;
+  const y = Number(T.dateKey().slice(0, 4));
   return page({
     title: 'Как получить вычет', active: 'requests', ctx,
     body: html`${backBar(ctx.back || '/requests', 'Назад')}<div class="page-head"><h1>Как получить вычет за обучение</h1>
-<p class="muted" style="margin:6px 0 0">Справку из вуза несут не в бухгалтерию, а в налоговую. Дальше — два пути.</p></div>
-<section class="section"><h2 class="label">В этом году — через работу</h2><div class="stages" style="padding:8px 0 0">
-${step('', 'Справка из вуза', 'Закажи в «Заявках» — PDF придёт сюда.')}
-${step('', 'Заявление в личном кабинете налогоплательщика', 'Приложи справку и запроси уведомление о праве на вычет у работодателя.')}
-${step('', 'Уведомление — в бухгалтерию', 'Налоговая пришлёт уведомление тебе и работодателю, с этого месяца налог не удерживают до суммы вычета.')}
-${step('todo', 'Остаток — в следующем году', 'Если до конца года вычет не использован полностью, остаток заявляют декларацией 3-НДФЛ.')}</div></section>
-<section class="section"><h2 class="label">В следующем году — через налоговую</h2>
-<p style="margin:6px 0 0;line-height:1.5">Подай декларацию 3-НДФЛ в личном кабинете налогоплательщика и приложи справку. Вернуть налог можно за три последних года.</p></section>
+<p class="muted" style="margin:6px 0 0">Справку из вуза прикладывают к декларации в личном кабинете налогоплательщика.</p></div>
+<section class="section"><div class="stages" style="padding:8px 0 0">
+${step('', 'Справка из вуза за закончившийся год', `Закажи в «Заявках» — PDF придёт сюда. Сейчас доступны годы до ${y - 1} включительно, справку за ${y} год можно заказать с января ${y + 1}.`)}
+${step('', 'Декларация 3-НДФЛ', 'В личном кабинете налогоплательщика выбери вычет на обучение за нужный год и приложи справку.')}
+${step('todo', 'Проверка и возврат', 'Налоговая проверит декларацию и вернёт налог на указанный счёт. Вернуть налог можно за три последних года.')}</div></section>
 <section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую — тогда они появятся в личном кабинете.</div>
 <div class="actions" style="margin-top:12px"><a class="btn small" href="/requests/new?type=tax">Заказать справку</a><a class="btn secondary small" href="/helper?q=${encodeURIComponent('Как получить налоговый вычет за обучение?')}">Спросить помощника</a></div></section>`,
   });
@@ -369,7 +370,7 @@ ${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'придёт
 </div>
 <div style="margin:4px 20px 0;padding-top:12px;border-top:1px solid var(--line)">
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
-${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">через работу или налоговую</a></span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">декларация 3-НДФЛ</a></span></div>` : ''}
 ${isAid ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
 ${r.details ? html`<div class="kv"><span>${t.detailsLabel || (r.type === 'tax' ? 'ИНН' : 'Уточнение')}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label || r.format}</span></div>` : ''}

@@ -165,6 +165,7 @@ function createApp({ db = open() } = {}) {
     if (type === 'tax') {
       const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
       if (!y) return fail('Выберите год, за который есть оплата по договору');
+      if (!y.closed) return fail(`Справку за ${y.year} год можно заказать с января ${y.year + 1}, когда год закончится`);
       if (details && !TAX.innOk(details)) return fail('ИНН должен состоять из 12 цифр и пройти проверку контрольных цифр. Можно оставить поле пустым.');
     }
     const id = M.submitRequest(req.user, { type, purpose, format, details });

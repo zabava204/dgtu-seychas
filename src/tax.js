@@ -1,14 +1,17 @@
 'use strict';
 // Вычет за собственное обучение (ст. 219 НК РФ). Цифры — по материалам ФНС на ноябрь 2026,
 // в интерфейсе подаются как подсказка, а не налоговая консультация.
+const T = require('./time');
 const OWN_LIMIT = 150000; // общий лимит социальных вычетов в год с расходов 2024 года
 const RATE = 0.13;
 const FIRST_YEAR = 2024; // с расходов 2024 года достаточно справки об оплате (приказ ФНС № ЕД-7-11/755@)
 
-function yearsFromPayments(payments) {
+// Справку выдают за закончившийся календарный год: за текущий — с января следующего
+function yearsFromPayments(payments, today = T.dateKey()) {
+  const cur = Number(today.slice(0, 4));
   const by = {};
   for (const p of payments) { const y = Number(p.paid_on.slice(0, 4)); by[y] = (by[y] || 0) + p.amount; }
-  return Object.entries(by).map(([y, sum]) => ({ year: Number(y), sum, base: Math.min(sum, OWN_LIMIT), refund: Math.round(Math.min(sum, OWN_LIMIT) * RATE), eligibleForm: Number(y) >= FIRST_YEAR }))
+  return Object.entries(by).map(([y, sum]) => ({ year: Number(y), sum, base: Math.min(sum, OWN_LIMIT), refund: Math.round(Math.min(sum, OWN_LIMIT) * RATE), eligibleForm: Number(y) >= FIRST_YEAR, closed: Number(y) < cur }))
     .sort((a, b) => b.year - a.year);
 }
 const rub = (n) => n.toLocaleString('ru-RU').replace(/\u00a0/g, ' ') + ' ₽';

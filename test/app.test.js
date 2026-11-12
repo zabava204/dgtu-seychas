@@ -126,10 +126,14 @@ test('основной сценарий: справка для налогово�
   const form = await (await ilya.get('/requests/new?type=tax&draft=1')).text();
   assert.match(form, /Условия проверены/);
   assert.match(form, /96 000 ₽/);
+  assert.match(form, /pattern="\\d\{12\}"/);
   assert.match(form, /12 480 ₽/);
   const year = form.match(/name="purpose" value="(\d{4})"/)[1];
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '123456789012' })).status, 400); // неверный ИНН
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: '' })).status, 400); // нет оплат за год
+  const cur = String(new Date(Date.now() + 3 * 3600e3).getUTCFullYear());
+  assert.match(form, new RegExp(`справку за ${cur} можно заказать с января`));
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: cur, format: 'pdf', details: '' })).status, 400); // год не закончился
   assert.equal((await anna.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // бюджет: оплат нет
   const r = await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' });
   assert.equal(r.status, 302);
