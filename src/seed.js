@@ -34,7 +34,7 @@ function seed(db) {
   const ilya = user({
     login: 'ilya', pass_hash: hash, role: 'student', full_name: 'Смирнов Илья Андреевич', short_name: 'Илья Смирнов',
     name_dat: 'Смирнову Илье Андреевичу', first_name: 'Илья', gender: 'm', group_name: 'ММН-11', course: 1, level: 'магистратура',
-    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '25-1186', curator: 'Ким А. С.',
+    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '26-1186', curator: 'Ким А. С.',
     demo_note: 'магистрант · 1 курс · вечерние пары, НИР',
   });
   const staff = user({
@@ -148,6 +148,13 @@ function seed(db) {
   R({ number: num(51), student_id: ilya, type: 'visa', details: 'Сербия, 2–9 января', format: 'pdf', status: 'submitted',
     created_at: ago(3), submitted_at: ago(3), eta_at: iso(estimateEta('visa', 'pdf', new Date(ago(3)))) }, [[ago(3), ilya, 'submitted']]);
 
+  // Оплата обучения Ильи по договору (для справки на вычет) и черновик заявки
+  const payYear = today >= `${today.slice(0, 4)}-10-16` ? Number(today.slice(0, 4)) : Number(today.slice(0, 4)) - 1;
+  const insP = db.prepare('INSERT INTO payments (student_id, contract, paid_on, amount, payer, note) VALUES (?,?,?,?,?,?)');
+  insP.run(ilya, `Д-${payYear}/1186`, `${payYear}-08-20`, 48000, 'Смирнов Илья Андреевич', '1 семестр, часть 1');
+  insP.run(ilya, `Д-${payYear}/1186`, `${payYear}-10-15`, 48000, 'Смирнов Илья Андреевич', '1 семестр, часть 2');
+  R({ number: 'draft-' + ilya, student_id: ilya, type: 'tax', purpose: String(payYear), format: 'pdf', status: 'draft', created_at: ago(1) }, []);
+
   // Другие студенты
   R({ number: num(33), student_id: others.kim, type: 'aid', purpose: 'Студенческая семья', details: 'Рождение ребёнка в октябре.', status: 'in_work',
     assignee_id: staff, created_at: ago(50), submitted_at: ago(50), taken_at: ago(26), eta_at: iso(T.at(T.addWorkdays(today, 3), 15 * 60)) },
@@ -172,6 +179,7 @@ function seed(db) {
   insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Матпомощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, '/requests', 1);
   insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов — в разделе «Заявки».', '/requests/new?type=aid', 1);
   insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, '/study', 0);
+  insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета — онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);
   insNt.run(ilya, ago(30), 'grades', 'НИР: этап «Научный поиск» вернули на доработку', 'Смотри комментарий руководителя.', '/study/nir', 0);
 
   // Настройки уведомлений по умолчанию

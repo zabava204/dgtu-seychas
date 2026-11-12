@@ -120,3 +120,27 @@ test('помощник без ключа отвечает по правилам 
   const s = await (await anna.post('/api/assistant', { message: 'мне очень тяжело' }, true)).json();
   assert.ok(s.actions.some((a) => a.href === '/hard'));
 });
+
+test('основной сценарий: справка для налогового вычета', async () => {
+  const ilya = await login('ilya'); const anna = await login('anna'); const dk = await login('dekanat');
+  const form = await (await ilya.get('/requests/new?type=tax&draft=1')).text();
+  assert.match(form, /Условия проверены/);
+  assert.match(form, /96 000 ₽/);
+  assert.match(form, /12 480 ₽/);
+  const year = form.match(/name="purpose" value="(\d{4})"/)[1];
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '123456789012' })).status, 400); // неверный ИНН
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: '' })).status, 400); // нет оплат за год
+  assert.equal((await anna.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // бюджет: оплат нет
+  const r = await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' });
+  assert.equal(r.status, 302);
+  const id = r.headers.get('location').match(/requests\/(\d+)/)[1];
+  assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Оплаты по договору/);
+  await dk.post(`/staff/requests/${id}/take`, {});
+  await dk.post(`/staff/requests/${id}/ready`, {});
+  const pdf = await ilya.get(`/requests/${id}/pdf`);
+  assert.equal(pdf.status, 200);
+  assert.equal((await anna.get(`/requests/${id}/pdf`)).status, 404);
+  const a = await (await ilya.post('/api/assistant', { message: 'как вернуть налог за учёбу?' }, true)).json();
+  assert.ok(a.actions.some((x) => x.href === '/requests/new?type=tax'));
+  assert.match(a.text, /12 480 ₽/);
+});

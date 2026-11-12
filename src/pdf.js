@@ -11,7 +11,7 @@ function translit(s) {
   return s.split('').map((ch) => { const l = ch.toLowerCase(); const t = TR[l]; if (t == null) return ch; return ch === l ? t : t.charAt(0).toUpperCase() + t.slice(1); }).join('');
 }
 
-function certificate({ r, student, staff }, stream) {
+function certificate({ r, student, staff, payments = [] }, stream) {
   const doc = new PDFDocument({ size: 'A4', margins: { top: 64, bottom: 64, left: 72, right: 64 }, info: { Title: `Справка № ${r.number} (демо)`, Author: 'ДГТУ.Сейчас — концепт' } });
   doc.registerFont('R', path.join(FONT, 'Inter_400Regular.ttf'));
   doc.registerFont('S', path.join(FONT, 'Inter_600SemiBold.ttf'));
@@ -28,7 +28,25 @@ function certificate({ r, student, staff }, stream) {
   doc.font('R').fontSize(10).fillColor('#5B6577').text('Деканат: корпус 1, каб. 210', { width: w });
   doc.moveDown(2);
 
-  if (r.type === 'visa') {
+  if (r.type === 'tax') {
+    const rows = payments.filter((p) => p.paid_on.startsWith(String(r.purpose)));
+    const sum = rows.reduce((s, p) => s + p.amount, 0);
+    const rub = (n) => n.toLocaleString('ru-RU').replace(/\u00a0/g, ' ') + ' руб.';
+    doc.fillColor('#14213D').font('B').fontSize(16).text('СПРАВКА', { align: 'center' });
+    doc.font('S').fontSize(12).text('об оплате образовательных услуг для представления в налоговый орган', { align: 'center' });
+    doc.font('R').fontSize(10).fillColor('#5B6577').text(`№ ${r.number} от ${T.shortDate(issued)} · отчётный год ${r.purpose}`, { align: 'center' });
+    doc.moveDown(1.2).fillColor('#14213D').font('R').fontSize(11.5).lineGap(3);
+    const kv = (k, v) => { doc.font('S').text(k, { continued: true }).font('R').text(' ' + v); };
+    kv('Налогоплательщик:', `${student.full_name} — является обучающимся`);
+    kv('ИНН налогоплательщика:', r.details || 'не указан; паспортные данные — из личного дела (в демо не выводятся)');
+    kv('Обучающийся:', `${student.full_name}, ${student.level}, ${student.course} курс, ${student.form} форма обучения`);
+    kv('Договор:', `${rows[0]?.contract || '—'} об оказании платных образовательных услуг`);
+    doc.moveDown(0.6).font('S').text('Оплата за отчётный год:');
+    doc.font('R');
+    for (const p of rows) doc.text(`   ${p.paid_on.split('-').reverse().join('.')} — ${rub(p.amount)} (${p.note || 'оплата по договору'}), плательщик: ${p.payer}`);
+    doc.moveDown(0.4).font('B').text(`Итого: ${rub(sum)}`);
+    doc.moveDown(0.6).font('R').fontSize(10).fillColor('#5B6577').text('Форма справки утверждена приказом ФНС России от 18.10.2023 № ЕД-7-11/755@. Этот файл — демонстрационный образец, а не заполненная официальная форма.', { align: 'justify' });
+  } else if (r.type === 'visa') {
     doc.fillColor('#14213D').font('B').fontSize(18).text(`CERTIFICATE No. ${r.number}`, { align: 'center' });
     doc.font('R').fontSize(11).fillColor('#5B6577').text(`Issued on ${T.shortDate(issued)}`, { align: 'center' });
     doc.moveDown(1.5).fillColor('#14213D').font('R').fontSize(12).lineGap(4);

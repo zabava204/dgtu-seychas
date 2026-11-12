@@ -83,6 +83,7 @@ function model(db) {
       });
     },
     nir: (studentId) => q('SELECT * FROM nir_stages WHERE student_id = ? ORDER BY ord').all(studentId),
+    payments: (studentId) => q('SELECT * FROM payments WHERE student_id = ? ORDER BY paid_on').all(studentId),
     tasks: (studentId) => q('SELECT * FROM tasks WHERE student_id = ? AND due_at >= ? ORDER BY due_at').all(studentId, iso()),
 
     // ---------- Заявки ----------

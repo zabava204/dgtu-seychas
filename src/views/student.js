@@ -4,6 +4,7 @@ const { page, backBar, I } = require('./layout');
 const T = require('../time');
 const { TYPES, DOC_HELP, purposeOf, formatOf } = require('../catalog');
 const { NOTIF_CATEGORIES } = require('../model');
+const TAX = require('../tax');
 
 // ---------- помощники форматирования ----------
 function countdown(startsAt, endsAt) {
@@ -240,18 +241,20 @@ function newRequestChoose(ctx) {
     title: 'Новая заявка', active: 'requests', ctx,
     body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Что нужно? Не нашли — спросите помощника.</p></div>
 <section class="section">${Object.entries(TYPES).map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
-<span class="meta">${k === 'study' ? 'Для проездного, соцзащиты, работодателя' : k === 'visa' ? 'На английском, 3 рабочих дня' : 'Заявление и документы'}</span></div>${I.chev}</a>`)}
+<span class="meta">${t.subtitle || (k === 'study' ? 'Для проездного, соцзащиты, работодателя' : k === 'visa' ? 'На английском, 3 рабочих дня' : 'Заявление и документы')}</span></div>${I.chev}</a>`)}
 <div class="actions"><a class="btn secondary small" href="/helper">Спросить помощника</a></div></section>`,
   });
 }
 
 function newRequestForm(ctx) {
-  const { user, type, draft, values = {}, error } = ctx;
+  const { user, type, draft, values = {}, error, years = [], payments = [] } = ctx;
   const t = TYPES[type];
+  const isTax = type === 'tax';
+  const taxYears = years.filter((y) => y.eligibleForm);
   const v = { purpose: draft?.purpose || values.purpose || (t.purposes ? t.purposes[0].id : ''), format: draft?.format || values.format || t.formats?.[0].id, details: draft?.details || values.details || '' };
   return page({
     title: 'Новая заявка', active: 'requests', ctx,
-    body: html`${backBar('/requests/new', 'Новая заявка')}<div class="page-head"><h1>${t.title}</h1>${draft ? html`<p class="muted" style="margin:6px 0 0">Черновик заполнен из профиля. Проверь и отправь.</p>` : ''}</div>
+    body: html`${backBar('/requests/new', 'Новая заявка')}<div class="page-head"><h1>${t.title}</h1>${draft ? html`<p class="muted" style="margin:6px 0 0">Черновик заполнен ${isTax ? 'по договору' : 'из профиля'}. Проверь и отправь.</p>` : ''}</div>
 <form method="post" action="/requests" enctype="multipart/form-data" class="section" style="padding-top:8px">
 <input type="hidden" name="type" value="${type}">
 ${error ? html`<div class="note red" role="alert">${error}</div>` : ''}
@@ -263,13 +266,53 @@ ${t.detailsLabel || t.purposes ? html`<label class="field">${t.detailsLabel || '
 ${t.formats && t.formats.length > 1 ? html`<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">Формат</legend>
 <div class="options">${t.formats.map((f) => html`<label><input type="radio" name="format" value="${f.id}" ${v.format === f.id ? raw('checked') : ''}><span class="opt">${f.label}<small>${f.hint}</small></span></label>`)}</div></fieldset>`
     : html`<input type="hidden" name="format" value="${t.formats?.[0].id || ''}">${t.formats ? html`<p class="small muted">${t.formats[0].label}: ${t.formats[0].hint}</p>` : ''}`}
+${isTax ? taxFields(payments, taxYears, v, user) : ''}
 ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="hint">PDF или фото, до 5 МБ. Можно загрузить позже.</span>
 <input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png" class="input"></label>
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
 <div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/me">Неверно?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
-<button class="btn block" type="submit" style="margin-top:18px">Отправить заявку</button>
+<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.length ? raw('disabled') : ''}>Отправить заявку</button>
 </form>`,
+  });
+}
+
+// Справка для вычета: сначала проверяем условия по данным кабинета, потом спрашиваем только год
+function taxFields(payments, years, v, user) {
+  const contract = payments[0]?.contract;
+  const self = payments.length && payments.every((p) => p.payer === user.full_name);
+  const ok = (text) => html`<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px"><span aria-hidden="true" style="color:var(--green);font-weight:700">✓</span><span>${text}</span></div>`;
+  if (!years.length) return html`<div class="note amber" style="margin-top:16px">В кабинете нет оплат по договору за 2024 год и позже. Если обучение платное — напиши в деканат по любой заявке, проверим договор.</div>`;
+  const sel = years.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : String(years[0].year);
+  return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Условия проверены по данным кабинета</b>
+<div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
+${self ? ok('Платил(а) ты сам(а) — за своё обучение вычет положен при любой форме обучения') : ''}
+${ok('Оплата с 2024 года — для налоговой хватит одной этой справки, договор и чеки не нужны')}</div></div>
+<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты</legend>
+<div class="options" style="grid-template-columns:1fr">${years.map((y) => html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
+<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Вернуть можно до ${TAX.rub(y.refund)}*</small></span></label>`)}</div></fieldset>
+<label class="field">ИНН <span class="hint">необязательно · 12 цифр. Если не указать, в справке будут паспортные данные из личного дела</span>
+<input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\d{12}" value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
+<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если зарплата облагается по ставке 13%.</p>
+<a class="link" style="padding-left:0" href="/help/tax">Как получить вычет: через работу или налоговую</a>
+<p class="small muted" style="margin:6px 0 0">Если платили родители или супруг(а), справку оформляют на их имя — в первой версии такую заявку подают в деканате.</p>`;
+}
+
+function taxHelp(ctx) {
+  const step = (cls, t, w) => html`<div class="stage ${cls}"><div class="st">${t}</div><div class="when" style="font-size:14px;line-height:1.4">${w}</div></div>`;
+  return page({
+    title: 'Как получить вычет', active: 'requests', ctx,
+    body: html`${backBar(ctx.back || '/requests', 'Назад')}<div class="page-head"><h1>Как получить вычет за обучение</h1>
+<p class="muted" style="margin:6px 0 0">Справку из вуза несут не в бухгалтерию, а в налоговую. Дальше — два пути.</p></div>
+<section class="section"><h2 class="label">В этом году — через работу</h2><div class="stages" style="padding:8px 0 0">
+${step('', 'Справка из вуза', 'Закажи в «Заявках» — PDF придёт сюда.')}
+${step('', 'Заявление в личном кабинете налогоплательщика', 'Приложи справку и запроси уведомление о праве на вычет у работодателя.')}
+${step('', 'Уведомление — в бухгалтерию', 'Налоговая пришлёт уведомление тебе и работодателю, с этого месяца налог не удерживают до суммы вычета.')}
+${step('todo', 'Остаток — в следующем году', 'Если до конца года вычет не использован полностью, остаток заявляют декларацией 3-НДФЛ.')}</div></section>
+<section class="section"><h2 class="label">В следующем году — через налоговую</h2>
+<p style="margin:6px 0 0;line-height:1.5">Подай декларацию 3-НДФЛ в личном кабинете налогоплательщика и приложи справку. Вернуть налог можно за три последних года.</p></section>
+<section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую — тогда они появятся в личном кабинете.</div>
+<div class="actions" style="margin-top:12px"><a class="btn small" href="/requests/new?type=tax">Заказать справку</a><a class="btn secondary small" href="/helper?q=${encodeURIComponent('Как получить налоговый вычет за обучение?')}">Спросить помощника</a></div></section>`,
   });
 }
 
@@ -326,8 +369,9 @@ ${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'придёт
 </div>
 <div style="margin:4px 20px 0;padding-top:12px;border-top:1px solid var(--line)">
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">через работу или налоговую</a></span></div>` : ''}
 ${isAid ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
-${r.details ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
+${r.details ? html`<div class="kv"><span>${t.detailsLabel || (r.type === 'tax' ? 'ИНН' : 'Уточнение')}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label || r.format}</span></div>` : ''}
 ${docFiles.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a></span></div>`)}
 </div>
@@ -457,6 +501,7 @@ function helper(ctx) {
 <div class="suggest" id="suggest" style="margin-top:10px">
 <button type="button" data-q="Нужна справка для проездного">Справка для проездного</button>
 <button type="button" data-q="Хочу перевестись на заочку">Перевод на заочку</button>
+<button type="button" data-q="Нужна справка для налогового вычета за обучение">Налоговый вычет</button>
 <button type="button" data-q="Сколько баллов мне не хватает до зачётов?">Баллы до зачёта</button>
 <a href="/hard">Мне тяжело</a></div>
 <div style="height:90px"></div>
@@ -465,4 +510,4 @@ function helper(ctx) {
   });
 }
 
-module.exports = { today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };
+module.exports = { taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };

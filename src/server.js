@@ -16,6 +16,7 @@ const A = require('./views/auth');
 const S = require('./views/staff');
 const pdf = require('./pdf');
 const assistant = require('./assistant');
+const TAX = require('./tax');
 
 function createApp({ db = open() } = {}) {
   const M = model(db);
@@ -95,11 +96,12 @@ function createApp({ db = open() } = {}) {
   app.post('/login', (req, res) => {
     const key = req.ip; const a = attempts.get(key) || { n: 0, t: Date.now() };
     if (Date.now() - a.t > 60e3) { a.n = 0; a.t = Date.now(); }
-    a.n++; attempts.set(key, a);
+    attempts.set(key, a);
     const login = String(req.body.login || '').trim();
-    if (a.n > 10) return res.status(429).send(String(A.login({ demo: M.demoUsers(), loginValue: login, error: 'Слишком много попыток. Подождите минуту.' })));
+    if (a.n >= 10) return res.status(429).send(String(A.login({ demo: M.demoUsers(), loginValue: login, error: 'Слишком много попыток. Подождите минуту.' })));
     const u = M.userByLogin(login);
     if (!u || !u.pass_hash || !bcrypt.compareSync(String(req.body.password || ''), u.pass_hash)) {
+      a.n++; // считаем только неудачные попытки
       return res.status(401).send(String(A.login({ demo: M.demoUsers(), loginValue: login, error: 'Неверный логин или пароль. Проверьте раскладку и Caps Lock или войдите через демо-доступ ниже.' })));
     }
     req.session.uid = u.id;
@@ -121,7 +123,7 @@ function createApp({ db = open() } = {}) {
     const reqs = M.requestsOf(u.id);
     const todo = [];
     for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.type === 'aid' ? 'Матпомощь' : r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
-    for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
+    for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
     if (u.level === 'магистратура') for (const s of M.nir(u.id).filter((x) => x.state === 'returned')) todo.push({ amber: true, title: `НИР: «${s.title}» на доработку`, meta: `до ${T.dayMonthKey(s.due_key)}`, href: '/study/nir', action: 'Открыть' });
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
     send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds: M.disciplines(u.id), todo })));
@@ -144,11 +146,13 @@ function createApp({ db = open() } = {}) {
     if (!TYPES[type]) return send(res, V.newRequestChoose(ctxOf(req)));
     const d = M.draftOf(req.user.id);
     const draft = req.query.draft && d && d.type === type ? d : null;
-    send(res, V.newRequestForm(ctxOf(req, { type, draft, values: { purpose: req.query.purpose } })));
+    const payments = M.payments(req.user.id);
+    send(res, V.newRequestForm(ctxOf(req, { type, draft, values: { purpose: req.query.purpose }, payments, years: TAX.yearsFromPayments(payments) })));
   });
   app.post('/requests', student, withUpload, (req, res) => {
     const type = req.body.type; const t = TYPES[type];
-    const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error }))); };
+    const payments = M.payments(req.user.id);
+    const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error, payments, years: TAX.yearsFromPayments(payments) }))); };
     if (!t) return fail('Выберите тип заявки');
     if (req.uploadError) return fail(req.uploadError + '. Подойдут PDF, JPG или PNG до 5 МБ.');
     let purpose = req.body.purpose || null;
@@ -158,6 +162,11 @@ function createApp({ db = open() } = {}) {
     if (t.formats && !formatOf(type, format)) return fail('Выберите формат');
     const details = String(req.body.details || '').trim().slice(0, 500);
     if (type === 'visa' && details.length < 3) return fail('Укажите страну и даты поездки');
+    if (type === 'tax') {
+      const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
+      if (!y) return fail('Выберите год, за который есть оплата по договору');
+      if (details && !TAX.innOk(details)) return fail('ИНН должен состоять из 12 цифр и пройти проверку контрольных цифр. Можно оставить поле пустым.');
+    }
     const id = M.submitRequest(req.user, { type, purpose, format, details });
     if (req.file) { saveFile(id, req.file, req.user.id); M.addEvent(id, req.user.id, 'uploaded', 'Справка о составе семьи'); }
     res.redirect(`/requests/${id}/sent`);
@@ -194,7 +203,7 @@ function createApp({ db = open() } = {}) {
     const r = req.r;
     if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return res.status(404).send('PDF нет');
     res.type('pdf').set('Content-Disposition', `inline; filename="spravka-${r.number}.pdf"`);
-    pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null }, res);
+    pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null, payments: M.payments(r.student_id) }, res);
   });
   app.get('/files/:id', needAuth(), (req, res) => {
     const f = M.file(Number(req.params.id));
@@ -203,6 +212,7 @@ function createApp({ db = open() } = {}) {
     res.type(f.mime || 'application/octet-stream').set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(f.name)}`);
     res.sendFile(path.join(UPLOADS, path.basename(f.stored)));
   });
+  app.get('/help/tax', student, (req, res) => send(res, V.taxHelp(ctxOf(req, { back: /^\/requests(\/\d+)?$/.test(req.query.back || '') ? req.query.back : '/requests/new?type=tax' }))));
   app.get('/help/doc', student, (req, res) => send(res, V.docHelp(ctxOf(req, { name: String(req.query.name || ''), back: /^\/[a-z0-9/?=&#-]*$/i.test(req.query.back || '') ? req.query.back : '/requests' }))));
 
   app.get('/me', student, (req, res) => send(res, V.me(ctxOf(req))));
@@ -225,7 +235,7 @@ function createApp({ db = open() } = {}) {
 
   app.post('/api/assistant', student, async (req, res) => {
     const u = req.user;
-    const data = { user: u, next: M.nextPair(u.group_name), disciplines: M.disciplines(u.id), requests: M.requestsOf(u.id) };
+    const data = { user: u, next: M.nextPair(u.group_name), disciplines: M.disciplines(u.id), requests: M.requestsOf(u.id), payments: M.payments(u.id) };
     const a = await assistant.answer(req.body.message, req.body.history, data);
     M.db.prepare('INSERT INTO assistant_log (user_id, at, question, source) VALUES (?,?,?,?)').run(u.id, new Date().toISOString(), a.intent, a.source);
     res.json(a);
@@ -246,12 +256,12 @@ function createApp({ db = open() } = {}) {
     const filter = ['new', 'work', 'student', 'done'].includes(req.query.f) ? req.query.f : 'new';
     send(res, S.queue(staffCtx(req, { list: M.staffQueue(filter), filter })));
   });
-  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id) }))));
+  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id) }))));
   app.get('/staff/requests/:id/preview', staff, loadRequest, (req, res) => {
     const r = req.r;
     if (!TYPES[r.type].producesPdf) return res.status(404).send('Нет PDF');
     res.type('pdf');
-    pdf.certificate({ r: { ...r, closed_at: new Date().toISOString() }, student: M.user(r.student_id), staff: req.user }, res);
+    pdf.certificate({ r: { ...r, closed_at: new Date().toISOString() }, student: M.user(r.student_id), staff: req.user, payments: M.payments(r.student_id) }, res);
   });
   const act = (fn) => [staff, loadRequest, (req, res) => {
     const r = req.r; const text = String(req.body.text || '').trim().slice(0, 1000);

@@ -3,6 +3,7 @@ const { html, raw } = require('./html');
 const { head, I } = require('./layout');
 const T = require('../time');
 const { TYPES, purposeOf, formatOf } = require('../catalog');
+const TAX = require('../tax');
 
 const TAG = { submitted: ['blue', 'Новая'], in_work: ['', 'В работе'], need_student: ['amber', 'Ждёт студента'], ready: ['green', 'Готова'], rejected: ['red', 'Отклонена'] };
 const tag = (s) => html`<span class="tag ${TAG[s][0]}">${TAG[s][1]}</span>`;
@@ -63,11 +64,15 @@ function detail(ctx) {
 <div class="kv"><span>Тип</span><span>${t.title}</span></div>
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
 ${r.type === 'aid' ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
-${r.details ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан — паспортные данные из личного дела'}</span></div>` : ''}
+${r.details && r.type !== 'tax' ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label}</span></div>` : ''}
 ${files.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a> · ${T.stamp(new Date(f.uploaded_at))}</span></div>`)}
 ${r.type === 'aid' && !files.length ? html`<div class="kv"><span>Документы</span><span class="muted">не загружены</span></div>` : ''}
 </div></div>
+${r.type === 'tax' ? html`<div class="card"><b>Оплаты по договору</b><table class="table" style="margin-top:8px"><thead><tr><th>Дата</th><th>Договор</th><th>Плательщик</th><th>Сумма</th></tr></thead><tbody>
+${ctx.payments.map((p) => html`<tr><td>${p.paid_on.split('-').reverse().join('.')}</td><td>${p.contract}</td><td>${p.payer}</td><td>${TAX.rub(p.amount)}</td></tr>`)}</tbody></table>
+<div class="small muted" style="margin-top:6px">За ${r.purpose} год: ${TAX.rub(ctx.payments.filter((p) => p.paid_on.startsWith(r.purpose)).reduce((s, p) => s + p.amount, 0))} — эта сумма попадёт в справку.</div></div>` : ''}
 <div class="card"><b>История</b>${events.map((e) => html`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="small muted">${T.stamp(new Date(e.at))} · ${e.actor_role === 'staff' ? e.actor_name : 'студент'}</div>
 <div>${evText[e.kind] || e.kind}${e.text ? html`: ${e.text}` : ''}</div></div>`)}</div>
 </div>

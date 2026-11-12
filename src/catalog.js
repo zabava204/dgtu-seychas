@@ -28,6 +28,14 @@ const TYPES = {
     detailsPlaceholder: 'Например: Сербия, 2–9 января',
     producesPdf: true,
   },
+  tax: {
+    title: 'Справка для налогового вычета',
+    short: 'Справка для вычета',
+    subtitle: 'Об оплате обучения — для налоговой',
+    keywords: ['вычет', 'налог', 'ндфл', '13%', 'оплат обучен', 'оплату обучен'],
+    formats: [{ id: 'pdf', label: 'Электронная', hint: 'PDF в заявке · 3 рабочих дня (демо-срок)' }],
+    producesPdf: true,
+  },
   aid: {
     title: 'Материальная помощь',
     short: 'Материальная помощь',
@@ -58,6 +66,7 @@ function requestTitle(r) {
   const t = TYPES[r.type];
   if (!t) return 'Заявка';
   if (r.type === 'study') return purposeOf('study', r.purpose)?.title || t.title;
+  if (r.type === 'tax' && r.purpose) return `${t.title} за ${r.purpose} год`;
   return t.title;
 }
 
@@ -70,7 +79,7 @@ function estimateEta(type, format, from = T.now()) {
     return T.at(T.nextWorkday(key), 17 * 60);
   }
   if (type === 'study') return T.at(T.addWorkdays(key, 2), 15 * 60);
-  if (type === 'visa') return T.at(T.addWorkdays(key, 3), 15 * 60);
+  if (type === 'visa' || type === 'tax') return T.at(T.addWorkdays(key, 3), 15 * 60);
   return T.at(T.addWorkdays(key, 5), 15 * 60); // матпомощь: решение комиссии
 }
 
