@@ -132,7 +132,8 @@ test('основной сценарий: справка для налогово�
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '123456789012' })).status, 400); // неверный ИНН
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: '' })).status, 400); // нет оплат за год
   const cur = String(new Date(Date.now() + 3 * 3600e3).getUTCFullYear());
-  assert.match(form, new RegExp(`справку за ${cur} можно заказать с января`));
+  assert.match(form, new RegExp(`Справку за ${cur} год можно заказать с января ${Number(cur) + 1} года`));
+  assert.doesNotMatch(form, /Год ещё идёт/);
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: cur, format: 'pdf', details: '' })).status, 400); // год не закончился
   assert.equal((await anna.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // бюджет: оплат нет
   const r = await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' });
