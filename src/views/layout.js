@@ -1,0 +1,62 @@
+'use strict';
+const { html, raw } = require('./html');
+
+const ICON = {
+  today: ['<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M3 12h5.5M15.5 12H21"/>',
+    '<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/><path d="M2.5 12h5M16.5 12h5" stroke-width="2.4"/>'],
+  study: ['<path d="M4 5h16v14H4z"/><path d="M4 9h16M9 5v14"/>',
+    '<path d="M4 5h16v14H4z" fill="currentColor"/><path d="M4 9h16M9 9v10" stroke="#fff"/>'],
+  requests: ['<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+    '<path d="M7 3h7l5 5v13H7z" fill="currentColor"/><path d="M10 13h6M10 17h6" stroke="#fff"/>'],
+  me: ['<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    '<circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 21a8 8 0 0 1 16 0z" fill="currentColor"/>'],
+};
+const svg = (inner, size = 24, extra = '') => raw(`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`);
+const I = {
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 22),
+  bell: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>', 22),
+  back: svg('<path d="M15 18l-6-6 6-6"/>', 22, 'stroke-width="2"'),
+  chev: svg('<path d="M9 6l6 6-6 6"/>', 18, 'class="chev" stroke-width="2"'),
+  file: svg('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>', 18),
+  send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22, 'stroke-width="2.2"'),
+  lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 18),
+  check: raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#E7F6EC"/><path d="M17 29l7 7 15-16" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
+  logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#14213D"/><path d="M7 20h8M25 20h8" stroke="#8E9BBB" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
+};
+
+function head(title) {
+  return html`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F7F9">
+<title>${title} · ДГТУ.Сейчас</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app.css?v=1">
+</head>`;
+}
+
+function tabbar(active, badge) {
+  const tabs = [['today', '/', 'Сегодня'], ['study', '/study', 'Учёба'], ['requests', '/requests', 'Заявки'], ['me', '/me', 'Я']];
+  return html`<nav class="tabbar" aria-label="Основное меню"><div class="in">${tabs.map(([k, href, label]) => html`
+<a href="${href}" ${active === k ? raw('aria-current="page"') : ''}><span class="ico">${svg(ICON[k][active === k ? 1 : 0])}${k === 'requests' && badge ? html`<span class="badge"></span><span class="sr-only">(есть действие)</span>` : ''}</span>${label}</a>`)}
+</div></nav>`;
+}
+
+// Страница мобильного кабинета студента
+function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
+  const flash = ctx && ctx.flash;
+  return html`${head(title)}<body>
+<div class="app ${noNav ? 'no-nav' : ''}">
+<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
+${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
+${body}
+</div>
+${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
+<script src="/app.js?v=1" defer></script>${scripts}
+</body></html>`;
+}
+
+function backBar(href, label) {
+  return html`<div class="back"><a class="icon-btn" href="${href}" aria-label="Назад: ${label}">${I.back}</a><span>${label}</span></div>`;
+}
+
+module.exports = { head, page, tabbar, backBar, I, svg };
