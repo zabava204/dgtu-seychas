@@ -38,12 +38,12 @@ function certificate({ r, student, staff, payments = [] }, stream) {
     doc.moveDown(1.2).fillColor('#14213D').font('R').fontSize(11.5).lineGap(3);
     const kv = (k, v) => { doc.font('S').text(k, { continued: true }).font('R').text(' ' + v); };
     kv('Налогоплательщик:', `${student.full_name} — является обучающимся`);
-    kv('ИНН налогоплательщика:', r.details || 'не указан; паспортные данные — из личного дела (в демо не выводятся)');
+    kv('ИНН налогоплательщика:', r.details || '—');
     kv('Обучающийся:', `${student.full_name}, ${student.level}, ${student.course} курс, ${student.form} форма обучения`);
     kv('Договор:', `${rows[0]?.contract || '—'} об оказании платных образовательных услуг`);
     doc.moveDown(0.6).font('S').text('Оплата за отчётный год:');
     doc.font('R');
-    for (const p of rows) doc.text(`   ${p.paid_on.split('-').reverse().join('.')} — ${rub(p.amount)} (${p.note || 'оплата по договору'}), плательщик: ${p.payer}`);
+    for (const p of rows) doc.text(`   ${p.paid_on.split('-').reverse().join('.')} — ${rub(p.amount)} (${p.note || 'оплата по договору'}), заказчик: ${p.payer}`);
     doc.moveDown(0.4).font('B').text(`Итого: ${rub(sum)}`);
     doc.moveDown(0.6).font('R').fontSize(10).fillColor('#5B6577').text('Форма справки утверждена приказом ФНС России от 18.10.2023 № ЕД-7-11/755@. Этот файл — демонстрационный образец, а не заполненная официальная форма.', { align: 'justify' });
   } else if (r.type === 'visa') {

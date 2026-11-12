@@ -166,9 +166,11 @@ function createApp({ db = open() } = {}) {
       const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
       if (!y) return fail('Выберите год, за который есть оплата по договору');
       if (!y.closed) return fail(`Справку за ${y.year} год можно заказать с января ${y.year + 1}, когда год закончится`);
-      if (details && !TAX.innOk(details)) return fail('ИНН должен состоять из 12 цифр и пройти проверку контрольных цифр. Можно оставить поле пустым.');
+      if (!details) return fail('Укажи ИНН — 12 цифр. Он обязателен в справке для налоговой.');
+      if (!TAX.innOk(details)) return fail('ИНН не прошёл проверку: должно быть 12 цифр, две последние — контрольные. Проверь, нет ли опечатки.');
     }
-    const id = M.submitRequest(req.user, { type, purpose, format, details });
+    const note = type === 'tax' ? String(req.body.note || '').trim().slice(0, 500) : '';
+    const id = M.submitRequest(req.user, { type, purpose, format, details, note });
     if (req.file) { saveFile(id, req.file, req.user.id); M.addEvent(id, req.user.id, 'uploaded', 'Справка о составе семьи'); }
     res.redirect(`/requests/${id}/sent`);
   });

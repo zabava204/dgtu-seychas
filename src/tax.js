@@ -21,4 +21,14 @@ const innOk = (s) => {
   const c = (w) => (w.reduce((a, k, i) => a + k * d[i], 0) % 11) % 10;
   return c([7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[10] && c([3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]) === d[11];
 };
-module.exports = { OWN_LIMIT, RATE, FIRST_YEAR, yearsFromPayments, rub, innOk };
+// ИНН физлица — 12 цифр, две последние — контрольные. Демо-ИНН начинается с «00»:
+// такого кода региона нет, поэтому номер не может принадлежать реальному человеку.
+function withChecksum(ten) {
+  const d = ten.split('').map(Number);
+  const c1 = ([7, 2, 4, 10, 3, 5, 9, 4, 6, 8].reduce((a, k, i) => a + k * d[i], 0) % 11) % 10;
+  d.push(c1);
+  const c2 = ([3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8].reduce((a, k, i) => a + k * d[i], 0) % 11) % 10;
+  return d.join('') + c2;
+}
+const DEMO_INN = withChecksum('0071482596');
+module.exports = { OWN_LIMIT, RATE, FIRST_YEAR, yearsFromPayments, rub, innOk, DEMO_INN };

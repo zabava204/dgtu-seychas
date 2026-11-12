@@ -11,6 +11,7 @@ process.env.DATA_DIR = tmp;
 process.env.DB_FILE = path.join(tmp, 'test.sqlite');
 delete process.env.GIGACHAT_AUTH_KEY;
 const { createApp } = require('../src/server');
+const { DEMO_INN } = require('../src/tax');
 
 let server; let base;
 before(async () => { server = createApp().listen(0); await new Promise((r) => server.once('listening', r)); base = `http://127.0.0.1:${server.address().port}`; });
@@ -81,7 +82,7 @@ test('сквозной сценарий: подача → в работе → PD
   const r = await anna.post('/requests', { type: 'study', purpose: 'transport', format: 'pdf', details: '' });
   assert.equal(r.status, 302);
   const id = r.headers.get('location').match(/requests\/(\d+)\/sent/)[1];
-  assert.match(await (await anna.get(`/requests/${id}/sent`)).text(), /Заявка отправлена/);
+  assert.match(await (await anna.get(`/requests/${id}/sent`)).text(), /Справка заказана/);
   assert.equal((await anna.get(`/requests/${id}/pdf`)).status, 404); // ещё не готова
   assert.match(await (await dk.get('/staff?f=new')).text(), new RegExp(`/staff/requests/${id}`));
   assert.equal((await dk.post(`/staff/requests/${id}/take`, {})).status, 302);
@@ -92,7 +93,7 @@ test('сквозной сценарий: подача → в работе → PD
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
   assert.ok((await pdf.arrayBuffer()).byteLength > 5000);
   const feed = await (await anna.get('/notifications')).text();
-  assert.match(feed, /Справка для проездного готова/);
+  assert.match(feed, /Справка об обучении для проездного готова/);
 });
 
 test('запрос документа и загрузка студентом', async () => {
@@ -129,14 +130,18 @@ test('основной сценарий: справка для налогово�
   assert.match(form, /pattern="\\d\{12\}"/);
   assert.match(form, /12 480 ₽/);
   const year = form.match(/name="purpose" value="(\d{4})"/)[1];
+  assert.match(form, /Справка об оплате образовательных услуг для ИФНС \(КНД 1151158\)/);
+  assert.match(form, /ФИО заказчика/);
+  assert.match(form, new RegExp(`value="${DEMO_INN}"`)); // демо-ИНН подставлен в черновик
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '123456789012' })).status, 400); // неверный ИНН
-  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: '' })).status, 400); // нет оплат за год
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // ИНН обязателен
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: DEMO_INN })).status, 400); // нет оплат за год
   const cur = String(new Date(Date.now() + 3 * 3600e3).getUTCFullYear());
   assert.match(form, new RegExp(`Справку за ${cur} год можно заказать с января ${Number(cur) + 1} года`));
   assert.doesNotMatch(form, /Год ещё идёт/);
-  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: cur, format: 'pdf', details: '' })).status, 400); // год не закончился
+  assert.equal((await ilya.post('/requests', { type: 'tax', purpose: cur, format: 'pdf', details: DEMO_INN })).status, 400); // год не закончился
   assert.equal((await anna.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // бюджет: оплат нет
-  const r = await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' });
+  const r = await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: DEMO_INN, note: 'Для декларации 3-НДФЛ' });
   assert.equal(r.status, 302);
   const id = r.headers.get('location').match(/requests\/(\d+)/)[1];
   assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Оплаты по договору/);

@@ -12,8 +12,8 @@ const NOTIF_CATEGORIES = [
 
 const STATUS = {
   draft: 'Черновик',
-  submitted: 'Ждёт сотрудника деканата',
-  in_work: 'В работе в деканате',
+  submitted: 'Ждёт обработки в деканате',
+  in_work: 'В обработке',
   need_student: 'Нужно твоё действие',
   ready: 'Готова',
   rejected: 'Отклонена',
@@ -121,9 +121,9 @@ function model(db) {
       const draft = m.draftOf(student.id);
       const tx = db.transaction(() => {
         if (draft && draft.type === data.type) q('DELETE FROM requests WHERE id = ?').run(draft.id);
-        const id = q(`INSERT INTO requests (number, student_id, type, purpose, details, format, status, created_at, submitted_at, eta_at)
-          VALUES (?,?,?,?,?,?, 'submitted', ?, ?, ?)`).run(number, student.id, data.type, data.purpose || null, data.details || null,
-          data.format || null, iso(now), iso(now), iso(estimateEta(data.type, data.format, now))).lastInsertRowid;
+        const id = q(`INSERT INTO requests (number, student_id, type, purpose, details, format, status, created_at, submitted_at, eta_at, note)
+          VALUES (?,?,?,?,?,?, 'submitted', ?, ?, ?, ?)`).run(number, student.id, data.type, data.purpose || null, data.details || null,
+          data.format || null, iso(now), iso(now), iso(estimateEta(data.type, data.format, now)), data.note || null).lastInsertRowid;
         q('INSERT INTO events (request_id, at, actor_id, kind) VALUES (?,?,?,?)').run(id, iso(now), student.id, 'submitted');
         return id;
       });

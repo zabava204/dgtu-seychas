@@ -10,7 +10,7 @@ const tag = (s) => html`<span class="tag ${TAG[s][0]}">${TAG[s][1]}</span>`;
 
 function shell({ title, ctx, cur, body }) {
   const c = ctx.counts;
-  const nav = [['new', 'Новые', c.new], ['work', 'В работе', c.work], ['student', 'Ждут студента', c.student], ['done', 'Готовые и закрытые', c.done]];
+  const nav = [['new', 'Новые', c.new], ['work', 'В работе', c.work], ['student', 'Ждут студента', c.student], ['done', 'Завершённые', c.done]];
   return html`${head(title)}<body><div class="staff-layout">
 <aside aria-label="Разделы деканата">
 <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${I.logo}<div><div style="font-weight:700">ДГТУ.Сейчас</div><div class="small" style="color:#8E9BBB">Кабинет деканата</div></div></div>
@@ -26,7 +26,7 @@ ${body}</main></div><script src="/app.js?v=1" defer></script></body></html>`;
 
 function queue(ctx) {
   const { list, filter } = ctx;
-  const titles = { new: 'Новые заявки', work: 'В работе', student: 'Ждут действия студента', done: 'Готовые и закрытые' };
+  const titles = { new: 'Новые заявки', work: 'В работе', student: 'Ждут действия студента', done: 'Завершённые' };
   return shell({
     title: 'Деканат', ctx, cur: filter,
     body: html`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h1>${titles[filter]}</h1>
@@ -64,20 +64,21 @@ function detail(ctx) {
 <div class="kv"><span>Тип</span><span>${t.title}</span></div>
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
 ${r.type === 'aid' ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
+${r.note ? html`<div class="kv"><span>Примечание студента</span><span>${r.note}</span></div>` : ''}
 ${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан — паспортные данные из личного дела'}</span></div>` : ''}
 ${r.details && r.type !== 'tax' ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label}</span></div>` : ''}
 ${files.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a> · ${T.stamp(new Date(f.uploaded_at))}</span></div>`)}
 ${r.type === 'aid' && !files.length ? html`<div class="kv"><span>Документы</span><span class="muted">не загружены</span></div>` : ''}
 </div></div>
-${r.type === 'tax' ? html`<div class="card"><b>Оплаты по договору</b><table class="table" style="margin-top:8px"><thead><tr><th>Дата</th><th>Договор</th><th>Плательщик</th><th>Сумма</th></tr></thead><tbody>
+${r.type === 'tax' ? html`<div class="card"><b>Оплаты по договору</b><table class="table" style="margin-top:8px"><thead><tr><th>Дата</th><th>Договор</th><th>Заказчик</th><th>Сумма</th></tr></thead><tbody>
 ${ctx.payments.map((p) => html`<tr><td>${p.paid_on.split('-').reverse().join('.')}</td><td>${p.contract}</td><td>${p.payer}</td><td>${TAX.rub(p.amount)}</td></tr>`)}</tbody></table>
 <div class="small muted" style="margin-top:6px">За ${r.purpose} год: ${TAX.rub(ctx.payments.filter((p) => p.paid_on.startsWith(r.purpose)).reduce((s, p) => s + p.amount, 0))} — эта сумма попадёт в справку.</div></div>` : ''}
 <div class="card"><b>История</b>${events.map((e) => html`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="small muted">${T.stamp(new Date(e.at))} · ${e.actor_role === 'staff' ? e.actor_name : 'студент'}</div>
 <div>${evText[e.kind] || e.kind}${e.text ? html`: ${e.text}` : ''}</div></div>`)}</div>
 </div>
 <div>
-${r.status === 'submitted' ? html`<div class="card"><b>Действие</b><p class="small muted" style="font-size:14px">Студент видит: «ждёт сотрудника». После взятия в работу — ваше имя и срок.</p>
+${r.status === 'submitted' ? html`<div class="card"><b>Действие</b><p class="small muted" style="font-size:14px">Студент видит: «Заказана · ждёт обработки». После взятия в работу — ваше имя и срок.</p>
 <form method="post" action="/staff/requests/${r.id}/take"><button class="btn block">Взять в работу</button></form></div>` : ''}
 ${r.status === 'in_work' && t.producesPdf ? html`<div class="card"><b>${r.format === 'paper' ? 'Справка готова к выдаче' : 'Сформировать PDF-справку'}</b>
 <p class="small muted" style="font-size:14px">${r.format === 'paper' ? 'Студент получит уведомление «Готова, забрать в каб. 210».' : 'PDF появится в заявке студента, придёт уведомление.'}</p>

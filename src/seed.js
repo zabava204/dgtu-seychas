@@ -3,6 +3,7 @@
 const bcrypt = require('bcryptjs');
 const T = require('./time');
 const { estimateEta } = require('./catalog');
+const { DEMO_INN } = require('./tax');
 
 const DEMO_PASSWORD = 'demo2026';
 const FACULTY = 'Менеджмент и бизнес';
@@ -160,7 +161,7 @@ function seed(db) {
   pay(`${curYear}-02-10`, 96000, '2 семестр');
   pay(`${curYear}-08-20`, 48000, '3 семестр, часть 1');
   pay(`${curYear}-10-15`, 48000, '3 семестр, часть 2');
-  R({ number: 'draft-' + ilya, student_id: ilya, type: 'tax', purpose: String(prevYear), format: 'pdf', status: 'draft', created_at: ago(1) }, []);
+  R({ number: 'draft-' + ilya, student_id: ilya, type: 'tax', purpose: String(prevYear), details: DEMO_INN, format: 'pdf', status: 'draft', created_at: ago(1) }, []);
 
   // Другие студенты
   R({ number: num(33), student_id: others.kim, type: 'aid', purpose: 'Студенческая семья', details: 'Рождение ребёнка в октябре.', status: 'in_work',

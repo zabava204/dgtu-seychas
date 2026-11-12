@@ -199,7 +199,8 @@ ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[
 
 // ---------- Заявки ----------
 function reqRowWaiting(r) {
-  const who = r.status === 'in_work' && r.assignee ? `В деканате · оформляет ${r.assignee.short_name}` : 'В деканате · ждёт сотрудника';
+  const cert = TYPES[r.type].producesPdf;
+  const who = r.status === 'in_work' && r.assignee ? `В обработке · ${r.assignee.short_name}` : cert ? 'Заказана · ждёт обработки' : 'Подана · ждёт сотрудника деканата';
   return html`<a class="row" href="/requests/${r.id}"><div class="body">
 <div class="req-head"><span class="title strong">${r.title}</span><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${who}</div>
@@ -223,10 +224,10 @@ ${act.map((r) => html`<div class="row" style="align-items:stretch"><span class="
 <div class="meta">Ожидаем документ. После загрузки деканат продолжит рассмотрение.</div>
 <div class="actions"><a class="btn small" href="/requests/${r.id}#upload">Загрузить справку</a>${docName(r) ? html`<a class="link" href="/help/doc?name=${encodeURIComponent(docName(r))}&back=/requests">Где взять справку</a>` : ''}</div>
 </div></div>`)}</section>` : ''}
-${drafts.length ? html`<section class="section"><h2 class="label">Черновики</h2>${drafts.map((r) => html`<a class="row" href="/requests/new?type=${r.type}&draft=1"><div class="body"><span class="title strong">${r.title}</span><span class="meta">Заполнен из профиля · проверь и отправь</span></div>${I.chev}</a>`)}</section>` : ''}
+${drafts.length ? html`<section class="section"><h2 class="label">Черновики</h2>${drafts.map((r) => html`<a class="row" href="/requests/new?type=${r.type}&draft=1"><div class="body"><span class="title strong">${r.title}</span><span class="meta">${r.type === 'tax' ? 'Заполнен по договору' : 'Заполнен из профиля'} · проверь и отправь</span></div>${I.chev}</a>`)}</section>` : ''}
 <section class="section"><h2 class="label">Ждут деканат</h2>
 ${wait.length ? wait.map(reqRowWaiting) : html`<p class="muted small">Сейчас ничего не ждёт.</p>`}</section>
-<section class="section"><h2 class="label">Готовые и закрытые</h2>
+<section class="section"><h2 class="label">Завершённые</h2>
 ${done.length ? done.map((r) => html`<div class="row"><div class="body">
 <div class="req-head"><a href="/requests/${r.id}" class="title strong" style="color:inherit;text-decoration:none">${r.title}</a><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${r.status === 'ready' ? `Готова · ${T.dayMonth(new Date(r.closed_at))}` : `Отклонена · ${r.reject_reason || ''}`}</div>
@@ -251,10 +252,10 @@ function newRequestForm(ctx) {
   const t = TYPES[type];
   const isTax = type === 'tax';
   const taxYears = years.filter((y) => y.eligibleForm);
-  const v = { purpose: draft?.purpose || values.purpose || (t.purposes ? t.purposes[0].id : ''), format: draft?.format || values.format || t.formats?.[0].id, details: draft?.details || values.details || '' };
+  const v = { purpose: draft?.purpose || values.purpose || (t.purposes ? t.purposes[0].id : ''), format: draft?.format || values.format || t.formats?.[0].id, details: draft?.details || values.details || '', note: values.note || '' };
   return page({
     title: 'Новая заявка', active: 'requests', ctx,
-    body: html`${backBar('/requests/new', 'Новая заявка')}<div class="page-head"><h1>${t.title}</h1>${draft ? html`<p class="muted" style="margin:6px 0 0">Черновик заполнен ${isTax ? 'по договору' : 'из профиля'}. Проверь и отправь.</p>` : ''}</div>
+    body: html`${backBar('/requests/new', 'Новая заявка')}<div class="page-head"><h1>${t.title}</h1>${t.official ? html`<p class="small muted" style="margin:6px 0 0">${t.official}</p>` : ''}${draft ? html`<p class="muted" style="margin:6px 0 0">Черновик заполнен ${isTax ? 'по договору' : 'из профиля'}. Проверь и отправь.</p>` : ''}</div>
 <form method="post" action="/requests" enctype="multipart/form-data" class="section" style="padding-top:8px">
 <input type="hidden" name="type" value="${type}">
 ${error ? html`<div class="note red" role="alert">${error}</div>` : ''}
@@ -282,23 +283,29 @@ ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="h
 function taxFields(payments, years, v, user) {
   const contract = payments[0]?.contract;
   const self = payments.length && payments.every((p) => p.payer === user.full_name);
+  const customer = payments[0]?.payer;
   const ok = (text) => html`<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px"><span aria-hidden="true" style="color:var(--green);font-weight:700">✓</span><span>${text}</span></div>`;
   if (!years.length) return html`<div class="note amber" style="margin-top:16px">В кабинете нет оплат по договору за 2024 год и позже. Если обучение платное — напиши в деканат по любой заявке, проверим договор.</div>`;
   const closed = years.filter((y) => y.closed);
   const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Условия проверены по данным кабинета</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
-${self ? ok('Платил(а) ты сам(а) — за своё обучение вычет положен при любой форме обучения') : ''}
+${self ? ok('Заказчик по договору — ты сам(а): за своё обучение вычет положен при любой форме обучения') : ''}
 ${ok('Оплата с 2024 года — для налоговой хватит одной этой справки, договор и чеки не нужны')}</div></div>
 <fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты <span class="hint">справку выдают за закончившийся год</span></legend>
 <div class="options" style="grid-template-columns:1fr">${[...closed, ...years.filter((y) => !y.closed)].map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
 <span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Вернуть можно до ${TAX.rub(y.refund)}*</small></span></label>`
     : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года.` : ''}</small></div>`)}</div></fieldset>
-${closed.length ? html`<label class="field">ИНН <span class="hint">необязательно · 12 цифр. Если не указать, в справке будут паспортные данные из личного дела</span>
-<input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
+${closed.length ? html`<div class="card" style="margin-top:16px"><div class="small muted">Данные для справки — из договора</div>
+<div class="kv"><span>ФИО обучающегося</span><span>${user.full_name}</span></div>
+<div class="kv"><span>ФИО заказчика</span><span>${customer}</span></div>
+<div class="kv"><span>Номер договора</span><span>${contract}</span></div></div>
+<label class="field">ИНН обучающегося и заказчика <span class="hint">обязательно · 12 цифр${self ? ' · ты одновременно обучающийся и заказчик' : ''}${v.details === TAX.DEMO_INN ? ' · в демо подставлен тестовый ИНН' : ''}</span>
+<input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" required value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
+<label class="field">Примечание <span class="hint">необязательно</span><textarea name="note" maxlength="500" style="min-height:72px">${v.note || ''}</textarea></label>
 <p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если доход облагается по ставке 13%.</p>` : ''}
 <a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
-<p class="small muted" style="margin:6px 0 0">Если платили родители или супруг(а), справку оформляют на их имя — в первой версии такую заявку подают в деканате.</p>`;
+<p class="small muted" style="margin:6px 0 0">Если заказчик по договору — родители или супруг(а), справку оформляют на их имя — в первой версии такую заявку подают в деканате.</p>`;
 }
 
 function taxHelp(ctx) {
@@ -318,11 +325,12 @@ ${step('todo', 'Проверка и возврат', 'Налоговая про�
 }
 
 function requestSent(ctx) {
-  const { r, perm } = ctx;
+  const { r } = ctx;
+  const head = TYPES[r.type].producesPdf ? 'Справка заказана' : 'Заявление подано';
   return page({
-    title: 'Заявка отправлена', active: 'requests', ctx,
+    title: head, active: 'requests', ctx,
     body: html`<div class="page-head" style="padding-top:40px">${I.check}
-<h1 style="margin-top:14px">Заявка отправлена</h1>
+<h1 style="margin-top:14px">${head}</h1>
 <div class="sub">${r.title} · № ${r.number}</div>
 <div class="small muted" style="margin-top:4px;font-size:14px">Ожидаемая готовность — ${T.relDateTime(new Date(r.eta_at))}</div></div>
 <div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Сейчас действие за <b>деканатом</b>. Тебе ничего делать не нужно.</div>
@@ -355,8 +363,10 @@ function requestDetail(ctx) {
 ${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">Ожидаемая готовность — ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
 ${pdfOk ? html`<div style="padding:16px 20px 0"><a class="btn block" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div>` : ''}
 <div class="stages">
-${stage('', 'Подана', by(ev('submitted')))}
-${r.taken_at ? stage('', 'Взята в работу', by(ev('taken'))) : stage(r.status === 'submitted' ? 'current' : 'todo', 'Ждёт сотрудника', r.status === 'submitted' ? 'сейчас · обычно берут в течение часа в рабочее время' : '')}
+${stage('', isAid ? 'Подана' : 'Заказана', by(ev('submitted')))}
+${isAid ? (r.taken_at ? stage('', 'Взята в работу', by(ev('taken'))) : stage(r.status === 'submitted' ? 'current' : 'todo', 'Ждёт сотрудника', r.status === 'submitted' ? 'сейчас · обычно берут в течение часа в рабочее время' : ''))
+    : r.taken_at ? stage(r.status === 'in_work' ? 'current' : '', 'В обработке', by(ev('taken')), r.status === 'in_work' && purpose ? html`<div class="bubble">Справка об обучении ${purpose.full} · ${formatOf('study', r.format)?.label.toLowerCase()}</div>` : '')
+      : stage(r.status === 'submitted' ? 'current' : 'todo', 'В обработке', r.status === 'submitted' ? 'ждёт сотрудника · обычно берут в течение часа в рабочее время' : '')}
 ${ev('uploaded') && r.status !== 'need_student' ? stage('', 'Документ загружен', by(ev('uploaded'))) : ''}
 ${r.status === 'need_student' ? stage('amber', 'Нужен документ', by(ev('need_doc')), html`<div class="bubble staff">${r.needs_text}</div>
 <form id="upload" method="post" action="/requests/${r.id}/upload" enctype="multipart/form-data" style="margin-top:10px">
@@ -364,15 +374,17 @@ ${r.status === 'need_student' ? stage('amber', 'Нужен документ', by
 <div class="actions"><button class="btn small" type="submit">Загрузить справку</button>${isAid ? html`<a class="link" href="/help/doc?name=${encodeURIComponent('Справка о составе семьи')}&back=/requests/${r.id}">Где взять справку</a>` : ''}</div>
 <p class="small muted">Ожидаем документ. После загрузки деканат продолжит рассмотрение.</p></form>`) : ''}
 ${r.status === 'rejected' ? stage('amber', 'Отклонена', by(ev('rejected')), html`<div class="bubble staff">${r.reject_reason}</div>`)
-    : r.status === 'ready' ? html`${stage('', workTitle, '')}${stage('', isAid ? 'Решение принято' : 'Готова', by(ev('ready')), isAid ? html`<div class="bubble staff">${ev('ready')?.text || 'Решение отправлено в бухгалтерию.'}</div>` : r.format === 'paper' ? html`<div class="bubble">Забрать: корпус 1, каб. 210, пн–пт 9:00–17:00</div>` : '')}`
-      : html`${stage(r.status === 'in_work' ? 'current' : 'todo', workTitle, r.status === 'in_work' ? 'сейчас' : '', r.status === 'in_work' && purpose ? html`<div class="bubble">Справка с места учёбы ${purpose.full} · ${formatOf('study', r.format)?.label.toLowerCase()}</div>` : '')}
+    : r.status === 'ready' ? html`${isAid ? stage('', workTitle, '') : ''}${stage('', isAid ? 'Решение принято' : 'Готова', by(ev('ready')), isAid ? html`<div class="bubble staff">${ev('ready')?.text || 'Решение отправлено в бухгалтерию.'}</div>` : r.format === 'paper' ? html`<div class="bubble">Забрать: корпус 1, каб. 210, пн–пт 9:00–17:00</div>` : '')}`
+      : html`${isAid ? stage(r.status === 'in_work' ? 'current' : 'todo', workTitle, r.status === 'in_work' ? 'сейчас' : '') : ''}
 ${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'придёт уведомление с решением' : r.format === 'paper' ? 'придёт уведомление, забрать в деканате' : 'здесь появится кнопка «Открыть PDF», придёт уведомление')}`}
 </div>
 <div style="margin:4px 20px 0;padding-top:12px;border-top:1px solid var(--line)">
+${!isAid ? html`<div class="kv"><span>Дата заказа</span><span>${T.stamp(new Date(r.submitted_at || r.created_at))}</span></div>` : ''}
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
 ${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">декларация 3-НДФЛ</a></span></div>` : ''}
 ${isAid ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
 ${r.details ? html`<div class="kv"><span>${t.detailsLabel || (r.type === 'tax' ? 'ИНН' : 'Уточнение')}</span><span>${r.details}</span></div>` : ''}
+${r.note ? html`<div class="kv"><span>Примечание</span><span>${r.note}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label || r.format}</span></div>` : ''}
 ${docFiles.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a></span></div>`)}
 </div>

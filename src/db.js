@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY, number TEXT UNIQUE NOT NULL, student_id INTEGER NOT NULL REFERENCES users(id),
   type TEXT NOT NULL, purpose TEXT, details TEXT, format TEXT, status TEXT NOT NULL, needs_text TEXT,
   assignee_id INTEGER REFERENCES users(id), created_at TEXT NOT NULL, submitted_at TEXT, taken_at TEXT,
-  closed_at TEXT, eta_at TEXT, notify_ready INTEGER DEFAULT 0, reject_reason TEXT
+  closed_at TEXT, eta_at TEXT, notify_ready INTEGER DEFAULT 0, reject_reason TEXT, note TEXT
 );
 CREATE TABLE IF NOT EXISTS request_files (
   id INTEGER PRIMARY KEY, request_id INTEGER NOT NULL REFERENCES requests(id), name TEXT NOT NULL, stored TEXT NOT NULL,
@@ -73,6 +73,7 @@ function open(file = process.env.DB_FILE || path.join(DATA_DIR, 'dgtu.sqlite')) 
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  try { db.exec('ALTER TABLE requests ADD COLUMN note TEXT'); } catch { /* колонка уже есть */ }
   db.dataDir = DATA_DIR;
   const count = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
   if (count === 0) seed(db);
