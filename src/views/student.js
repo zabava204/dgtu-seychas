@@ -127,7 +127,7 @@ function today(ctx) {
   const actions = [
     firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
     overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
-    ['/requests/new', 'Что случилось? Подберём справки'],
+    ['/requests/new', 'Жизненные ситуации'],
     ['/study?view=week', 'Расписание на неделю'],
     ['/study/record', 'Зачётка'],
   ].filter(Boolean);
@@ -338,8 +338,8 @@ function newRequestChoose(ctx) {
   const types = Object.entries(TYPES).filter(([, t]) => !t.budgetOnly || user.funding === 'бюджет');
   return page({
     title: 'Новая заявка', active: 'requests', ctx,
-    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Что случилось?</h1><p class="muted" style="margin:6px 0 0">Выбери ситуацию — кабинет подберёт справки и подскажет, что сделать. Или закажи нужную справку сам.</p></div>
-<section class="section" aria-labelledby="sit-h"><h2 class="label" id="sit-h">По ситуации</h2>${situationList(situations)}</section>
+    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Выбери жизненную ситуацию — кабинет подберёт справки и подскажет шаги. Или закажи нужную справку сам.</p></div>
+<section class="section" aria-labelledby="sit-h"><h2 class="label" id="sit-h">Жизненные ситуации</h2>${situationList(situations)}</section>
 <section class="section" aria-labelledby="types-h"><h2 class="label" id="types-h">Справки и заявления</h2>
 ${types.map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
 <span class="meta">${t.subtitle || 'Заявление и документы'}</span></div>${I.chev}</a>`)}</section>
@@ -352,7 +352,7 @@ function situation(ctx) {
   const n = s.available.length;
   return page({
     title: s.title, active: 'requests', ctx,
-    body: html`${backBar('/requests/new', 'Что случилось?')}<div class="page-head"><div class="sit-ic">${sitIcon(s.icon)}</div><h1 style="font-size:26px">${s.title}</h1><p class="muted" style="margin:6px 0 0">${s.lead}</p></div>
+    body: html`${backBar('/requests/new', 'Жизненные ситуации')}<div class="page-head"><div class="sit-ic">${sitIcon(s.icon)}</div><h1 style="font-size:26px">${s.title}</h1><p class="muted" style="margin:6px 0 0">${s.lead}</p></div>
 ${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" aria-labelledby="ord-h"><h2 class="label" id="ord-h">Закажем за тебя</h2>
 <div class="group">${s.orders.map((o) => html`<label class="row pick ${o.available ? '' : 'off'}"><input type="checkbox" name="items" value="${o.key}" ${o.available ? raw('checked') : raw('disabled')}>
 <span class="body"><span class="title strong">${o.title}</span><span class="meta">${o.available ? o.hint : o.reason}</span></span></label>`)}</div>

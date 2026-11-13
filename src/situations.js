@@ -7,11 +7,11 @@ const pl = (n) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 
 const TAX = require('./tax');
 
 const SITUATIONS = [
-  { id: 'housing', title: 'Семья оформляет субсидию или льготу на ЖКУ', lead: 'Соцзащита учитывает, что ты учишься очно, и твою стипендию как доход семьи.', icon: 'home' },
-  { id: 'job', title: 'Работодатель просит подтвердить учёбу', lead: 'Справка для отдела кадров и что важно знать про сессию, если работаешь.', icon: 'work' },
-  { id: 'tax', title: 'Хочу вернуть налог за учёбу', lead: '13% от оплаты обучения можно вернуть через налоговую.', icon: 'tax' },
-  { id: 'behind', title: 'Не успеваю сдать работы', lead: 'Что именно не сдано, сколько баллов не хватает до допуска и как договориться с преподавателем.', icon: 'clock' },
-  { id: 'money', title: 'Нужна материальная помощь', lead: 'Заявление и документы, которые понадобятся.', icon: 'aid' },
+  { id: 'housing', title: 'Семья оформляет субсидию на ЖКУ', lead: 'Соцзащита учитывает, что ты учишься очно, и твою стипендию как доход семьи.', icon: 'home' },
+  { id: 'job', title: 'Устраиваюсь на работу', lead: 'Справка для отдела кадров и что важно знать про сессию, если совмещаешь работу и учёбу.', icon: 'work' },
+  { id: 'tax', title: 'Возвращаю налог за учёбу', lead: '13% от оплаты обучения можно вернуть через налоговую.', icon: 'tax' },
+  { id: 'behind', title: 'Готовлюсь к сессии', lead: 'Что ещё сдать, сколько баллов нужно до допуска, даты зачётов и экзаменов.', icon: 'clock' },
+  { id: 'money', title: 'Оформляю материальную помощь', lead: 'Заявление и документы, которые понадобятся.', icon: 'aid' },
 ];
 
 // data: { user, payments, stipends, disciplines, session, requests }
@@ -70,7 +70,7 @@ function build(id, data) {
       out.todo.push(`${d.subject}: ${d.gap ? `до допуска не хватает ${d.gap} ${pl(d.gap)}` : 'порог набран'}${d.overdue.length ? `; просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max} ${pl(w.max)})`).join(', ')}` : ''}${ex ? `; ${ex.kind} ${T.dayMonthKey(ex.date_key)}` : ''}. Преподаватель — ${d.teacher}`);
     }
     if (risky.length) out.links.push({ href: '/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), label: 'Как попросить отсрочку' });
-    out.links.push({ href: '/study/grades', label: 'Все баллы' });
+    out.links.push({ href: '/study/grades#session', label: 'Даты сессии и допуск' });
   }
 
   if (id === 'money') {
