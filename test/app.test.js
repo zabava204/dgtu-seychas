@@ -173,3 +173,19 @@ test('уведомление об изменении аудитории ведё
   assert.match(page, new RegExp(`id="pair-${m[3]}"`));
   assert.match(page, /Аудитория изменена · было 8-202/);
 });
+
+test('сессия: даты, допуск, зачётная книжка, вопрос помощнику', async () => {
+  const anna = await login('anna'); const ilya = await login('ilya');
+  const g = await (await anna.get('/study/grades')).text();
+  assert.match(g, /СЕССИЯ С \d+ ДЕКАБРЯ/);
+  assert.match(g, /Бизнес-планирование[\s\S]*до допуска 38 баллов/);
+  assert.match(g, /Маркетинг[\s\S]*допуск есть/);
+  assert.match(g, /Зачётная книжка/);
+  const book = await (await anna.get('/study/record')).text();
+  assert.match(book, /4 семестр/);
+  assert.match(book, /Курсовая работа по менеджменту/);
+  assert.doesNotMatch(await (await ilya.get('/study/record')).text(), /Курсовая работа по менеджменту/); // чужая зачётка не видна
+  const a = await (await anna.post('/api/assistant', { message: 'Когда экзамен по бизнес-планированию?' }, true)).json();
+  assert.equal(a.source, 'calc');
+  assert.match(a.text, /консультация[\s\S]*экзамен: Бизнес-планирование/);
+});

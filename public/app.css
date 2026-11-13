@@ -234,3 +234,21 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .hero .big { font-size: 34px; }
 .hero .subj { font-size: 18px; }
 .hero .btn-white { height: 46px; }
+
+/* ---------- Сессия и зачётная книжка ---------- */
+.sess { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sess:last-child { border-bottom: 0; }
+.sess .sd { flex: none; width: 52px; text-align: center; padding: 6px 0; border-radius: 12px; background: var(--blue-soft); color: var(--blue-dark); line-height: 1.1; }
+.sess .sd b { display: block; font-size: 20px; }
+.sess .sd span { font-size: 12px; }
+.sess .body { flex: 1; min-width: 0; }
+.sess .title { font-weight: 600; }
+.sess .meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.sess.cons .sd { background: #EEF1F5; color: var(--muted); }
+.sess.cons .title { font-weight: 500; color: var(--muted); }
+.linkcard { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
+.linkcard:hover { color: var(--ink); border-color: var(--blue); }
+.days a .ch.ex { background: var(--amber); }
+.pair.exam { border-left: 4px solid var(--amber); }
+#session { scroll-margin-top: 12px; }
+.sess .sd.done { background: var(--green-soft); color: var(--green); }

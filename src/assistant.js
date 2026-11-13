@@ -27,6 +27,15 @@ function intents(question, data) {
     return set('support', 'Спасибо, что написал(а). Ты не один(одна) с этим. Если есть угроза жизни — звони 112. Контакты психолога вуза — в разделе «Если тяжело»; открытие этого раздела не создаёт обращения в деканат.', [{ label: 'Если тяжело', href: '/hard' }, { label: 'Позвонить 112', href: 'tel:112' }]);
   }
   if (has(q, ['состав семьи', 'составе семьи'])) return set('doc_family', 'Справку о составе семьи обычно выдают МФЦ или управляющая компания / ТСЖ по месту регистрации. Для подачи достаточно скана или фото. Точные требования (например, срок давности) уточни в деканате — это демо-правило.', [{ label: 'Где взять справку', href: '/help/doc?name=' + encodeURIComponent('Справка о составе семьи') }]);
+  // Даты сессии — из расписания сессии, без модели
+  if (has(q, ['когда', 'дата', 'во сколько', 'где будет', 'расписание сесс', 'какого числа', 'сколько дней до']) && has(q, ['сесси', 'экзамен', 'зачет', 'консультац']) && (data.session || []).length) {
+    out.exact = true;
+    const d = GR.findDiscipline(q, data.disciplines);
+    const items = data.session.filter((s) => (d ? s.discipline_id === d.id : s.kind !== 'консультация'));
+    const line = (s) => `${T.dayMonthKey(s.date_key)} (${T.wdShortKey(s.date_key).toLowerCase()}), ${s.start}, ауд. ${s.room} — ${s.kind}: ${s.subject}${s.kind === 'консультация' ? '' : s.admitted ? ' · допуск есть' : ` · до допуска не хватает ${s.gap}`}`;
+    const text = items.length ? `${d ? '' : 'Сессия по расписанию кабинета:\n'}${items.map(line).join('\n')}` : 'По этой дисциплине в сессию нет зачёта или экзамена.';
+    return set('session', text, [{ label: 'Сессия и допуск', href: '/study/grades#session' }]);
+  }
   // Баллы считает программа (grades.js); модель их не пересчитывает
   if (has(q, ['балл', 'зачет', 'оценк', 'экзамен', 'сесси', 'долг', 'автомат', 'порог', 'хватит', 'допуск']) || GR.findDiscipline(q, data.disciplines)) {
     const g = GR.answer(q, data.disciplines);

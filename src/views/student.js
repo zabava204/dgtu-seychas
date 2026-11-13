@@ -33,6 +33,20 @@ const changeText = (p) => {
   if (p.old_room) return `Аудитория изменена · было ${p.old_room}`;
   return '';
 };
+const MON_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const daysUntil = (key) => Math.round((Date.parse(key + 'T00:00:00Z') - Date.parse(T.dateKey() + 'T00:00:00Z')) / T.DAY_MS);
+const inDays = (n) => (n === 0 ? 'сегодня' : n === 1 ? 'завтра' : `через ${n} ${plural(n, 'день', 'дня', 'дней')}`);
+const KIND_CAP = { зачёт: 'Зачёт', экзамен: 'Экзамен', консультация: 'Консультация' };
+function admitTag(s) {
+  if (s.kind === 'консультация' || s.admitted == null) return '';
+  return s.admitted ? html`<span class="tag green">допуск есть</span>` : html`<span class="tag red">до допуска ${s.gap} ${plural(s.gap, 'балл', 'балла', 'баллов')}</span>`;
+}
+function sessionRow(s) {
+  const [, mo, da] = s.date_key.split('-').map(Number);
+  const cons = s.kind === 'консультация';
+  return html`<div class="sess${cons ? ' cons' : ''}"><div class="sd"><b>${da}</b><span>${MON_SHORT[mo - 1]}, ${T.wdShortKey(s.date_key).toLowerCase()}</span></div>
+<div class="body"><div class="title">${s.subject}</div><div class="meta">${KIND_CAP[s.kind]} · ${s.start} · ауд. ${s.room}${cons ? '' : ` · ${s.teacher}`}</div>${s.consult ? html`<div class="meta">Консультация — ${T.dayMonthKey(s.consult.date_key)}, ${s.consult.start}</div>` : ''}${admitTag(s) ? html`<div style="margin-top:6px">${admitTag(s)}</div>` : ''}</div></div>`;
+}
 const lbl = (pos) => (pos < 12 ? 'transform:none' : pos > 88 ? 'transform:translateX(-100%)' : '');
 
 function dayLine(pairs, isToday, next) {
@@ -65,7 +79,8 @@ function gradesSummary(ds) {
 
 // ---------- Сегодня ----------
 function today(ctx) {
-  const { user, next, ds, todo, unread } = ctx;
+  const { user, next, ds, todo, unread, session = [] } = ctx;
+  const firstS = session.find((x) => x.kind !== 'консультация' && x.date_key >= T.dateKey());
   const key = T.dateKey();
   let hero = html`<div class="hero"><div class="subj">Пар в ближайшие две недели нет</div></div>`;
   if (next) {
@@ -102,7 +117,7 @@ ${todo.length ? html`<div>${todo.map((t) => html`<div class="row">${t.amber ? ht
     : html`<p class="muted">Всё сделано. Хорошего дня!</p>`}
 </section>
 <a class="row" href="/study/grades" style="margin:10px 20px 0;border-top:1px solid var(--line);border-bottom:0">
-${lightsBar(ds)}<span class="body small" style="font-size:14px">${gradesSummary(ds)}</span>${I.chev}</a>`,
+${lightsBar(ds)}<span class="body small" style="font-size:14px">${gradesSummary(ds)}${firstS ? html`<span class="muted" style="display:block;margin-top:2px">Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}</span>` : ''}</span>${I.chev}</a>`,
   });
 }
 
@@ -114,42 +129,51 @@ function studyTabs(user, cur) {
 }
 
 function schedule(ctx) {
-  const { user, sel, week, pairs } = ctx;
+  const { user, sel, week, pairs, exams = [] } = ctx;
   return page({
     title: 'Расписание', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'schedule')}
 <div class="days" role="list" aria-label="Дни недели">${week.map((d) => html`<a role="listitem" href="/study?d=${d.key}" ${d.key === sel ? raw('aria-current="date"') : ''}>
-<span>${T.wdShortKey(d.key)}</span><b>${Number(d.key.slice(8))}</b>${d.changed ? html`<span class="ch" title="есть изменения"></span>` : ''}</a>`)}</div>
+<span>${T.wdShortKey(d.key)}</span><b>${Number(d.key.slice(8))}</b>${d.changed ? html`<span class="ch" title="есть изменения"></span>` : d.session && d.session.length ? html`<span class="ch ex" title="сессия"></span>` : ''}</a>`)}</div>
 <div style="display:flex;justify-content:space-between;padding:6px 20px 0">
 <a class="link" style="padding-left:0" href="/study?d=${T.addDays(week[0].key, -7)}">← пред. неделя</a>
 <a class="link" style="padding-right:0" href="/study?d=${T.addDays(week[0].key, 7)}">след. неделя →</a></div>
 <section class="section" style="padding-top:4px" aria-label="Пары">
 <h2 class="label">${T.wdLongKey(sel)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
+${exams.map((e) => html`<article class="pair exam" id="exam-${e.id}">
+<div class="tm"><span>${e.start}</span><span class="tag ${e.kind === 'консультация' ? 'blue' : 'amber'}">${e.kind}</span></div>
+<div class="nm">${e.subject}</div>
+<div class="small muted" style="margin-top:2px">${e.teacher} · ауд. ${e.room}</div>
+<div class="actions"><a class="btn secondary small" href="/study/grades#session">Сессия и допуск</a></div></article>`)}
 ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="tm"><span>${p.start}–${p.end}</span><span>${p.cancelled ? 'отменена' : p.kind}</span></div>
 <div class="nm">${p.subject}</div>
 <div class="small muted" style="margin-top:2px">${p.teacher} · ${roomText(p)}</div>
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
 ${p.online || p.cancelled ? '' : html`<div class="actions"><a class="btn secondary small" href="/route?room=${encodeURIComponent(p.room)}">Как пройти</a></div>`}
-</article>`) : html`<div class="card" style="margin-top:10px"><b>Пар нет.</b><div class="small muted">Выбери другой день или неделю.</div></div>`}
+</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>Пар нет.</b><div class="small muted">Выбери другой день или неделю.</div></div>`}
 </section>`,
   });
 }
 
 function grades(ctx) {
-  const { user, ds } = ctx;
+  const { user, ds, session = [], book } = ctx;
+  const firstS = session.find((x) => x.kind !== 'консультация');
+  const sessList = session.filter((x) => x.kind !== 'консультация').map((x) => ({ ...x, consult: session.find((c) => c.kind === 'консультация' && c.discipline_id === x.discipline_id) }));
+  const exCount = sessList.length;
+  const early = ds.filter((d) => d.closed_text);
   const bad = ds.filter((d) => d.light === 'red' || d.light === 'amber').length;
   const ok = ds.length - bad;
+  const cap = (x) => x[0].toUpperCase() + x.slice(1);
   const word = (d) => {
-    if (d.light === 'done') return `${d.closed_text}. Контроль — ${d.control}.`;
-    const tail = ` Контроль — ${d.control}, итог не выставлен.`;
+    if (d.light === 'done') return `${cap(d.control)} · ${d.closed_text.toLowerCase()}.`;
     if (d.gap > 0) {
       const over = d.overdue.length ? ` Просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max})`).join(', ')}.` : '';
       const nx = d.upcoming[0];
-      return `До порога ${d.pass_threshold} не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}.${over}${nx ? ` Ближайшее: ${nx.title} (до ${nx.max}), ${T.dayMonthKey(nx.due_key)}.` : ''}${tail}`;
+      return `${cap(d.control)} · до порога ${d.pass_threshold} не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}.${over}${nx ? ` Ближайшее: ${nx.title} (до ${nx.max}), ${T.dayMonthKey(nx.due_key)}.` : ''}`;
     }
-    return `Порог ${d.pass_threshold} набран.${d.autoGap ? ` До автомата ${d.autoGap} ${plural(d.autoGap, 'балл', 'балла', 'баллов')}.` : ''}${tail}`;
+    return `${cap(d.control)} · порог ${d.pass_threshold} набран.${d.autoGap ? ` До автомата ${d.autoGap} ${plural(d.autoGap, 'балл', 'балла', 'баллов')}.` : ''}`;
   };
   const color = { green: 'var(--green)', amber: '#D97706', red: 'var(--red-dot)', done: '#98A2B3' };
   return page({
@@ -157,12 +181,14 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="hero" style="margin-top:14px" aria-label="Готовность к сессии">
-<div class="small" style="color:#AFC3FF;font-weight:600;letter-spacing:.05em">ТЕКУЩИЕ БАЛЛЫ · ДО СЕССИИ</div>
-<div class="subj" style="font-size:22px">${bad ? `Порог набран по ${ok} из ${ds.length}, по ${bad} нужно действовать` : 'Порог набран по всем дисциплинам'}</div>
+<div class="small" style="color:#AFC3FF;font-weight:600;letter-spacing:.05em">${firstS ? `СЕССИЯ С ${T.dayMonthKey(firstS.date_key).toUpperCase()} · ${inDays(daysUntil(firstS.date_key)).toUpperCase()}` : 'ТЕКУЩИЕ БАЛЛЫ'}</div>
+<div class="subj" style="font-size:22px">${bad ? `Допуск есть по ${ok} из ${ds.length}, по ${bad} не хватает баллов` : 'Допуск есть по всем дисциплинам'}</div>
 <div style="display:flex;gap:4px">${ds.map((d) => html`<span style="flex:1;height:6px;border-radius:3px;background:${raw(color[d.light])}"></span>`)}</div>
-<div class="small" style="color:#D5DDF0">Итоговые оценки ещё не выставлены · даты зачётов и экзаменов пока не назначены · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
+<div class="small" style="color:#D5DDF0">Итоговые оценки ещё не выставлены · допуск — порог текущих баллов (демо-правило) · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
 </section>
-<section class="section" aria-label="Дисциплины">
+${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
+<div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
+<section class="section" aria-labelledby="pts-h"><h2 class="label" id="pts-h">Текущие баллы</h2>
 ${ds.map((d) => html`<details class="card" id="d-${d.id}" style="margin-top:10px">
 <summary style="list-style:none;cursor:pointer;display:flex;gap:10px">
 <span class="dotc" style="background:${raw(color[d.light])}"></span>
@@ -172,7 +198,25 @@ ${ds.map((d) => html`<details class="card" id="d-${d.id}" style="margin-top:10px
 <div class="small muted" style="margin-top:6px">${d.control} · порог ${d.pass_threshold}${d.auto_threshold ? ` · автомат от ${d.auto_threshold}` : ''} · ${d.teacher}</div>
 <div class="actions"><a class="btn secondary small" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Спросить помощника</a></div></div>
 </details>`)}
+${book && book.total ? html`<a class="card linkcard" href="/study/record" style="margin-top:16px"><span style="flex:1"><b>Зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')} · ${book.debts ? `долгов: ${book.debts}` : 'долгов нет'}${book.avg ? ` · средний балл ${book.avg.toFixed(1).replace('.', ',')}` : ''}</span></span>${I.chev}</a>` : ''}
 </section>`,
+  });
+}
+
+const MARK_CLS = { отлично: 'green', хорошо: 'blue', удовлетворительно: 'amber', зачтено: '' };
+function recordBook(ctx) {
+  const { book } = ctx;
+  return page({
+    title: 'Зачётная книжка', active: 'study', ctx,
+    body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Зачётная книжка</h1>
+<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в «Оценках».</p></div>
+<section class="section"><div class="card"><div class="kv"><span>Сдано</span><span>${book.total} из ${book.total}</span></div>
+<div class="kv"><span>Академические задолженности</span><span>${book.debts ? book.debts : 'нет'}</span></div>
+${book.avg ? html`<div class="kv"><span>Средний балл по оценкам</span><span>${book.avg.toFixed(2).replace('.', ',')}</span></div>` : ''}</div></section>
+${book.sems.map((s, i) => html`<section class="section"><details class="card" ${i === 0 ? raw('open') : ''}>
+<summary style="cursor:pointer;font-weight:600">${s.semester} семестр · ${s.rows.length} ${plural(s.rows.length, 'дисциплина', 'дисциплины', 'дисциплин')}</summary>
+${s.rows.map((r) => html`<div class="row"><div class="body"><div class="title">${r.subject}</div><div class="meta">${r.control} · ${T.dayMonthKey(r.date_key)} ${r.date_key.slice(0, 4)} · ${r.teacher}</div></div><span class="tag ${MARK_CLS[r.mark] || ''}">${r.mark}</span></div>`)}
+</details></section>`)}`,
   });
 }
 
@@ -536,4 +580,4 @@ function helper(ctx) {
   });
 }
 
-module.exports = { dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };
+module.exports = { recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };

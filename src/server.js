@@ -125,7 +125,8 @@ function createApp({ db = open() } = {}) {
     for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.type === 'aid' ? 'Матпомощь' : r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
     for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
-    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds: M.disciplines(u.id), todo })));
+    const ds = M.disciplines(u.id);
+    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds) })));
   });
 
   app.get('/study', student, (req, res) => {
@@ -133,10 +134,14 @@ function createApp({ db = open() } = {}) {
     let sel = /^\d{4}-\d{2}-\d{2}$/.test(req.query.d || '') ? req.query.d : T.dateKey();
     if (!req.query.d && T.weekday() === 7) sel = T.addDays(sel, 1);
     const monday = T.addDays(sel, 1 - T.weekdayOfKey(sel));
-    const week = [0, 1, 2, 3, 4, 5].map((i) => { const key = T.addDays(monday, i); return { key, changed: M.dayPairs(u.group_name, key).some((p) => p.change) }; });
-    send(res, V.schedule(ctxOf(req, { sel, week, pairs: M.dayPairs(u.group_name, sel) })));
+    const week = [0, 1, 2, 3, 4, 5].map((i) => { const key = T.addDays(monday, i); return { key, changed: M.dayPairs(u.group_name, key).some((p) => p.change), session: M.sessionOn(u.id, key) }; });
+    send(res, V.schedule(ctxOf(req, { sel, week, pairs: M.dayPairs(u.group_name, sel), exams: M.sessionOn(u.id, sel) })));
   });
-  app.get('/study/grades', student, (req, res) => send(res, V.grades(ctxOf(req, { ds: M.disciplines(req.user.id) }))));
+  app.get('/study/grades', student, (req, res) => {
+    const ds = M.disciplines(req.user.id);
+    send(res, V.grades(ctxOf(req, { ds, session: M.session(req.user.id, ds), book: M.recordBook(req.user.id) })));
+  });
+  app.get('/study/record', student, (req, res) => send(res, V.recordBook(ctxOf(req, { book: M.recordBook(req.user.id) }))));
   app.get('/study/nir', student, (req, res) => (req.user.level !== 'магистратура' ? res.redirect('/study') : send(res, V.nir(ctxOf(req, { stages: M.nir(req.user.id) })))));
 
   app.get('/requests', student, (req, res) => send(res, V.requestsList(ctxOf(req, { list: M.requestsOf(req.user.id) }))));
@@ -238,7 +243,8 @@ function createApp({ db = open() } = {}) {
 
   app.post('/api/assistant', student, async (req, res) => {
     const u = req.user;
-    const data = { user: u, next: M.nextPair(u.group_name), disciplines: M.disciplines(u.id), requests: M.requestsOf(u.id), payments: M.payments(u.id) };
+    const ds = M.disciplines(u.id);
+    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id) };
     const a = await assistant.answer(req.body.message, req.body.history, data);
     M.db.prepare('INSERT INTO assistant_log (user_id, at, question, source) VALUES (?,?,?,?)').run(u.id, new Date().toISOString(), a.intent, a.source);
     res.json(a);

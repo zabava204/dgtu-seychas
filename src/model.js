@@ -82,6 +82,26 @@ function model(db) {
         return { ...d, works, points, gap, light, overdue, upcoming, autoGap };
       });
     },
+    // ---------- Сессия ----------
+    // Допуск — демо-правило концепта: набран порог текущих баллов по дисциплине
+    session(studentId, ds = m.disciplines(studentId)) {
+      return q('SELECT * FROM session_items WHERE student_id = ? ORDER BY date_key, start').all(studentId).map((s) => {
+        const d = ds.find((x) => x.id === s.discipline_id) || null;
+        const admitted = d ? d.gap === 0 : null;
+        return { ...s, d, admitted, gap: d ? d.gap : null };
+      });
+    },
+    sessionOn: (studentId, key) => q('SELECT * FROM session_items WHERE student_id = ? AND date_key = ? ORDER BY start').all(studentId, key),
+    recordBook(studentId) {
+      const rows = q('SELECT * FROM record_book WHERE student_id = ? ORDER BY semester DESC, id').all(studentId);
+      const sems = [];
+      for (const r of rows) { let s = sems.find((x) => x.semester === r.semester); if (!s) sems.push(s = { semester: r.semester, rows: [] }); s.rows.push(r); }
+      const score = { отлично: 5, хорошо: 4, удовлетворительно: 3 };
+      const graded = rows.filter((r) => score[r.mark]);
+      const avg = graded.length ? graded.reduce((s, r) => s + score[r.mark], 0) / graded.length : null;
+      const debts = rows.filter((r) => r.mark === 'не явился' || r.mark === 'неудовлетворительно' || r.mark === 'не зачтено').length;
+      return { sems, avg, total: rows.length, debts };
+    },
     nir: (studentId) => q('SELECT * FROM nir_stages WHERE student_id = ? ORDER BY ord').all(studentId),
     payments: (studentId) => q('SELECT * FROM payments WHERE student_id = ? ORDER BY paid_on').all(studentId),
     tasks: (studentId) => q('SELECT * FROM tasks WHERE student_id = ? AND due_at >= ? ORDER BY due_at').all(studentId, iso()),
