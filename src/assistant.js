@@ -32,7 +32,7 @@ function intents(question, data) {
     out.exact = true;
     const d = GR.findDiscipline(q, data.disciplines);
     const items = data.session.filter((s) => (d ? s.discipline_id === d.id : s.kind !== 'консультация'));
-    const line = (s) => `${T.dayMonthKey(s.date_key)} (${T.wdShortKey(s.date_key).toLowerCase()}), ${s.start}, ауд. ${s.room} — ${s.kind}: ${s.subject}${s.kind === 'консультация' ? '' : s.admitted ? ' · допуск есть' : ` · до допуска не хватает ${s.gap}`}`;
+    const line = (s) => `${T.dayMonthKey(s.date_key)} (${T.wdShortKey(s.date_key).toLowerCase()}), ${s.start}, ауд. ${s.room} — ${s.kind}: ${s.subject}${s.kind === 'консультация' ? '' : s.admitted ? ' · допуск есть' : ` · до допуска не хватает ${s.gap} ${s.gap % 10 === 1 && s.gap % 100 !== 11 ? 'балла' : 'баллов'}`}`;
     const text = items.length ? `${d ? '' : 'Сессия по расписанию кабинета:\n'}${items.map(line).join('\n')}` : 'По этой дисциплине в сессию нет зачёта или экзамена.';
     return set('session', text, [{ label: 'Сессия и допуск', href: '/study/grades#session' }]);
   }
