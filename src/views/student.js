@@ -127,7 +127,7 @@ function today(ctx) {
   const actions = [
     firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
     overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
-    ['/requests/new', 'Заказать справку'],
+    ['/requests/new', 'Что случилось? Подберём справки'],
     ['/study?view=week', 'Расписание на неделю'],
     ['/study/record', 'Зачётка'],
   ].filter(Boolean);
@@ -321,13 +321,48 @@ ${r.status === 'ready' && TYPES[r.type].producesPdf && r.format !== 'paper' ? ht
   });
 }
 
+const SIT_ICON = {
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
+  work: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+  tax: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  aid: '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/>',
+};
+const sitIcon = (k) => raw(`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SIT_ICON[k]}</svg>`);
+function situationList(list) {
+  return html`<div class="group">${list.map((x) => html`<a class="row sit" href="/situations/${x.id}"><span class="si">${sitIcon(x.icon)}</span><span class="body"><span class="title strong">${x.title}</span><span class="meta">${x.lead}</span></span>${I.chev}</a>`)}</div>`;
+}
+
 function newRequestChoose(ctx) {
+  const { user, situations = [] } = ctx;
+  const types = Object.entries(TYPES).filter(([, t]) => !t.budgetOnly || user.funding === 'бюджет');
   return page({
     title: 'Новая заявка', active: 'requests', ctx,
-    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Нет в списке — спроси помощника.</p></div>
-<section class="section">${Object.entries(TYPES).map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
-<span class="meta">${t.subtitle || ( 'Заявление и документы')}</span></div>${I.chev}</a>`)}
-<div class="actions"><a class="btn secondary small" href="/helper">Спросить помощника</a></div></section>`,
+    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Что случилось?</h1><p class="muted" style="margin:6px 0 0">Выбери ситуацию — кабинет подберёт справки и подскажет, что сделать. Или закажи нужную справку сам.</p></div>
+<section class="section" aria-labelledby="sit-h"><h2 class="label" id="sit-h">По ситуации</h2>${situationList(situations)}</section>
+<section class="section" aria-labelledby="types-h"><h2 class="label" id="types-h">Справки и заявления</h2>
+${types.map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
+<span class="meta">${t.subtitle || 'Заявление и документы'}</span></div>${I.chev}</a>`)}</section>
+<section class="section"><div class="actions"><a class="btn secondary small" href="/helper">Не нашёл — спросить помощника</a></div></section>`,
+  });
+}
+
+function situation(ctx) {
+  const { s } = ctx;
+  const n = s.available.length;
+  return page({
+    title: s.title, active: 'requests', ctx,
+    body: html`${backBar('/requests/new', 'Что случилось?')}<div class="page-head"><div class="sit-ic">${sitIcon(s.icon)}</div><h1 style="font-size:26px">${s.title}</h1><p class="muted" style="margin:6px 0 0">${s.lead}</p></div>
+${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" aria-labelledby="ord-h"><h2 class="label" id="ord-h">Закажем за тебя</h2>
+<div class="group">${s.orders.map((o) => html`<label class="row pick ${o.available ? '' : 'off'}"><input type="checkbox" name="items" value="${o.key}" ${o.available ? raw('checked') : raw('disabled')}>
+<span class="body"><span class="title strong">${o.title}</span><span class="meta">${o.available ? o.hint : o.reason}</span></span></label>`)}</div>
+<p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки — в «Заявках».</p>
+${n ? html`<button class="btn block" type="submit" style="margin-top:14px">${n === 1 ? 'Заказать справку' : `Заказать ${n} ${plural(n, 'справку', 'справки', 'справок')} одной кнопкой`}</button>` : ''}
+</form>` : ''}
+${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Подготовь сам' : 'Что сейчас по учёбе'}</h2>
+<div class="group">${s.todo.map((t) => html`<div class="row"><span class="body"><span class="title" style="font-size:15px">${t}</span></span></div>`)}</div></section>` : ''}
+${s.notes.length ? html`<section class="section">${s.notes.map((t) => html`<div class="note" style="margin-top:8px">${t}</div>`)}</section>` : ''}
+${s.links.length ? html`<section class="section"><div class="actions">${s.links.map((l, i) => html`<a class="btn ${i ? 'secondary' : ''} small" href="${l.href}">${l.label}</a>`)}</div></section>` : ''}`,
   });
 }
 
@@ -624,4 +659,4 @@ ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`
   });
 }
 
-module.exports = { recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };
+module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };

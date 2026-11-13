@@ -413,3 +413,10 @@ a.row:hover { background: #F7F9FD; }
 .readiness .risk { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .readiness .risk .tag { grid-column: 1 / -1; justify-self: start; }
 .readiness .risk .rs { font-weight: 600; }
+
+/* ---------- Жизненные ситуации ---------- */
+.row.sit .si, .sit-ic { width: 44px; height: 44px; flex: none; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.sit-ic { margin-bottom: 12px; width: 52px; height: 52px; }
+.row.pick { cursor: pointer; align-items: flex-start; }
+.row.pick input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--blue); flex: none; }
+.row.pick.off { opacity: .6; cursor: default; }

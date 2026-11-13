@@ -230,3 +230,23 @@ test('помощник: пары на завтра считает програм
   assert.match(h, /Налоговый вычет/);
   assert.doesNotMatch(h, /Перевод на заочку/);
 });
+
+test('жизненная ситуация: пакет справок по данным и заказ одной кнопкой', async () => {
+  const anna = await login('anna'); const ilya = await login('ilya'); const dk = await login('dekanat');
+  const p = await (await anna.get('/situations/housing')).text();
+  assert.match(p, /Справка об обучении в органы социальной защиты/);
+  assert.match(p, /Справка о размере стипендии/);
+  assert.match(p, /Заказать 2 справки одной кнопкой/);
+  const ip = await (await ilya.get('/situations/housing')).text();
+  assert.match(ip, /на договоре академическая стипендия не назначается/); // контракт — без справки о стипендии
+  const r = await anna.post('/situations/housing', new URLSearchParams([['items', 'study'], ['items', 'stipend']]));
+  assert.equal(r.status, 302);
+  const list = await (await anna.get('/requests')).text();
+  assert.match(list, /Справка о размере стипендии/);
+  const again = await (await anna.get('/situations/housing')).text();
+  assert.match(again, /Уже заказана/); // повторно не закажет
+  assert.equal((await ilya.post('/requests', { type: 'stipend', format: 'pdf' })).status, 400); // стипендия только бюджету
+  const q = await (await dk.get('/staff?f=new')).text();
+  const id = q.match(/\/staff\/requests\/(\d+)[^]*?Справка о размере стипендии/);
+  assert.ok(id);
+});

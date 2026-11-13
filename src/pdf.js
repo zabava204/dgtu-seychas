@@ -8,7 +8,7 @@ const { purposeOf } = require('./catalog');
 const FONT = path.join(__dirname, '..', 'fonts');
 const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
 
-function certificate({ r, student, staff, payments = [] }, stream) {
+function certificate({ r, student, staff, payments = [], stipends = [] }, stream) {
   const doc = new PDFDocument({ size: 'A4', margins: { top: 64, bottom: 64, left: 72, right: 64 }, info: { Title: `Справка № ${r.number} (демо)`, Author: 'ДГТУ.Сейчас — концепт' } });
   doc.registerFont('R', path.join(FONT, 'Inter_400Regular.ttf'));
   doc.registerFont('S', path.join(FONT, 'Inter_600SemiBold.ttf'));
@@ -43,6 +43,17 @@ function certificate({ r, student, staff, payments = [] }, stream) {
     for (const p of rows) doc.text(`   ${p.paid_on.split('-').reverse().join('.')} — ${rub(p.amount)} (${p.note || 'оплата по договору'}), заказчик: ${p.payer}`);
     doc.moveDown(0.4).font('B').text(`Итого: ${rub(sum)}`);
     doc.moveDown(0.6).font('R').fontSize(10).fillColor('#5B6577').text('Форма справки утверждена приказом ФНС России от 18.10.2023 № ЕД-7-11/755@. Этот файл — демонстрационный образец, а не заполненная официальная форма.', { align: 'justify' });
+  } else if (r.type === 'stipend') {
+    const MON = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+    const rub = (n) => n.toLocaleString('ru-RU').replace(/\u00a0/g, ' ') + ' руб.';
+    doc.fillColor('#14213D').font('B').fontSize(18).text(`СПРАВКА № ${r.number}`, { align: 'center' });
+    doc.font('R').fontSize(11).fillColor('#5B6577').text(`от ${T.shortDate(issued)}`, { align: 'center' });
+    doc.moveDown(1.5).fillColor('#14213D').font('R').fontSize(12).lineGap(4);
+    doc.text(`Дана ${student.name_dat}, ${student.gender === 'f' ? 'обучающейся' : 'обучающемуся'} на ${student.course} курсе очной формы обучения на бюджетной основе, группа ${student.group_name}, в том, что ${student.gender === 'f' ? 'ей' : 'ему'} выплачена стипендия:`, { align: 'justify' });
+    doc.moveDown(0.6);
+    for (const x of stipends) { const [y, m] = x.month.split('-').map(Number); doc.text(`   ${MON[m - 1]} ${y} — ${rub(x.amount)}`); }
+    doc.moveDown(0.4).font('B').text(`Итого: ${rub(stipends.reduce((a, x) => a + x.amount, 0))}`);
+    doc.font('R').moveDown(0.6).text('Вид выплаты: государственная академическая стипендия. Справка выдана для предоставления по месту требования.', { align: 'justify' });
   } else {
     const p = purposeOf('study', r.purpose);
     doc.fillColor('#14213D').font('B').fontSize(18).text(`СПРАВКА № ${r.number}`, { align: 'center' });

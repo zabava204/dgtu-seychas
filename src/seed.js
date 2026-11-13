@@ -145,6 +145,14 @@ function seed(db) {
     [['Корпоративные финансы', 'экзамен', 'хорошо', 'Карпов В. И.'], ['Управление проектами', 'экзамен', 'отлично', 'Белова Е. Н.'], ['Научно-исследовательская работа', 'диф. зачёт', 'отлично', 'Ким А. С.'], ['Деловые коммуникации', 'зачёт', 'зачтено', 'Морозова Т. А.']],
   ]);
 
+  // Стипендия Анны за 6 последних полных месяцев (вымышленные суммы)
+  const insSt = db.prepare('INSERT INTO stipends (student_id, month, amount, kind) VALUES (?,?,?,?)');
+  for (let i = 6; i >= 1; i--) {
+    const d = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1 - i, 1));
+    const month = d.toISOString().slice(0, 7);
+    insSt.run(anna, month, 3800, 'государственная академическая стипендия');
+  }
+
   // НИР магистранта
   const insN = db.prepare('INSERT INTO nir_stages (student_id, ord, title, max, score, state, note, due_key) VALUES (?,?,?,?,?,?,?,?)');
   insN.run(ilya, 1, 'Планирование', 10, 10, 'signed', null, null);
@@ -179,13 +187,13 @@ function seed(db) {
     created_at: ago(3 * 24 + 1), submitted_at: ago(3 * 24 + 1), taken_at: ago(2 * 24 + 3), eta_at: null },
   [[ago(3 * 24 + 1), anna, 'submitted'], [ago(2 * 24 + 3), staff, 'taken'], [ago(2 * 24 + 2.9), staff, 'need_doc', 'Загрузи справку о составе семьи (не старше 30 дней)']]);
   const r48taken = ago(19);
-  const r48 = R({ number: num(48), student_id: anna, type: 'study', purpose: 'social', format: 'pdf', status: 'in_work', assignee_id: staff,
+  const r48 = R({ number: num(48), student_id: anna, type: 'study', purpose: 'other', format: 'pdf', status: 'in_work', assignee_id: staff,
     created_at: ago(20), submitted_at: ago(20), taken_at: r48taken, eta_at: iso(T.at(T.addWorkdays(today, 1), 15 * 60)) },
   [[ago(20), anna, 'submitted'], [r48taken, staff, 'taken']]);
   R({ number: 'draft-' + anna, student_id: anna, type: 'study', purpose: 'social', format: 'pdf', status: 'draft', created_at: ago(1) }, []);
 
   // Илья
-  R({ number: num(51), student_id: ilya, type: 'study', purpose: 'employer', format: 'pdf', status: 'submitted',
+  R({ number: num(51), student_id: ilya, type: 'study', purpose: 'other', format: 'pdf', status: 'submitted',
     created_at: ago(3), submitted_at: ago(3), eta_at: iso(estimateEta('study', 'pdf', new Date(ago(3)))) }, [[ago(3), ilya, 'submitted']]);
 
   // Оплата обучения Ильи по договору (для справки на вычет) и черновик заявки
@@ -222,7 +230,7 @@ function seed(db) {
   const insNt = db.prepare('INSERT INTO notifications (user_id, at, category, title, body, link, read) VALUES (?,?,?,?,?,?,?)');
   const tueKey = nextOn(2, T.parseHHMM('10:35'));
   insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации — ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, `/study?d=${tueKey}#pair-${econTue}`, 0);
-  insNt.run(anna, ago(19), 'requests', `Справка об обучении в органы соцзащиты — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
+  insNt.run(anna, ago(19), 'requests', `Справка об обучении — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
   insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Материальная помощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, `/requests/${r31}`, 1);
   insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов — в разделе «Заявки».', '/requests/new?type=aid', 1);
   insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, `/study?d=${nextOn(4, T.parseHHMM('21:05'))}#pair-${innovThu}`, 0);

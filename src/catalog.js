@@ -21,6 +21,16 @@ const TYPES = {
     ],
     producesPdf: true,
   },
+  stipend: {
+    title: 'Справка о размере стипендии',
+    short: 'Справка о стипендии',
+    subtitle: 'Выплаты за последние 6 месяцев — для соцзащиты, субсидий',
+    official: 'Справка о стипендии',
+    keywords: ['стипенд'],
+    formats: [{ id: 'pdf', label: 'Электронная', hint: 'PDF в заявке · 1 рабочий день (демо-срок)' }],
+    producesPdf: true,
+    budgetOnly: true,
+  },
   tax: {
     title: 'Справка для налогового вычета',
     short: 'Справка для вычета',
@@ -73,6 +83,7 @@ function estimateEta(type, format, from = T.now()) {
     return T.at(T.nextWorkday(key), 17 * 60);
   }
   if (type === 'study') return T.at(T.addWorkdays(key, 2), 15 * 60);
+  if (type === 'stipend') return T.at(T.addWorkdays(key, 1), 15 * 60);
   if (type === 'tax') return T.at(T.addWorkdays(key, 3), 15 * 60);
   return T.at(T.addWorkdays(key, 5), 15 * 60); // матпомощь: решение комиссии
 }

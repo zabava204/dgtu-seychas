@@ -67,13 +67,16 @@ CREATE TABLE IF NOT EXISTS payments (
   id INTEGER PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES users(id), contract TEXT NOT NULL, paid_on TEXT NOT NULL,
   amount INTEGER NOT NULL, payer TEXT NOT NULL, note TEXT
 );
+CREATE TABLE IF NOT EXISTS stipends (
+  id INTEGER PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES users(id), month TEXT NOT NULL, amount INTEGER NOT NULL, kind TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS settings (user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT, PRIMARY KEY (user_id, key));
 CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY, user_id INTEGER, at TEXT NOT NULL, page TEXT, solved INTEGER, text TEXT);
 CREATE TABLE IF NOT EXISTS assistant_log (id INTEGER PRIMARY KEY, user_id INTEGER, at TEXT NOT NULL, question TEXT, source TEXT);
 `;
 
-const TABLES = ['payments', 'assistant_log', 'feedback', 'notifications', 'events', 'request_files', 'requests', 'tasks', 'nir_stages', 'session_items', 'record_book',
+const TABLES = ['stipends', 'payments', 'assistant_log', 'feedback', 'notifications', 'events', 'request_files', 'requests', 'tasks', 'nir_stages', 'session_items', 'record_book',
   'works', 'disciplines', 'schedule_changes', 'schedule', 'settings', 'counters', 'users'];
 
 function open(file = process.env.DB_FILE || path.join(DATA_DIR, 'dgtu.sqlite')) {

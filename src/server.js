@@ -18,6 +18,7 @@ const { errorPage } = require('./views/layout');
 const pdf = require('./pdf');
 const assistant = require('./assistant');
 const TAX = require('./tax');
+const SIT = require('./situations');
 
 function createApp(opts = {}) {
   const db = opts.db || open();
@@ -172,7 +173,7 @@ function createApp(opts = {}) {
   app.get('/requests', student, (req, res) => send(res, V.requestsList(ctxOf(req, { list: M.requestsOf(req.user.id) }))));
   app.get('/requests/new', student, (req, res) => {
     const type = req.query.type;
-    if (!TYPES[type]) return send(res, V.newRequestChoose(ctxOf(req)));
+    if (!TYPES[type]) return send(res, V.newRequestChoose(ctxOf(req, { situations: SIT.SITUATIONS })));
     const d = M.draftOf(req.user.id);
     const draft = req.query.draft && d && d.type === type ? d : null;
     const payments = M.payments(req.user.id);
@@ -185,6 +186,7 @@ function createApp(opts = {}) {
     const payments = M.payments(req.user.id);
     const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error, payments, years: TAX.yearsFromPayments(payments) }))); };
     if (!t) return fail('Выбери тип заявки');
+    if (t.budgetOnly && req.user.funding !== 'бюджет') return fail('Справка о стипендии выдаётся студентам, которые получают стипендию');
     if (req.uploadError) return fail(req.uploadError + '. Подойдут PDF, JPG или PNG до 5 МБ.');
     let purpose = req.body.purpose || null;
     if (t.purposes && !purposeOf(type, purpose)) return fail('Выбери, куда нужна справка');
@@ -203,6 +205,23 @@ function createApp(opts = {}) {
     const id = M.submitRequest(req.user, { type, purpose, format, details, note });
     if (req.file) { saveFile(id, req.file, req.user.id); M.addEvent(id, req.user.id, 'uploaded', 'Справка о составе семьи'); }
     res.redirect(`/requests/${id}/sent`);
+  });
+  // Жизненные ситуации: пакет справок по данным кабинета, заказ одной кнопкой
+  const sitData = (u) => { const ds = M.disciplines(u.id); return { user: u, payments: M.payments(u.id), stipends: M.stipends(u.id), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id) }; };
+  app.get('/situations/:id', student, (req, res, next) => {
+    const s = SIT.build(req.params.id, sitData(req.user));
+    if (!s) return next();
+    send(res, V.situation(ctxOf(req, { s })));
+  });
+  app.post('/situations/:id', student, (req, res, next) => {
+    const s = SIT.build(req.params.id, sitData(req.user));
+    if (!s) return next();
+    const want = [].concat(req.body.items || []);
+    const picked = s.available.filter((o) => want.includes(o.key));
+    if (!picked.length) { flash(req, 'Отметь хотя бы одну справку'); return res.redirect(`/situations/${s.id}`); }
+    for (const o of picked) M.submitRequest(req.user, { type: o.type, purpose: o.purpose, format: 'pdf', details: o.details || '', note: `Ситуация: ${s.title}` });
+    flash(req, picked.length === 1 ? 'Справка заказана. Сообщим, когда будет готова.' : `Заказано ${picked.length} ${picked.length < 5 ? 'справки' : 'справок'}. Сообщим, когда будут готовы.`);
+    res.redirect('/requests');
   });
   app.get('/requests/:id/sent', student, loadRequest, (req, res) => send(res, V.requestSent(ctxOf(req, { r: req.r }))));
   app.post('/requests/:id/notify', student, loadRequest, (req, res) => {
@@ -236,7 +255,7 @@ function createApp(opts = {}) {
     const r = req.r;
     if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return fail(req, res, 404, 'PDF пока нет', 'Справка ещё не готова или выдаётся на бумаге в деканате. Статус — в карточке заявки.', [[`/requests/${r.id}`, 'Открыть заявку']]);
     res.type('pdf').set('Content-Disposition', `inline; filename="spravka-${r.number}.pdf"`);
-    pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null, payments: M.payments(r.student_id) }, res);
+    pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null, payments: M.payments(r.student_id), stipends: M.stipends(r.student_id) }, res);
   });
   app.get('/files/:id', needAuth(), (req, res) => {
     const f = M.file(Number(req.params.id));
@@ -296,7 +315,7 @@ function createApp(opts = {}) {
     const r = req.r;
     if (!TYPES[r.type].producesPdf) return fail(req, res, 404, 'Для этой заявки PDF не формируется', 'Это заявление, а не справка: решение придёт в карточку заявки.', [[`/staff/requests/${r.id}`, 'Вернуться к заявке']]);
     res.type('pdf');
-    pdf.certificate({ r: { ...r, closed_at: new Date().toISOString() }, student: M.user(r.student_id), staff: req.user, payments: M.payments(r.student_id) }, res);
+    pdf.certificate({ r: { ...r, closed_at: new Date().toISOString() }, student: M.user(r.student_id), staff: req.user, payments: M.payments(r.student_id), stipends: M.stipends(r.student_id) }, res);
   });
   const act = (fn) => [staff, loadRequest, (req, res) => {
     const r = req.r; const text = String(req.body.text || '').trim().slice(0, 1000);
