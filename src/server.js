@@ -184,18 +184,18 @@ function createApp(opts = {}) {
     const type = req.body.type; const t = TYPES[type];
     const payments = M.payments(req.user.id);
     const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error, payments, years: TAX.yearsFromPayments(payments) }))); };
-    if (!t) return fail('Выберите тип заявки');
+    if (!t) return fail('Выбери тип заявки');
     if (req.uploadError) return fail(req.uploadError + '. Подойдут PDF, JPG или PNG до 5 МБ.');
     let purpose = req.body.purpose || null;
-    if (t.purposes && !purposeOf(type, purpose)) return fail('Выберите, куда нужна справка');
+    if (t.purposes && !purposeOf(type, purpose)) return fail('Выбери, куда нужна справка');
     if (t.reasons && !t.reasons.includes(purpose)) purpose = t.reasons[0];
     const format = req.body.format;
-    if (t.formats && !formatOf(type, format)) return fail('Выберите формат');
+    if (t.formats && !formatOf(type, format)) return fail('Выбери формат');
     const details = String(req.body.details || '').trim().slice(0, 500);
     if (type === 'visa' && details.length < 3) return fail('Укажите страну и даты поездки');
     if (type === 'tax') {
       const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
-      if (!y) return fail('Выберите год, за который есть оплата по договору');
+      if (!y) return fail('Выбери год, за который есть оплата по договору');
       if (!y.closed) return fail(`Справку за ${y.year} год можно заказать с января ${y.year + 1}, когда год закончится`);
       if (!details) return fail('Укажи ИНН — 12 цифр. Он обязателен в справке для налоговой.');
       if (!TAX.innOk(details)) return fail('ИНН не прошёл проверку: должно быть 12 цифр, две последние — контрольные. Проверь, нет ли опечатки.');
@@ -220,7 +220,7 @@ function createApp(opts = {}) {
   app.post('/requests/:id/upload', student, loadRequest, withUpload, (req, res) => {
     const r = req.r;
     if (r.status !== 'need_student') { flash(req, 'Документ сейчас не нужен'); return res.redirect(`/requests/${r.id}`); }
-    if (req.uploadError || !req.file) { flash(req, (req.uploadError || 'Выберите файл') + '. Подойдут PDF, JPG или PNG до 5 МБ.'); return res.redirect(`/requests/${r.id}#upload`); }
+    if (req.uploadError || !req.file) { flash(req, (req.uploadError || 'Выбери файл') + '. Подойдут PDF, JPG или PNG до 5 МБ.'); return res.redirect(`/requests/${r.id}#upload`); }
     saveFile(r.id, req.file, req.user.id);
     M.db.prepare('UPDATE requests SET status = ?, needs_text = NULL WHERE id = ?').run(r.assignee_id ? 'in_work' : 'submitted', r.id);
     M.addEvent(r.id, req.user.id, 'uploaded', req.file ? Buffer.from(req.file.originalname, 'latin1').toString('utf8').slice(0, 120) : null);
@@ -271,7 +271,7 @@ function createApp(opts = {}) {
   app.post('/api/assistant', student, async (req, res) => {
     const u = req.user;
     const ds = M.disciplines(u.id);
-    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id) };
+    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id), dayPairs: (key) => M.dayPairs(u.group_name, key) };
     const a = await assistant.answer(req.body.message, req.body.history, data);
     M.db.prepare('INSERT INTO assistant_log (user_id, at, question, source) VALUES (?,?,?,?)').run(u.id, new Date().toISOString(), a.intent, a.source);
     res.json(a);

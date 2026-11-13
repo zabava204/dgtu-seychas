@@ -150,7 +150,7 @@ function seed(db) {
   insN.run(ilya, 1, 'Планирование', 10, 10, 'signed', null, null);
   insN.run(ilya, 2, 'Библиография', 10, 10, 'signed', null, null);
   insN.run(ilya, 3, 'Научный поиск', 30, 22, 'returned', 'Руководитель: «Уточните цель и гипотезу во введении»', T.addDays(today, 6));
-  insN.run(ilya, 4, 'Апробация', 30, null, 'todo', 'Доклад на семинаре кафедры — нужно загрузить презентацию', T.addDays(today, 9));
+  insN.run(ilya, 4, 'Апробация', 30, null, 'todo', 'Доклад на семинаре кафедры', T.addDays(today, 9));
   insN.run(ilya, 5, 'Отчёт', 20, null, 'todo', 'Черновик готов', T.addDays(today, 40));
 
   // Задачи с дедлайнами

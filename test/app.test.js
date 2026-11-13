@@ -219,3 +219,13 @@ test('повторный проход сценария: ИНН подставл�
   const again = await login('ilya');
   assert.match(await (await again.get('/requests')).text(), /Черновики[\s\S]*Справка для налогового вычета/);
 });
+
+test('помощник: пары на завтра считает программа, подсказки под студента', async () => {
+  const ilya = await login('ilya');
+  const a = await (await ilya.post('/api/assistant', { message: 'Где завтра пары?' }, true)).json();
+  assert.equal(a.source, 'calc');
+  assert.match(a.text, /^Завтра|пар нет/);
+  const h = await (await ilya.get('/helper')).text();
+  assert.match(h, /Налоговый вычет/);
+  assert.doesNotMatch(h, /Перевод на заочку/);
+});

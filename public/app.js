@@ -19,6 +19,12 @@
   $$('form').forEach((f) => f.addEventListener('submit', () => { if (f.dataset.askPermission !== undefined || f.dataset.confirm) return; setTimeout(() => f.querySelectorAll('button[type=submit], button:not([type])').forEach((b) => { b.disabled = true; }), 0); }));
   $$('form[data-confirm]').forEach((f) => f.addEventListener('submit', (e) => { if (!window.confirm(f.dataset.confirm)) e.preventDefault(); }));
 
+  // Выбор файла: показываем имя выбранного файла
+  $$('.filepick input[type=file]').forEach((i) => i.addEventListener('change', () => {
+    const n = i.parentElement.querySelector('[data-fname]'); if (!n) return;
+    const f = i.files && i.files[0]; n.textContent = f ? f.name : 'Файл не выбран'; n.classList.toggle('has', !!f);
+  }));
+
   // Настройки уведомлений сохраняются сразу
   const auto = $('form[data-autosave]');
   if (auto) auto.addEventListener('change', async () => {

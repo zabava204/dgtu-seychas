@@ -277,3 +277,15 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .errpage h1 { font-size: 24px; margin: 16px 0 8px; color: var(--ink); }
 .errpage .actions { margin-top: 18px; }
 .errpage p { max-width: 340px; margin: 0 auto; }
+
+/* ---------- Выбор файла ---------- */
+.filepick { display: flex; align-items: center; gap: 12px; margin-top: 8px; position: relative; cursor: pointer; }
+.filepick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.filepick input:focus-visible + .btn { outline: 3px solid var(--blue); outline-offset: 2px; }
+.filepick .fname { font-size: 14px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filepick .fname.has { color: var(--ink); font-weight: 500; }
+
+/* ---------- Строка помощника на «Сегодня» ---------- */
+.ask-bar { display: flex; align-items: center; gap: 10px; margin: 14px 20px 0; padding: 12px 16px; min-height: 48px; background: #fff; border: 1px solid var(--line); border-radius: 24px; color: var(--muted); font-size: 14px; text-decoration: none; }
+.ask-bar svg { flex: none; color: var(--blue); }
+.ask-bar:hover { color: var(--ink); border-color: var(--blue); }

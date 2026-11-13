@@ -27,6 +27,12 @@ const whereText = (p) => {
   const [b, r] = p.room.split('-');
   return `Ауд. ${p.room} · корпус ${b}, ${r[0]} этаж`;
 };
+const placeText = (p) => {
+  if (p.online) return 'онлайн';
+  if (!p.room || !p.room.includes('-')) return p.room || '';
+  const [b, r] = p.room.split('-');
+  return `ауд. ${p.room} · корпус ${b}, ${r[0]} этаж`;
+};
 const changeText = (p) => {
   if (p.old_start && p.old_room) return `Перенос: ${p.start} вместо ${p.old_start}, ауд. ${p.room} вместо ${p.old_room}`;
   if (p.old_start) return `Перенос · было ${p.old_start}`;
@@ -88,7 +94,7 @@ function today(ctx) {
     const isToday = T.dateKey(next.startsAt) === key;
     const ch = changeText(next);
     hero = html`<section class="hero" aria-label="Ближайшая пара">
-${isToday ? '' : html`<div class="small" style="color:#AFC3FF">Сегодня пар больше нет · ${cd.small}</div>`}
+${isToday ? '' : html`<div class="small" style="color:#AFC3FF">Сегодня пар больше нет · ближайшая</div>`}
 ${dayLine(next.dayPairs, isToday, next)}
 <div class="big">${cd.big}</div>
 <div style="display:flex;flex-direction:column;gap:4px">
@@ -110,6 +116,7 @@ ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComp
 </div></div>
 <h1 class="sr-only">Сегодня, ${user.first_name}</h1>
 ${hero}
+<a class="ask-bar" href="/helper">${I.search}<span>Спроси: ${user.funding === 'контракт' ? 'вычет' : 'справка'}, баллы, экзамены</span></a>
 <section class="section" aria-labelledby="todo-h">
 <h2 class="label" id="todo-h">Нужно сделать · ${todo.length}</h2>
 ${todo.length ? html`<div>${todo.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
@@ -159,9 +166,8 @@ ${exams.map((e) => html`<article class="pair exam" id="exam-${e.id}">
 ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="tm"><span>${p.start}–${p.end}</span><span>${p.cancelled ? 'отменена' : p.kind}</span></div>
 <div class="nm">${p.subject}</div>
-<div class="small muted" style="margin-top:2px">${p.teacher} · ${roomText(p)}</div>
+<div class="small muted" style="margin-top:2px">${p.teacher} · ${placeText(p)}</div>
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
-${p.online || p.cancelled ? '' : html`<div class="actions"><a class="btn secondary small" href="/route?room=${encodeURIComponent(p.room)}">Как пройти</a></div>`}
 </article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>Пар нет.</b><div class="small muted">Выбери другой день или неделю.</div></div>`}
 </section>`}`,
   });
@@ -294,7 +300,7 @@ ${r.status === 'ready' && TYPES[r.type].producesPdf && r.format !== 'paper' ? ht
 function newRequestChoose(ctx) {
   return page({
     title: 'Новая заявка', active: 'requests', ctx,
-    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Что нужно? Не нашли — спросите помощника.</p></div>
+    body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Нет в списке — спроси помощника.</p></div>
 <section class="section">${Object.entries(TYPES).map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
 <span class="meta">${t.subtitle || (k === 'study' ? 'Для проездного, соцзащиты, работодателя' : k === 'visa' ? 'На английском, 3 рабочих дня' : 'Заявление и документы')}</span></div>${I.chev}</a>`)}
 <div class="actions"><a class="btn secondary small" href="/helper">Спросить помощника</a></div></section>`,
@@ -323,11 +329,11 @@ ${t.formats && t.formats.length > 1 ? html`<fieldset class="field" style="border
     : html`<input type="hidden" name="format" value="${t.formats?.[0].id || ''}">${t.formats ? html`<p class="small muted">${t.formats[0].label}: ${t.formats[0].hint}</p>` : ''}`}
 ${isTax ? taxFields(payments, taxYears, v, user) : ''}
 ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="hint">PDF или фото, до 5 МБ. Можно загрузить позже.</span>
-<input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png" class="input"></label>
+<span class="filepick"><input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png"><span class="btn secondary small" aria-hidden="true">Выбрать файл</span><span class="fname" data-fname>Файл не выбран</span></span></label>
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
-<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/help/data">Неверно?</a></div>
+<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/help/data">Ошибка в данных?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
-<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>Отправить заявку</button>
+<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>${t.producesPdf ? 'Заказать справку' : 'Подать заявление'}</button>
 </form>`,
   });
 }
@@ -344,7 +350,7 @@ function taxFields(payments, years, v, user) {
   const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Условия проверены по данным кабинета</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
-${self ? ok('Заказчик по договору — ты сам(а): за своё обучение вычет положен при любой форме обучения') : ''}
+${self ? ok('Договор оформлен на тебя — за своё обучение вычет положен при любой форме обучения') : ''}
 ${ok('Оплата с 2024 года — для налоговой хватит одной этой справки, договор и чеки не нужны')}</div></div>
 <fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты <span class="hint">справку выдают за закончившийся год</span></legend>
 <div class="options" style="grid-template-columns:1fr">${[...closed, ...years.filter((y) => !y.closed)].map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
@@ -437,7 +443,7 @@ ${isAid ? (r.taken_at ? stage('', 'Взята в работу', by(ev('taken')))
 ${ev('uploaded') && r.status !== 'need_student' ? stage('', 'Документ загружен', by(ev('uploaded'))) : ''}
 ${r.status === 'need_student' ? stage('amber', 'Нужен документ', by(ev('need_doc')), html`<div class="bubble staff">${r.needs_text}</div>
 <form id="upload" method="post" action="/requests/${r.id}/upload" enctype="multipart/form-data" style="margin-top:10px">
-<label class="field" style="margin-top:0">Файл <span class="hint">PDF или фото, до 5 МБ</span><input class="input" type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png" required></label>
+<label class="field" style="margin-top:0">Файл <span class="hint">PDF или фото, до 5 МБ</span><span class="filepick"><input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png"><span class="btn secondary small" aria-hidden="true">Выбрать файл</span><span class="fname" data-fname>Файл не выбран</span></span></label>
 <div class="actions"><button class="btn small" type="submit">Загрузить справку</button>${isAid ? html`<a class="link" href="/help/doc?name=${encodeURIComponent('Справка о составе семьи')}&back=/requests/${r.id}">Где взять справку</a>` : ''}</div>
 <p class="small muted">Ожидаем документ. После загрузки деканат продолжит рассмотрение.</p></form>`) : ''}
 ${r.status === 'rejected' ? stage('amber', 'Отклонена', by(ev('rejected')), html`<div class="bubble staff">${r.reject_reason}</div>`)
@@ -571,21 +577,25 @@ function route(ctx) {
 }
 
 function helper(ctx) {
-  const { q } = ctx;
+  const { q, user } = ctx;
+  const sugg = [
+    ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
+    ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
+    user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка для проездного', 'Справка для проездного'],
+    ['Где завтра пары?', 'Пары на завтра'],
+    ['Мне нужно больше времени на работы. Как попросить отсрочку?', 'Попросить отсрочку'],
+  ];
   return page({
     title: 'Помощник', active: 'today', ctx,
     body: html`${backBar('/', 'Помощник')}
 <div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по данным твоего кабинета и демо-правилам. Может ошибаться — важное уточняй в деканате.</p></div>
 <div class="chat" id="chat" aria-live="polite">
-<div class="msg bot">Что нужно? Например: справка для проездного, перевод на заочку, сколько баллов до зачёта.</div></div>
+<div class="msg bot">Что нужно? Спроси про справку, баллы до допуска, даты зачётов и экзаменов или пары на завтра.</div></div>
 <div class="suggest" id="suggest" style="margin-top:10px">
-<button type="button" data-q="Нужна справка для проездного">Справка для проездного</button>
-<button type="button" data-q="Хочу перевестись на заочку">Перевод на заочку</button>
-<button type="button" data-q="Нужна справка для налогового вычета за обучение">Налоговый вычет</button>
-<button type="button" data-q="Сколько баллов мне не хватает до зачётов?">Баллы до зачёта</button>
+${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
 <a href="/hard">Мне тяжело</a></div>
 <div style="height:170px"></div>
-<div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу и жизнь в ДГТУ" value="${q || ''}">
+<div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу" value="${q || ''}">
 <button type="submit" aria-label="Отправить">${I.send}</button></form></div>`,
   });
 }
