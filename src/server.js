@@ -234,7 +234,7 @@ function createApp({ db = open() } = {}) {
     res.redirect('/me/notifications');
   });
   app.get('/notifications', student, (req, res) => {
-    const filter = ['schedule', 'requests', 'announcements', 'grades'].includes(req.query.c) ? req.query.c : '';
+    const filter = ['deadlines', 'schedule', 'requests', 'announcements', 'grades'].includes(req.query.c) ? req.query.c : '';
     const html = V.notifications(ctxOf(req, { items: M.notifications(req.user.id), filter }));
     M.markAllRead(req.user.id);
     send(res, html);
