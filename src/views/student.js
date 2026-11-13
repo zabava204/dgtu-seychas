@@ -129,17 +129,27 @@ function studyTabs(user, cur) {
 }
 
 function schedule(ctx) {
-  const { user, sel, week, pairs, exams = [] } = ctx;
+  const { user, sel, week, pairs, exams = [], view = 'day' } = ctx;
+  const q = (d, v = view) => `/study?d=${d}${v === 'week' ? '&view=week' : ''}`;
+  const todayKey = T.dateKey();
+  const weekBody = () => html`<section class="section" style="padding-top:4px" aria-label="Пары на неделю">
+<h2 class="label">Неделя ${T.dayMonthKey(week[0].key)} – ${T.dayMonthKey(week[week.length - 1].key)} · ${T.parityLabel(week[0].key)}</h2>
+${week.map((d) => html`<div class="wk-day${d.key === todayKey ? ' is-today' : ''}"><a class="wk-h" href="${q(d.key, 'day')}">${T.wdLongKey(d.key)[0].toUpperCase() + T.wdLongKey(d.key).slice(1)}, ${T.dayMonthKey(d.key)}${d.key === todayKey ? ' · сегодня' : ''}</a>
+${d.session.map((e) => html`<a class="wk-row exam" href="${q(d.key, 'day')}#exam-${e.id}"><span class="t">${e.start}</span><span class="b"><b>${e.subject}</b><span class="m">${e.kind} · ауд. ${e.room}</span></span></a>`)}
+${d.pairs.length ? d.pairs.map((p) => html`<a class="wk-row${p.change ? ' ch' : ''}${p.cancelled ? ' off' : ''}" href="${q(d.key, 'day')}#pair-${p.id}"><span class="t">${p.start}<br>${p.end}</span><span class="b"><b>${p.subject}</b><span class="m">${p.cancelled ? 'отменена' : `${p.kind} · ${roomText(p)}`}</span>${changeText(p) ? html`<span class="m chg">${changeText(p)}</span>` : ''}</span></a>`)
+    : d.session.length ? '' : html`<div class="wk-none">Пар нет</div>`}</div>`)}
+</section>`;
   return page({
     title: 'Расписание', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'schedule')}
-<div class="days" role="list" aria-label="Дни недели">${week.map((d) => html`<a role="listitem" href="/study?d=${d.key}" ${d.key === sel ? raw('aria-current="date"') : ''}>
+<div class="days" role="list" aria-label="Дни недели">${week.map((d) => html`<a role="listitem" href="${q(d.key, 'day')}" ${d.key === sel && view === 'day' ? raw('aria-current="date"') : ''}>
 <span>${T.wdShortKey(d.key)}</span><b>${Number(d.key.slice(8))}</b>${d.changed ? html`<span class="ch" title="есть изменения"></span>` : d.session && d.session.length ? html`<span class="ch ex" title="сессия"></span>` : ''}</a>`)}</div>
-<div style="display:flex;justify-content:space-between;padding:6px 20px 0">
-<a class="link" style="padding-left:0" href="/study?d=${T.addDays(week[0].key, -7)}">← пред. неделя</a>
-<a class="link" style="padding-right:0" href="/study?d=${T.addDays(week[0].key, 7)}">след. неделя →</a></div>
-<section class="section" style="padding-top:4px" aria-label="Пары">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 0">
+<a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, -7))}" aria-label="Предыдущая неделя">←</a>
+<nav class="mini-seg" aria-label="Вид расписания"><a href="${q(sel, 'day')}" ${view === 'day' ? raw('aria-current="page"') : ''}>День</a><a href="${q(sel, 'week')}" ${view === 'week' ? raw('aria-current="page"') : ''}>Неделя</a></nav>
+<a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, 7))}" aria-label="Следующая неделя">→</a></div>
+${view === 'week' ? weekBody() : html`<section class="section" style="padding-top:4px" aria-label="Пары">
 <h2 class="label">${T.wdLongKey(sel)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
 ${exams.map((e) => html`<article class="pair exam" id="exam-${e.id}">
 <div class="tm"><span>${e.start}</span><span class="tag ${e.kind === 'консультация' ? 'blue' : 'amber'}">${e.kind}</span></div>
@@ -153,7 +163,7 @@ ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
 ${p.online || p.cancelled ? '' : html`<div class="actions"><a class="btn secondary small" href="/route?room=${encodeURIComponent(p.room)}">Как пройти</a></div>`}
 </article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>Пар нет.</b><div class="small muted">Выбери другой день или неделю.</div></div>`}
-</section>`,
+</section>`}`,
   });
 }
 

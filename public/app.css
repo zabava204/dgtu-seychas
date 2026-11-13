@@ -252,3 +252,22 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .pair.exam { border-left: 4px solid var(--amber); }
 #session { scroll-margin-top: 12px; }
 .sess .sd.done { background: var(--green-soft); color: var(--green); }
+
+/* ---------- Расписание: неделя ---------- */
+.mini-seg { display: inline-flex; background: #E9EDF5; border-radius: 10px; padding: 3px; }
+.mini-seg a { padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; }
+.mini-seg a[aria-current] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(20,33,61,.08); }
+.wk-day { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 6px; margin-top: 10px; }
+.wk-day.is-today { border-color: var(--blue); }
+.wk-h { display: block; padding: 10px 0 6px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.wk-row { display: flex; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.wk-row .t { flex: none; width: 44px; font-size: 13px; color: var(--muted); line-height: 1.3; font-variant-numeric: tabular-nums; }
+.wk-row .b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wk-row b { font-weight: 500; font-size: 15px; }
+.wk-row .m { font-size: 13px; color: var(--muted); }
+.wk-row .m.chg { color: var(--amber); font-weight: 500; }
+.wk-row.ch .t { color: var(--amber); }
+.wk-row.off b { text-decoration: line-through; color: var(--muted); }
+.wk-row.exam b { color: var(--amber); font-weight: 600; }
+.wk-none { padding: 8px 0 6px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.wk-nav { font-size: 20px; color: var(--blue); background: #fff; border: 1px solid var(--line); }

@@ -135,7 +135,9 @@ function createApp({ db = open() } = {}) {
     if (!req.query.d && T.weekday() === 7) sel = T.addDays(sel, 1);
     const monday = T.addDays(sel, 1 - T.weekdayOfKey(sel));
     const week = [0, 1, 2, 3, 4, 5].map((i) => { const key = T.addDays(monday, i); return { key, changed: M.dayPairs(u.group_name, key).some((p) => p.change), session: M.sessionOn(u.id, key) }; });
-    send(res, V.schedule(ctxOf(req, { sel, week, pairs: M.dayPairs(u.group_name, sel), exams: M.sessionOn(u.id, sel) })));
+    const view = req.query.view === 'week' ? 'week' : 'day';
+    if (view === 'week') week.forEach((d) => { d.pairs = M.dayPairs(u.group_name, d.key); });
+    send(res, V.schedule(ctxOf(req, { sel, week, view, pairs: M.dayPairs(u.group_name, sel), exams: M.sessionOn(u.id, sel) })));
   });
   app.get('/study/grades', student, (req, res) => {
     const ds = M.disciplines(req.user.id);

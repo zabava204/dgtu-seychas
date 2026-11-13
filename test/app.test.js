@@ -189,3 +189,11 @@ test('сессия: даты, допуск, зачётная книжка, во�
   assert.equal(a.source, 'calc');
   assert.match(a.text, /консультация[\s\S]*экзамен: Бизнес-планирование/);
 });
+
+test('расписание на неделю: все дни, изменения, пары другой группы не видны', async () => {
+  const anna = await login('anna');
+  const w = await (await anna.get('/study?view=week')).text();
+  assert.equal((w.match(/class="wk-day/g) || []).length, 6);
+  assert.match(w, /aria-current="page">Неделя/);
+  assert.doesNotMatch(w, /Методы анализа в менеджменте/); // пары магистрантов ММН-21
+});
