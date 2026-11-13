@@ -154,3 +154,22 @@ test('основной сценарий: справка для налогово�
   assert.ok(a.actions.some((x) => x.href === '/requests/new?type=tax'));
   assert.match(a.text, /12 480 ₽/);
 });
+
+test('помощник: баллы считает программа (регрессия «212 баллов»)', async () => {
+  const anna = await login('anna');
+  const a = await (await anna.post('/api/assistant', { message: 'Хватит ли финансового и маркетингового плана по бизнес-планированию, чтобы набрать порог 50?' }, true)).json();
+  assert.equal(a.source, 'calc');
+  assert.match(a.text, /12 \+ 20 \+ 15 = 47/);
+  assert.match(a.text, /останется 3 балла/);
+  assert.doesNotMatch(a.text, /212|70/);
+});
+
+test('уведомление об изменении аудитории ведёт на нужный день и пару', async () => {
+  const anna = await login('anna');
+  const feed = await (await anna.get('/notifications')).text();
+  const m = feed.match(/href="(\/study\?d=(\d{4}-\d{2}-\d{2})#pair-(\d+))"/);
+  assert.ok(m, 'ссылка с датой и парой');
+  const page = await (await anna.get(m[1].split('#')[0])).text();
+  assert.match(page, new RegExp(`id="pair-${m[3]}"`));
+  assert.match(page, /Аудитория изменена · было 8-202/);
+});

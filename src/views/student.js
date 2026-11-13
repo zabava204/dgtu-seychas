@@ -47,7 +47,7 @@ function dayLine(pairs, isToday, next) {
 ${pairs.map((p, i) => {
     const m = mins[i];
     const cls = p.id === next.id ? 'next' : isToday && T.parseHHMM(p.end) <= nowMin ? 'past' : '';
-    return html`<span class="pt ${cls}" style="left:${pos(m).toFixed(1)}%"></span>${nowPos != null && Math.abs(pos(m) - nowPos) < 9 ? '' : html`<span class="t ${cls}" style="left:${pos(m).toFixed(1)}%;${raw(lbl(pos(m)))}">${p.start}</span>`}`;
+    return html`<span class="pt ${cls}" style="left:${pos(m).toFixed(1)}%"></span>${nowPos != null && Math.abs(pos(m) - nowPos) < 16 ? '' : html`<span class="t ${cls}" style="left:${pos(m).toFixed(1)}%;${raw(lbl(pos(m)))}">${p.start}</span>`}`;
   })}
 ${nowPos != null ? html`<span class="now" style="left:${nowPos.toFixed(1)}%"></span><span class="t is-now" style="left:${nowPos.toFixed(1)}%;${raw(lbl(nowPos))}">сейчас</span>` : ''}</div>`;
 }
@@ -58,9 +58,9 @@ function lightsBar(ds) {
 function gradesSummary(ds) {
   const red = ds.find((d) => d.light === 'red');
   const amber = ds.find((d) => d.light === 'amber');
-  if (red) return html`<b>${red.subject}:</b> ${red.overdue.length ? `не ${plural(red.overdue.length, 'сдана', 'сданы', 'сданы')} ${red.overdue.length} ${plural(red.overdue.length, 'работа', 'работы', 'работ')}` : `до зачёта ${red.gap} ${plural(red.gap, 'балл', 'балла', 'баллов')}`}`;
-  if (amber) return html`<b>${amber.subject}:</b> до зачёта ${amber.gap} ${plural(amber.gap, 'балл', 'балла', 'баллов')}`;
-  return html`<b>Все дисциплины в порядке</b>`;
+  if (red) return html`<b>${red.subject}:</b> до порога не хватает ${red.gap} ${plural(red.gap, 'балла', 'баллов', 'баллов')}${red.overdue.length ? `, ${red.overdue.length} ${plural(red.overdue.length, 'работа просрочена', 'работы просрочены', 'работ просрочено')}` : ''}`;
+  if (amber) return html`<b>${amber.subject}:</b> до порога не хватает ${amber.gap} ${plural(amber.gap, 'балла', 'баллов', 'баллов')}`;
+  return html`<b>По всем дисциплинам порог набран</b>`;
 }
 
 // ---------- Сегодня ----------
@@ -82,7 +82,7 @@ ${dayLine(next.dayPairs, isToday, next)}
 ${ch ? html`<div class="warn">${ch}</div>` : ''}
 </div>
 ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComponent(next.room || '')}">Как пройти</a>`}
-<a class="ghost" href="/study?d=${T.dateKey(next.startsAt)}">Всё расписание дня</a>
+<a class="ghost" href="/study?d=${T.dateKey(next.startsAt)}#pair-${next.id}">Всё расписание дня</a>
 </section>`;
   }
   return page({
@@ -126,7 +126,7 @@ ${studyTabs(user, 'schedule')}
 <a class="link" style="padding-right:0" href="/study?d=${T.addDays(week[0].key, 7)}">след. неделя →</a></div>
 <section class="section" style="padding-top:4px" aria-label="Пары">
 <h2 class="label">${T.wdLongKey(sel)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
-${pairs.length ? pairs.map((p) => html`<article class="pair">
+${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="tm"><span>${p.start}–${p.end}</span><span>${p.cancelled ? 'отменена' : p.kind}</span></div>
 <div class="nm">${p.subject}</div>
 <div class="small muted" style="margin-top:2px">${p.teacher} · ${roomText(p)}</div>
@@ -142,14 +142,14 @@ function grades(ctx) {
   const bad = ds.filter((d) => d.light === 'red' || d.light === 'amber').length;
   const ok = ds.length - bad;
   const word = (d) => {
-    if (d.light === 'done') return d.closed_text;
-    if (d.light === 'red' && d.overdue.length) return `Не сданы: ${d.overdue.map((w) => `${w.title} (${w.max})`).join(', ')}. До зачёта ${d.gap} ${plural(d.gap, 'балл', 'балла', 'баллов')}.`;
+    if (d.light === 'done') return `${d.closed_text}. Контроль — ${d.control}.`;
+    const tail = ` Контроль — ${d.control}, итог не выставлен.`;
     if (d.gap > 0) {
+      const over = d.overdue.length ? ` Просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max})`).join(', ')}.` : '';
       const nx = d.upcoming[0];
-      return `До ${d.control === 'зачёт' ? 'зачёта' : 'допуска'} ${d.gap} ${plural(d.gap, 'балл', 'балла', 'баллов')}${nx ? `. Ближайшее: ${nx.title} (${nx.max}) до ${T.dayMonthKey(nx.due_key)}` : ''}.`;
+      return `До порога ${d.pass_threshold} не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}.${over}${nx ? ` Ближайшее: ${nx.title} (до ${nx.max}), ${T.dayMonthKey(nx.due_key)}.` : ''}${tail}`;
     }
-    if (d.autoGap) return `Порог пройден. До автомата ${d.autoGap} ${plural(d.autoGap, 'балл', 'балла', 'баллов')}.`;
-    return 'Порог пройден.';
+    return `Порог ${d.pass_threshold} набран.${d.autoGap ? ` До автомата ${d.autoGap} ${plural(d.autoGap, 'балл', 'балла', 'баллов')}.` : ''}${tail}`;
   };
   const color = { green: 'var(--green)', amber: '#D97706', red: 'var(--red-dot)', done: '#98A2B3' };
   return page({
@@ -157,13 +157,13 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="hero" style="margin-top:14px" aria-label="Готовность к сессии">
-<div class="small" style="color:#AFC3FF;font-weight:600;letter-spacing:.05em">ГОТОВНОСТЬ К СЕССИИ</div>
-<div class="subj" style="font-size:22px">${bad ? `${ok} ${plural(ok, 'дисциплина', 'дисциплины', 'дисциплин')} в порядке, по ${bad} нужно действовать` : 'Все дисциплины в порядке'}</div>
+<div class="small" style="color:#AFC3FF;font-weight:600;letter-spacing:.05em">ТЕКУЩИЕ БАЛЛЫ · ДО СЕССИИ</div>
+<div class="subj" style="font-size:22px">${bad ? `Порог набран по ${ok} из ${ds.length}, по ${bad} нужно действовать` : 'Порог набран по всем дисциплинам'}</div>
 <div style="display:flex;gap:4px">${ds.map((d) => html`<span style="flex:1;height:6px;border-radius:3px;background:${raw(color[d.light])}"></span>`)}</div>
-<div class="small" style="color:#D5DDF0">Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
+<div class="small" style="color:#D5DDF0">Итоговые оценки ещё не выставлены · даты зачётов и экзаменов пока не назначены · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
 </section>
 <section class="section" aria-label="Дисциплины">
-${ds.map((d) => html`<details class="card" style="margin-top:10px">
+${ds.map((d) => html`<details class="card" id="d-${d.id}" style="margin-top:10px">
 <summary style="list-style:none;cursor:pointer;display:flex;gap:10px">
 <span class="dotc" style="background:${raw(color[d.light])}"></span>
 <span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:600">${d.subject}</b><span class="muted" style="white-space:nowrap">${d.closed_text ? 'зачтено' : `${d.points} / 100`}</span></span>
@@ -192,7 +192,7 @@ ${studyTabs(user, 'nir')}
 <div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '—' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
 ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[s.note, s.due_key ? `до ${T.dayMonthKey(s.due_key)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}</div>`)}
-<p class="small muted">Файлы этапов в демо не загружаются: в рабочей версии файл, загруженный здесь, сразу попадёт и в отчёт по НИР.</p>
+<p class="small muted">Это обзор этапов: загрузка файлов НИР в первой версии не делается, задачи по ней не попадают в «Нужно сделать».</p>
 </section>`,
   });
 }
@@ -271,7 +271,7 @@ ${isTax ? taxFields(payments, taxYears, v, user) : ''}
 ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="hint">PDF или фото, до 5 МБ. Можно загрузить позже.</span>
 <input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png" class="input"></label>
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
-<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/me">Неверно?</a></div>
+<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/help/data">Неверно?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
 <button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>Отправить заявку</button>
 </form>`,
@@ -308,6 +308,19 @@ ${closed.length ? html`<div class="card" style="margin-top:16px"><div class="sma
 <p class="small muted" style="margin:6px 0 0">Если заказчик по договору — родители или супруг(а), справку оформляют на их имя — в первой версии такую заявку подают в деканате.</p>`;
 }
 
+function dataHelp(ctx) {
+  return page({
+    title: 'Если данные неверны', active: 'me', ctx,
+    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Если данные в профиле неверны</h1></div>
+<section class="section"><p style="margin:0;line-height:1.5">ФИО, курс, группу, форму и основу обучения студент сам не меняет: это сведения из личного дела. Их исправляет деканат по документу.</p>
+<div class="stages" style="padding:14px 0 0">
+<div class="stage"><div class="st">ФИО или гражданство</div><div class="when">В кабинете ДГТУ для этого есть онлайн-заявка «Изменение персональных данных». В нашей первой версии — обращение в деканат с паспортом.</div></div>
+<div class="stage"><div class="st">Курс, группа, форма или основа обучения</div><div class="when">Меняются приказом; если в кабинете ошибка — напиши в деканат, укажи, какое поле неверно.</div></div>
+<div class="stage todo"><div class="st">Деканат</div><div class="when">Корпус 1, каб. 210 · пн–пт 9:00–17:00</div></div></div>
+<div class="actions"><a class="btn secondary small" href="/me">Мой профиль</a></div></section>`,
+  });
+}
+
 function taxHelp(ctx) {
   const step = (cls, t, w) => html`<div class="stage ${cls}"><div class="st">${t}</div><div class="when" style="font-size:14px;line-height:1.4">${w}</div></div>`;
   const y = Number(T.dateKey().slice(0, 4));
@@ -336,7 +349,7 @@ function requestSent(ctx) {
 <div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Сейчас действие за <b>деканатом</b>. Тебе ничего делать не нужно.</div>
 ${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим, когда справка будет готова.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
 <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:20px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none">${I.bell}</span>
-<div><div style="font-weight:600">Сообщить, когда справка будет готова?</div><div class="small muted" style="font-size:14px;margin-top:4px">Пришлём одно уведомление: «Справка готова». Без оценок и личных данных на экране блокировки.</div></div></div>
+<div><div style="font-weight:600">Сообщить, когда справка будет готова?</div><div class="small muted" style="font-size:14px;margin-top:4px">Покажем уведомление «Справка готова» в кабинете, а пока кабинет открыт — и в браузере. Без оценок и содержания заявки.</div></div></div>
 <form method="post" action="/requests/${r.id}/notify" data-ask-permission style="margin-top:12px"><button class="btn block" type="submit">Да, сообщить</button></form>
 <div style="text-align:center"><a class="link" style="color:var(--muted);font-weight:500" href="/requests/${r.id}">Не сейчас</a></div></div>`}
 <div style="margin:14px 20px 0;display:flex;gap:8px"><a class="btn secondary small" style="flex:1" href="/requests/${r.id}">Открыть заявку</a><a class="btn secondary small" style="flex:1" href="/">На главную</a></div>`,
@@ -376,7 +389,7 @@ ${r.status === 'need_student' ? stage('amber', 'Нужен документ', by
 ${r.status === 'rejected' ? stage('amber', 'Отклонена', by(ev('rejected')), html`<div class="bubble staff">${r.reject_reason}</div>`)
     : r.status === 'ready' ? html`${isAid ? stage('', workTitle, '') : ''}${stage('', isAid ? 'Решение принято' : 'Готова', by(ev('ready')), isAid ? html`<div class="bubble staff">${ev('ready')?.text || 'Решение отправлено в бухгалтерию.'}</div>` : r.format === 'paper' ? html`<div class="bubble">Забрать: корпус 1, каб. 210, пн–пт 9:00–17:00</div>` : '')}`
       : html`${isAid ? stage(r.status === 'in_work' ? 'current' : 'todo', workTitle, r.status === 'in_work' ? 'сейчас' : '') : ''}
-${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'придёт уведомление с решением' : r.format === 'paper' ? 'придёт уведомление, забрать в деканате' : 'здесь появится кнопка «Открыть PDF», придёт уведомление')}`}
+${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'решение появится здесь и в уведомлениях кабинета' : r.format === 'paper' ? 'появится уведомление в кабинете, забрать в деканате' : 'здесь появится кнопка «Открыть PDF» и уведомление в кабинете')}`}
 </div>
 <div style="margin:4px 20px 0;padding-top:12px;border-top:1px solid var(--line)">
 ${!isAid ? html`<div class="kv"><span>Дата заказа</span><span>${T.stamp(new Date(r.submitted_at || r.created_at))}</span></div>` : ''}
@@ -428,7 +441,7 @@ function me(ctx) {
 <div class="small muted" style="margin-top:6px;font-size:14px">Корпус 1, каб. 210 · пн–пт 9:00–17:00<br>${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</div>
 <div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/helper">Спросить помощника</a></div></div>
 <div class="card" style="padding-top:4px;padding-bottom:4px">
-${linkRow('/hard', 'Если тяжело', 'Психолог и телефон доверия · анонимно, без деканата')}
+${linkRow('/hard', 'Если тяжело', 'Контакты психолога и телефоны помощи')}
 ${linkRow('/me/notifications', 'Уведомления', 'Что присылать и куда')}
 ${linkRow('/notifications', 'Все уведомления', '')}
 <form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
@@ -441,7 +454,7 @@ function notifSettings(ctx) {
   const { settings } = ctx;
   return page({
     title: 'Уведомления', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Уведомления</h1><p class="muted" style="margin:4px 0 0;font-size:14px">Выбери, о чём сообщать. В самом кабинете видно всё.</p></div>
+    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Уведомления</h1><p class="muted" style="margin:4px 0 0;font-size:14px">Выбери, о чём показывать уведомления. В ленте кабинета видно всё.</p></div>
 <form method="post" action="/me/notifications" class="section" style="padding-top:12px" data-autosave>
 ${NOTIF_CATEGORIES.map((c) => html`<label class="toggle-row"><span class="body"><span>${c.title}</span><span class="small muted">${c.hint}</span></span>
 <input class="switch" type="checkbox" role="switch" name="notif_${c.key}" value="1" ${settings['notif_' + c.key] !== '0' ? raw('checked') : ''}></label>`)}
@@ -477,14 +490,14 @@ function hard(ctx) {
     title: 'Если тяжело', active: 'me', ctx,
     body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Хорошо, что ты здесь</h1><p class="muted" style="margin:6px 0 0">Можно ничего не объяснять. Выбери, что сейчас ближе — или просто закрой.</p></div>
 <section class="section" style="padding-top:8px">
-${opt('#psy', 'Поговорить с психологом', 'Психологическая служба вуза, запись без деканата')}
+${opt('#psy', 'Поговорить с психологом', 'Контакт психологической службы вуза')}
 ${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник подготовит просьбу об отсрочке — без объяснения причин')}
 ${opt('/study/grades', 'Не справляюсь с учёбой', 'Разберём по шагам, что можно сделать позже')}
 <div class="card" id="psy" style="margin-top:16px"><b>Если тяжело прямо сейчас</b>
-<div class="actions"><a class="btn small" href="tel:112">112 — экстренные службы</a><a class="btn secondary small" href="tel:88002000122">8-800-2000-122</a></div>
-<p class="small muted" style="margin:8px 0 0">8-800-2000-122 — детский телефон доверия (для тех, кому нет 18, и их родителей), звонок бесплатный.</p>
-<p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00. Запись анонимна для деканата.</p></div>
-<div class="note" style="margin-top:12px">${I.lock}<span>Это видишь только ты. Деканат и куратор не получают уведомлений о том, что ты открывал(а) этот экран.</span></div>
+<div class="actions"><a class="btn small" href="tel:112">112 — экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
+<p class="small muted" style="margin:8px 0 0">+7 495 989-50-50 — телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
+<p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00.</p></div>
+<div class="note" style="margin-top:12px">${I.lock}<span>Открытие этой страницы не создаёт обращения в деканат и не отправляет уведомлений куратору.</span></div>
 </section>`,
   });
 }
@@ -517,10 +530,10 @@ function helper(ctx) {
 <button type="button" data-q="Нужна справка для налогового вычета за обучение">Налоговый вычет</button>
 <button type="button" data-q="Сколько баллов мне не хватает до зачётов?">Баллы до зачёта</button>
 <a href="/hard">Мне тяжело</a></div>
-<div style="height:90px"></div>
+<div style="height:170px"></div>
 <div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу и жизнь в ДГТУ" value="${q || ''}">
 <button type="submit" aria-label="Отправить">${I.send}</button></form></div>`,
   });
 }
 
-module.exports = { taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };
+module.exports = { dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };

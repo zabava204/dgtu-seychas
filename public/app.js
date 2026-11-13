@@ -16,6 +16,7 @@
 
   // Строки таблицы деканата — целиком кликабельны
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) location.href = tr.dataset.href; }));
+  $$('form').forEach((f) => f.addEventListener('submit', () => { if (f.dataset.askPermission !== undefined || f.dataset.confirm) return; setTimeout(() => f.querySelectorAll('button[type=submit], button:not([type])').forEach((b) => { b.disabled = true; }), 0); }));
   $$('form[data-confirm]').forEach((f) => f.addEventListener('submit', (e) => { if (!window.confirm(f.dataset.confirm)) e.preventDefault(); }));
 
   // Настройки уведомлений сохраняются сразу
@@ -54,7 +55,7 @@
   const form = $('#ask');
   if (form) {
     const chat = $('#chat'); const input = $('#q'); const history = [];
-    const add = (cls, text) => { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; chat.appendChild(d); d.scrollIntoView({ block: 'end', behavior: 'smooth' }); return d; };
+    const add = (cls, text) => { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; chat.appendChild(d); d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return d; };
     const ask = async (q) => {
       q = q.trim(); if (!q) return;
       const sg = $('#suggest'); if (sg) sg.hidden = true;
@@ -69,8 +70,9 @@
           j.actions.forEach((a) => { const l = document.createElement('a'); l.className = 'btn small'; l.href = a.href; l.textContent = a.label; box.appendChild(l); });
           wait.appendChild(box);
         }
-        const src = document.createElement('span'); src.className = 'src'; src.textContent = j.source === 'gigachat' ? 'Ответ GigaChat по данным кабинета' : 'Ответ по правилам кабинета'; wait.appendChild(src);
+        const src = document.createElement('span'); src.className = 'src'; src.textContent = j.source === 'gigachat' ? 'Ответ GigaChat по данным кабинета' : j.source === 'calc' ? 'Расчёт по данным кабинета' : 'Ответ по правилам кабинета'; wait.appendChild(src);
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
+        wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
       } catch { wait.textContent = 'Нет связи с сервером. Проверь интернет и попробуй ещё раз.'; }
     };
     form.addEventListener('submit', (e) => { e.preventDefault(); ask(input.value); });

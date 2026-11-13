@@ -117,7 +117,6 @@ function seed(db) {
   const insT = db.prepare('INSERT INTO tasks (student_id, title, due_at, note) VALUES (?,?,?,?)');
   insT.run(anna, 'Реферат по маркетингу', iso(T.at(T.addDays(today, 2), 23 * 60 + 59)), 'Сдать в Moodle');
   insT.run(ilya, 'Эссе по иностранному языку', iso(T.at(T.addDays(today, 8), 23 * 60 + 59)), '+15 баллов');
-  insT.run(ilya, 'Презентация для апробации НИР', iso(T.at(T.addDays(today, 9), 18 * 60)), 'Семинар кафедры');
 
   // ---------- Заявки ----------
   const insR = db.prepare(`INSERT INTO requests (number, student_id, type, purpose, details, format, status, needs_text, assignee_id,
@@ -135,12 +134,12 @@ function seed(db) {
   R({ number: num(7), student_id: anna, type: 'study', purpose: 'employer', format: 'pdf', status: 'ready', assignee_id: staff,
     created_at: ago(14 * 24 + 2), submitted_at: ago(14 * 24 + 2), taken_at: ago(14 * 24 + 1.6), closed_at: ago(14 * 24 - 3), eta_at: ago(14 * 24 - 5) },
   [[ago(14 * 24 + 2), anna, 'submitted'], [ago(14 * 24 + 1.6), staff, 'taken'], [ago(14 * 24 - 3), staff, 'ready']]);
-  R({ number: num(31), student_id: anna, type: 'aid', purpose: 'Сложная семейная ситуация', details: 'Подаю впервые.', status: 'need_student',
+  const r31 = R({ number: num(31), student_id: anna, type: 'aid', purpose: 'Сложная семейная ситуация', details: 'Подаю впервые.', status: 'need_student',
     needs_text: 'Загрузи справку о составе семьи (не старше 30 дней)', assignee_id: staff,
     created_at: ago(3 * 24 + 1), submitted_at: ago(3 * 24 + 1), taken_at: ago(2 * 24 + 3), eta_at: null },
   [[ago(3 * 24 + 1), anna, 'submitted'], [ago(2 * 24 + 3), staff, 'taken'], [ago(2 * 24 + 2.9), staff, 'need_doc', 'Загрузи справку о составе семьи (не старше 30 дней)']]);
   const r48taken = ago(19);
-  R({ number: num(48), student_id: anna, type: 'study', purpose: 'social', format: 'pdf', status: 'in_work', assignee_id: staff,
+  const r48 = R({ number: num(48), student_id: anna, type: 'study', purpose: 'social', format: 'pdf', status: 'in_work', assignee_id: staff,
     created_at: ago(20), submitted_at: ago(20), taken_at: r48taken, eta_at: iso(T.at(T.addWorkdays(today, 1), 15 * 60)) },
   [[ago(20), anna, 'submitted'], [r48taken, staff, 'taken']]);
   R({ number: 'draft-' + anna, student_id: anna, type: 'study', purpose: 'transport', format: 'pdf', status: 'draft', created_at: ago(1) }, []);
@@ -182,11 +181,11 @@ function seed(db) {
   // ---------- Уведомления ----------
   const insNt = db.prepare('INSERT INTO notifications (user_id, at, category, title, body, link, read) VALUES (?,?,?,?,?,?,?)');
   const tueKey = nextOn(2, T.parseHHMM('10:35'));
-  insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации — ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, '/study', 0);
-  insNt.run(anna, ago(19), 'requests', `Справка в соцзащиту взята в работу`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, '/requests', 0);
-  insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Матпомощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, '/requests', 1);
+  insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации — ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, `/study?d=${tueKey}#pair-${econTue}`, 0);
+  insNt.run(anna, ago(19), 'requests', `Справка об обучении для соцзащиты — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
+  insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Матпомощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, `/requests/${r31}`, 1);
   insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов — в разделе «Заявки».', '/requests/new?type=aid', 1);
-  insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, '/study', 0);
+  insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, `/study?d=${nextOn(4, T.parseHHMM('21:05'))}#pair-${innovThu}`, 0);
   insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета — онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);
   insNt.run(ilya, ago(30), 'grades', 'НИР: этап «Научный поиск» вернули на доработку', 'Смотри комментарий руководителя.', '/study/nir', 0);
 

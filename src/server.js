@@ -124,7 +124,6 @@ function createApp({ db = open() } = {}) {
     const todo = [];
     for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.type === 'aid' ? 'Матпомощь' : r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
     for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
-    if (u.level === 'магистратура') for (const s of M.nir(u.id).filter((x) => x.state === 'returned')) todo.push({ amber: true, title: `НИР: «${s.title}» на доработку`, meta: `до ${T.dayMonthKey(s.due_key)}`, href: '/study/nir', action: 'Открыть' });
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
     send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds: M.disciplines(u.id), todo })));
   });
@@ -215,6 +214,7 @@ function createApp({ db = open() } = {}) {
     res.type(f.mime || 'application/octet-stream').set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(f.name)}`);
     res.sendFile(path.join(UPLOADS, path.basename(f.stored)));
   });
+  app.get('/help/data', student, (req, res) => send(res, V.dataHelp(ctxOf(req))));
   app.get('/help/tax', student, (req, res) => send(res, V.taxHelp(ctxOf(req, { back: /^\/requests(\/\d+)?$/.test(req.query.back || '') ? req.query.back : '/requests/new?type=tax' }))));
   app.get('/help/doc', student, (req, res) => send(res, V.docHelp(ctxOf(req, { name: String(req.query.name || ''), back: /^\/[a-z0-9/?=&#-]*$/i.test(req.query.back || '') ? req.query.back : '/requests' }))));
 

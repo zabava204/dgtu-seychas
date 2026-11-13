@@ -8,6 +8,7 @@ const https = require('https');
 const tls = require('tls');
 const T = require('./time');
 const TAX = require('./tax');
+const GR = require('./grades');
 
 const OAUTH_URL = process.env.GIGACHAT_OAUTH_URL || 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const API_URL = process.env.GIGACHAT_API_URL || 'https://gigachat.devices.sberbank.ru/api/v1';
@@ -23,10 +24,17 @@ function intents(question, data) {
   const set = (id, text, actions = []) => { out.id = id; out.text = text; out.actions = actions; return out; };
 
   if (has(q, ['не хочу жить', 'покончить', 'суицид', 'умереть', 'самоуб', 'тяжело', 'плохо мне', 'паник', 'депресс', 'не справляюсь с жизнью'])) {
-    return set('support', 'Спасибо, что написал(а). Ты не один(одна) с этим. Если есть угроза жизни — звони 112. Можно поговорить с психологом вуза анонимно для деканата — контакты в разделе «Если тяжело».', [{ label: 'Если тяжело', href: '/hard' }, { label: 'Позвонить 112', href: 'tel:112' }]);
+    return set('support', 'Спасибо, что написал(а). Ты не один(одна) с этим. Если есть угроза жизни — звони 112. Контакты психолога вуза — в разделе «Если тяжело»; открытие этого раздела не создаёт обращения в деканат.', [{ label: 'Если тяжело', href: '/hard' }, { label: 'Позвонить 112', href: 'tel:112' }]);
   }
   if (has(q, ['состав семьи', 'составе семьи'])) return set('doc_family', 'Справку о составе семьи обычно выдают МФЦ или управляющая компания / ТСЖ по месту регистрации. Для подачи достаточно скана или фото. Точные требования (например, срок давности) уточни в деканате — это демо-правило.', [{ label: 'Где взять справку', href: '/help/doc?name=' + encodeURIComponent('Справка о составе семьи') }]);
+  // Баллы считает программа (grades.js); модель их не пересчитывает
+  if (has(q, ['балл', 'зачет', 'оценк', 'экзамен', 'сесси', 'долг', 'автомат', 'порог', 'хватит', 'допуск']) || GR.findDiscipline(q, data.disciplines)) {
+    const g = GR.answer(q, data.disciplines);
+    out.exact = true;
+    return set('grades', g.text, [{ label: g.discipline ? `Открыть: ${g.discipline.subject}` : 'Открыть оценки', href: g.discipline ? `/study/grades#d-${g.discipline.id}` : '/study/grades' }]);
+  }
   if (has(q, ['вычет', 'налог', 'ндфл'])) {
+    out.exact = true;
     const ys = TAX.yearsFromPayments(data.payments || []).filter((y) => y.eligibleForm);
     const y = ys.find((x) => x.closed);
     const cur = ys.find((x) => !x.closed);
@@ -48,16 +56,13 @@ function intents(question, data) {
   if (has(q, ['заочк', 'перевод', 'перевест', 'другую форму'])) return set('transfer', 'Это перевод на другую форму обучения. Демо-правило концепта: подаётся заявление в деканат, его согласуют в институте и оформляют приказом. На заочной форме обычно не назначается академическая стипендия, условия оплаты зависят от направления — уточни в деканате (корпус 1, каб. 210) до подачи.', [{ label: 'Мой деканат', href: '/me' }]);
   if (has(q, ['академ', 'академическ'])) return set('academic_leave', 'Академический отпуск оформляется через заявление в деканат с подтверждающим документом. В первой версии кабинета эта заявка не подаётся онлайн — уточни порядок в деканате (корпус 1, каб. 210).', [{ label: 'Мой деканат', href: '/me' }]);
   if (has(q, ['отсрочк', 'больше времени', 'не успеваю', 'продлить срок', 'перенести срок'])) return set('extension', 'Можно написать преподавателю так: «Здравствуйте! Я не успеваю сдать работу к сроку. Могу ли я сдать её до [дата]? Спасибо». Объяснять причины не обязательно. Если работ несколько — посмотри «Оценки»: там видно, что важнее.', [{ label: 'Открыть оценки', href: '/study/grades' }]);
-  if (has(q, ['балл', 'зачет', 'зачёт', 'оценк', 'экзамен', 'сесси', 'долг', 'автомат'])) {
-    const bad = data.disciplines.filter((d) => d.gap > 0 && !d.closed_text);
-    const text = bad.length ? `Нужно действовать по ${bad.length} ${bad.length === 1 ? 'дисциплине' : 'дисциплинам'}: ` + bad.map((d) => `${d.subject} — не хватает ${d.gap} б.${d.overdue.length ? `, не сданы: ${d.overdue.map((w) => w.title).join(', ')}` : ''}`).join('; ') + '.' : 'По всем дисциплинам порог уже пройден.';
-    return set('grades', text, [{ label: 'Открыть оценки', href: '/study/grades' }]);
-  }
   if (has(q, ['пара', 'расписан', 'аудитор', 'где занят', 'куда идти'])) {
+    out.exact = true;
     const n = data.next;
-    return set('schedule', n ? `Ближайшая пара: ${n.subject}, ${T.relDateTime(n.startsAt)}, ${n.online ? 'онлайн' : `ауд. ${n.room}`}.${n.old_room ? ` Аудитория изменена, было ${n.old_room}.` : ''}` : 'В ближайшие две недели пар нет.', [{ label: 'Расписание', href: '/study' }]);
+    return set('schedule', n ? `Ближайшая пара: ${n.subject}, ${T.relDateTime(n.startsAt)}, ${n.online ? 'онлайн' : `ауд. ${n.room}`}.${n.old_room ? ` Аудитория изменена, было ${n.old_room}.` : ''}` : 'В ближайшие две недели пар нет.', [{ label: 'Расписание', href: n ? `/study?d=${T.dateKey(n.startsAt)}#pair-${n.id}` : '/study' }]);
   }
   if (has(q, ['статус', 'заявк', 'готов'])) {
+    out.exact = true;
     const open = data.requests.filter((r) => !['ready', 'rejected', 'draft'].includes(r.status));
     return set('status', open.length ? open.map((r) => `№ ${r.number} «${r.title}» — ${r.statusText.toLowerCase()}`).join('; ') + '.' : 'Открытых заявок нет.', [{ label: 'Мои заявки', href: '/requests' }]);
   }
@@ -127,6 +132,7 @@ function systemPrompt(data) {
     'Ты — помощник «Что нужно?» в концепте личного кабинета студента «ДГТУ.Сейчас» (прототип для конкурса, данные вымышленные).',
     'Отвечай по-русски, на «ты», коротко: 2–5 предложений, без markdown-заголовков.',
     'Опирайся только на данные студента и демо-правила ниже. Не выдумывай нормативы, сроки, суммы, телефоны и ссылки. Если не знаешь — так и скажи и предложи обратиться в деканат: корпус 1, каб. 210, пн–пт 9:00–17:00.',
+    'Никогда не считай баллы, суммы и сроки сам и не придумывай максимумы работ: такие ответы кабинет считает программой. Если спрашивают о баллах — предложи открыть «Оценки».',
     'Никогда не пиши, что ты что-то проверил, отправил или оформил — ты только подсказываешь. Кнопки для действий интерфейс покажет сам.',
     'Если студенту плохо — мягко предложи раздел «Если тяжело» и номер 112 при угрозе жизни; не ставь диагнозов.',
     '', `Сегодня: ${T.wdLongKey(T.dateKey())}, ${T.dayMonthKey(T.dateKey())}, ${T.timeOf(T.now())}, неделя — ${T.parityLabel()}.`,
@@ -165,6 +171,8 @@ async function answer(question, history, data) {
   if (!q) return { text: 'Напиши, что нужно.', actions: [], source: 'rules', intent: 'empty' };
   const it = intents(q, data);
   if (it.id === 'support') return { text: it.text, actions: it.actions, source: 'rules', intent: it.id };
+  // Цифры (баллы, суммы, статусы, расписание) отдаём из расчёта кабинета, без пересказа моделью
+  if (it.exact) return { text: it.text, actions: it.actions, source: 'calc', intent: it.id };
   if (enabled()) {
     try {
       const text = await askGigaChat(q, history, data);

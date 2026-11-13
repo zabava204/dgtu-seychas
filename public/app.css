@@ -226,3 +226,11 @@ a.row:hover { color: var(--ink); background: linear-gradient(90deg, transparent,
 }
 .note > svg { flex: none; margin-top: 1px; }
 [hidden] { display: none !important; }
+/* ревью 4: выделение пары по ссылке из уведомления, чат над панелью ввода */
+.pair:target { border: 2px solid var(--amber); box-shadow: 0 0 0 4px rgba(180,83,9,.15); scroll-margin-top: 16px; }
+details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
+.msg { scroll-margin-top: 12px; scroll-margin-bottom: 170px; }
+.hero { gap: 8px; padding: 16px 18px 12px; }
+.hero .big { font-size: 34px; }
+.hero .subj { font-size: 18px; }
+.hero .btn-white { height: 46px; }
