@@ -13,10 +13,10 @@ function shell({ title, ctx, cur, body }) {
   const nav = [['new', 'Новые', c.new], ['work', 'В работе', c.work], ['student', 'Ждут студента', c.student], ['done', 'Завершённые', c.done]];
   return html`${head(title)}<body><div class="staff-layout">
 <aside aria-label="Разделы деканата">
-<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${I.logo}<div><div style="font-weight:700">ДГТУ.Сейчас</div><div class="small" style="color:#8E9BBB">Кабинет деканата</div></div></div>
+<div class="brand" style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${I.logo}<div class="brand-t"><div style="font-weight:700">ДГТУ.Сейчас</div><div class="small" style="color:#8E9BBB">Кабинет деканата</div></div></div>
 ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-current="page"') : ''}><span>${l}</span><span class="cnt">${n}</span></a>`)}
 <a href="/staff/announce" ${cur === 'announce' ? raw('aria-current="page"') : ''}><span>Объявление студентам</span></a>
-<div style="margin-top:auto;font-size:13px;color:#8E9BBB;padding:12px">${ctx.user.full_name}<br>${ctx.user.position}
+<div class="who" style="margin-top:auto;font-size:13px;color:#8E9BBB;padding:12px"><span class="who-name">${ctx.user.full_name}<br>${ctx.user.position}</span>
 <form method="post" action="/logout" style="margin-top:8px"><button class="link" style="color:#AFC3FF;padding:0;min-height:36px">Выйти</button></form></div>
 </aside>
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
