@@ -84,6 +84,17 @@ function gradesSummary(ds) {
 }
 
 // ---------- Сегодня ----------
+function greeting() {
+  const h = Math.floor(T.minutesOfDay() / 60);
+  return h >= 5 && h < 12 ? 'Доброе утро' : h >= 12 && h < 17 ? 'Добрый день' : h >= 17 && h < 23 ? 'Добрый вечер' : 'Доброй ночи';
+}
+const TILE_ICON = {
+  cal: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 14h6M13 11v6"/>',
+  book: '<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10M9 8h6"/>',
+};
+const tile = (href, icon, label, color) => html`<a class="tile" href="${href}"><span class="ti ${color}">${raw(`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TILE_ICON[icon]}</svg>`)}</span><span>${label}</span></a>`;
 function today(ctx) {
   const { user, next, ds, todo, unread, session = [] } = ctx;
   const firstS = session.find((x) => x.kind !== 'консультация' && x.date_key >= T.dateKey());
@@ -109,22 +120,23 @@ ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComp
   return page({
     title: 'Сегодня', active: 'today', ctx,
     body: html`
-<div class="top"><div class="date">${T.wdShortKey(key)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div>
-<div style="display:flex;gap:2px">
-<a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
-<a class="icon-btn" href="/notifications" aria-label="Уведомления${unread ? `, новых: ${unread}` : ''}">${I.bell}${unread ? html`<span class="dot"></span>` : ''}</a>
-</div></div>
-<h1 class="sr-only">Сегодня, ${user.first_name}</h1>
+<div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 ${hero}
+<nav class="tiles" aria-label="Быстрые действия">
+${tile('/study?view=week', 'cal', 'Расписание', 'blue')}
+${tile('/study/grades#session', 'flag', 'Сессия', 'amber')}
+${tile('/requests/new', 'doc', 'Справки', 'green')}
+${tile('/study/record', 'book', 'Зачётка', 'violet')}
+</nav>
 <a class="ask-bar" href="/helper">${I.search}<span>Спроси: ${user.funding === 'контракт' ? 'вычет' : 'справка'}, баллы, экзамены</span></a>
 <section class="section" aria-labelledby="todo-h">
-<h2 class="label" id="todo-h">Нужно сделать · ${todo.length}</h2>
-${todo.length ? html`<div>${todo.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
+<h2 class="label" id="todo-h">Нужно сделать <span class="cnt">${todo.length}</span></h2>
+${todo.length ? html`<div class="group">${todo.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
 <div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`)}</div>`
     : html`<p class="muted">Всё сделано. Хорошего дня!</p>`}
 </section>
-<a class="row" href="/study/grades" style="margin:10px 20px 0;border-top:1px solid var(--line);border-bottom:0">
-${lightsBar(ds)}<span class="body small" style="font-size:14px">${gradesSummary(ds)}${firstS ? html`<span class="muted" style="display:block;margin-top:2px">Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}</span>` : ''}</span>${I.chev}</a>`,
+<section class="section"><h2 class="label">Успеваемость</h2><div class="group"><a class="row" href="/study/grades">
+${lightsBar(ds)}<span class="body small" style="font-size:14px">${gradesSummary(ds)}${firstS ? html`<span class="muted" style="display:block;margin-top:2px">Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}</span>` : ''}</span>${I.chev}</a></div></section>`,
   });
 }
 
@@ -157,7 +169,7 @@ ${studyTabs(user, 'schedule')}
 <nav class="mini-seg" aria-label="Вид расписания"><a href="${q(sel, 'day')}" ${view === 'day' ? raw('aria-current="page"') : ''}>День</a><a href="${q(sel, 'week')}" ${view === 'week' ? raw('aria-current="page"') : ''}>Неделя</a></nav>
 <a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, 7))}" aria-label="Следующая неделя">→</a></div>
 ${view === 'week' ? weekBody() : html`<section class="section" style="padding-top:4px" aria-label="Пары">
-<h2 class="label">${T.wdLongKey(sel)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
+<h2 class="label">${T.wdLongKey(sel)[0].toUpperCase() + T.wdLongKey(sel).slice(1)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
 ${exams.map((e) => html`<article class="pair exam" id="exam-${e.id}">
 <div class="tm"><span>${e.start}</span><span class="tag ${e.kind === 'консультация' ? 'blue' : 'amber'}">${e.kind}</span></div>
 <div class="nm">${e.subject}</div>
@@ -286,14 +298,14 @@ ${act.map((r) => html`<div class="row" style="align-items:stretch"><span class="
 </div></div>`)}</section>` : ''}
 ${drafts.length ? html`<section class="section"><h2 class="label">Черновики</h2>${drafts.map((r) => html`<a class="row" href="/requests/new?type=${r.type}&draft=1"><div class="body"><span class="title strong">${r.title}</span><span class="meta">${r.type === 'tax' ? 'Заполнен по договору' : 'Заполнен из профиля'} · проверь и отправь</span></div>${I.chev}</a>`)}</section>` : ''}
 <section class="section"><h2 class="label">Ждут деканат</h2>
-${wait.length ? wait.map(reqRowWaiting) : html`<p class="muted small">Сейчас ничего не ждёт.</p>`}</section>
+${wait.length ? wait.map(reqRowWaiting) : html`<p class="muted small">Заявок в работе нет.</p>`}</section>
 <section class="section"><h2 class="label">Завершённые</h2>
 ${done.length ? done.map((r) => html`<div class="row"><div class="body">
 <div class="req-head"><a href="/requests/${r.id}" class="title strong" style="color:inherit;text-decoration:none">${r.title}</a><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${r.status === 'ready' ? `Готова · ${T.dayMonth(new Date(r.closed_at))}` : `Отклонена · ${r.reject_reason || ''}`}</div>
 ${r.status === 'ready' && TYPES[r.type].producesPdf && r.format !== 'paper' ? html`<div class="actions"><a class="btn secondary small" href="/requests/${r.id}/pdf" target="_blank" rel="noopener" style="color:var(--blue)">${I.file}Открыть PDF</a></div>`
     : r.status === 'ready' && r.format === 'paper' ? html`<div class="meta">Забрать в деканате: корпус 1, каб. 210</div>` : ''}
-</div></div>`) : html`<p class="muted small">Пока пусто.</p>`}</section>`,
+</div></div>`) : html`<p class="muted small">Завершённых заявок пока нет.</p>`}</section>`,
   });
 }
 
@@ -302,7 +314,7 @@ function newRequestChoose(ctx) {
     title: 'Новая заявка', active: 'requests', ctx,
     body: html`${backBar('/requests', 'Заявки')}<div class="page-head"><h1>Новая заявка</h1><p class="muted" style="margin:6px 0 0">Нет в списке — спроси помощника.</p></div>
 <section class="section">${Object.entries(TYPES).map(([k, t]) => html`<a class="row" href="/requests/new?type=${k}"><div class="body"><span class="title strong">${t.title}</span>
-<span class="meta">${t.subtitle || (k === 'study' ? 'Для проездного, соцзащиты, работодателя' : k === 'visa' ? 'На английском, 3 рабочих дня' : 'Заявление и документы')}</span></div>${I.chev}</a>`)}
+<span class="meta">${t.subtitle || ( 'Заявление и документы')}</span></div>${I.chev}</a>`)}
 <div class="actions"><a class="btn secondary small" href="/helper">Спросить помощника</a></div></section>`,
   });
 }
@@ -406,7 +418,7 @@ function requestSent(ctx) {
 <h1 style="margin-top:14px">${head}</h1>
 <div class="sub">${r.title} · № ${r.number}</div>
 <div class="small muted" style="margin-top:4px;font-size:14px">Ожидаемая готовность — ${T.relDateTime(new Date(r.eta_at))}</div></div>
-<div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Сейчас действие за <b>деканатом</b>. Тебе ничего делать не нужно.</div>
+<div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Заявка передана в <b>деканат</b>. Тебе ничего делать не нужно.</div>
 ${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим, когда справка будет готова.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
 <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:20px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none">${I.bell}</span>
 <div><div style="font-weight:600">Сообщить, когда справка будет готова?</div><div class="small muted" style="font-size:14px;margin-top:4px">Покажем уведомление «Справка готова» в кабинете, а пока кабинет открыт — и в браузере. Без оценок и содержания заявки.</div></div></div>
@@ -425,7 +437,7 @@ function requestDetail(ctx) {
   const stage = (cls, title, when, extra) => html`<div class="stage ${cls}"><div class="st">${title}</div>${when ? html`<div class="when">${when}</div>` : ''}${extra || ''}</div>`;
   const by = (e) => (e ? `${T.stamp(new Date(e.at))} · ${e.actor_role === 'staff' ? `${e.actor_name}, деканат` : 'ты'}` : '');
   const ev = (k) => [...events].reverse().find((e) => e.kind === k);
-  const actor = r.status === 'need_student' ? html`Сейчас действие за <b>тобой</b>` : r.status === 'ready' ? html`<b>Готова</b>` : r.status === 'rejected' ? html`<b>Отклонена</b>` : html`Сейчас действие за <b>деканатом</b>`;
+  const actor = r.status === 'need_student' ? html`<b>Нужно твоё действие</b>` : r.status === 'ready' ? html`<b>Готова</b>` : r.status === 'rejected' ? html`<b>Отклонена</b>` : r.status === 'in_work' ? html`<b>В работе</b> у сотрудника деканата` : html`<b>Ждёт обработки</b> в деканате`;
   const workTitle = isAid ? 'Рассмотрение заявления' : 'Оформление справки';
   const purpose = r.type === 'study' ? purposeOf('study', r.purpose) : null;
   const pdfOk = r.status === 'ready' && t.producesPdf && r.format !== 'paper';
@@ -502,7 +514,7 @@ function me(ctx) {
 <div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/helper">Спросить помощника</a></div></div>
 <div class="card" style="padding-top:4px;padding-bottom:4px">
 ${linkRow('/hard', 'Если тяжело', 'Контакты психолога и телефоны помощи')}
-${linkRow('/me/notifications', 'Уведомления', 'Что присылать и куда')}
+${linkRow('/me/notifications', 'Уведомления', 'Какие уведомления получать')}
 ${linkRow('/notifications', 'Все уведомления', '')}
 <form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
 </div>
@@ -581,7 +593,7 @@ function helper(ctx) {
   const sugg = [
     ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
     ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
-    user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка для проездного', 'Справка для проездного'],
+    user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для льготы родителей по ЖКУ', 'Справка для льготы по ЖКУ'],
     ['Где завтра пары?', 'Пары на завтра'],
     ['Мне нужно больше времени на работы. Как попросить отсрочку?', 'Попросить отсрочку'],
   ];

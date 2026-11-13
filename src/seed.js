@@ -6,7 +6,7 @@ const { estimateEta } = require('./catalog');
 const { DEMO_INN } = require('./tax');
 
 const DEMO_PASSWORD = 'demo2026';
-const FACULTY = 'Менеджмент и бизнес';
+const FACULTY = 'Экономика и управление';
 
 function seed(db) {
   const now = T.now();
@@ -29,13 +29,13 @@ function seed(db) {
   const anna = user({
     login: 'anna', pass_hash: hash, role: 'student', full_name: 'Орлова Анна Сергеевна', short_name: 'Анна Орлова',
     name_dat: 'Орловой Анне Сергеевне', first_name: 'Анна', gender: 'f', group_name: 'МН-31', course: 3, level: 'бакалавриат',
-    program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '23-0471', curator: 'Петрова И. В.',
+    program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '230471', curator: 'Петрова И. В.',
     demo_note: 'бакалавр · 3 курс · дневные пары',
   });
   const ilya = user({
     login: 'ilya', pass_hash: hash, role: 'student', full_name: 'Смирнов Илья Андреевич', short_name: 'Илья Смирнов',
     name_dat: 'Смирнову Илье Андреевичу', first_name: 'Илья', gender: 'm', group_name: 'ММН-21', course: 2, level: 'магистратура',
-    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '25-1186', curator: 'Ким А. С.',
+    program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '251186', curator: 'Ким А. С.',
     demo_note: 'магистрант · 2 курс, контракт · вечерние пары, НИР',
   });
   const staff = user({
@@ -44,10 +44,10 @@ function seed(db) {
   });
   // Студенты без входа — чтобы очередь деканата была живой
   const others = {
-    petrov: user({ role: 'student', full_name: 'Петров Денис Олегович', short_name: 'Денис Петров', name_dat: 'Петрову Денису Олеговичу', gender: 'm', group_name: 'МН-32', course: 3, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '23-0518' }),
-    kim: user({ role: 'student', full_name: 'Ким Лиана Робертовна', short_name: 'Лиана Ким', name_dat: 'Ким Лиане Робертовне', gender: 'f', group_name: 'МН-21', course: 2, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '24-0233' }),
-    volkova: user({ role: 'student', full_name: 'Волкова Мария Игоревна', short_name: 'Мария Волкова', name_dat: 'Волковой Марии Игоревне', gender: 'f', group_name: 'ММН-11', course: 1, level: 'магистратура', program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'бюджет', record_book: '25-1190' }),
-    guseynov: user({ role: 'student', full_name: 'Гусейнов Тимур Рашидович', short_name: 'Тимур Гусейнов', name_dat: 'Гусейнову Тимуру Рашидовичу', gender: 'm', group_name: 'МН-41', course: 4, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'контракт', record_book: '22-0391' }),
+    petrov: user({ role: 'student', full_name: 'Петров Денис Олегович', short_name: 'Денис Петров', name_dat: 'Петрову Денису Олеговичу', gender: 'm', group_name: 'МН-32', course: 3, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '230518' }),
+    kim: user({ role: 'student', full_name: 'Ким Лиана Робертовна', short_name: 'Лиана Ким', name_dat: 'Ким Лиане Робертовне', gender: 'f', group_name: 'МН-21', course: 2, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '240233' }),
+    volkova: user({ role: 'student', full_name: 'Волкова Мария Игоревна', short_name: 'Мария Волкова', name_dat: 'Волковой Марии Игоревне', gender: 'f', group_name: 'ММН-11', course: 1, level: 'магистратура', program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'бюджет', record_book: '251190' }),
+    guseynov: user({ role: 'student', full_name: 'Гусейнов Тимур Рашидович', short_name: 'Тимур Гусейнов', name_dat: 'Гусейнову Тимуру Рашидовичу', gender: 'm', group_name: 'МН-41', course: 4, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'контракт', record_book: '220391' }),
   };
 
   // ---------- Расписание (шаблон недели) ----------
@@ -179,14 +179,14 @@ function seed(db) {
     created_at: ago(3 * 24 + 1), submitted_at: ago(3 * 24 + 1), taken_at: ago(2 * 24 + 3), eta_at: null },
   [[ago(3 * 24 + 1), anna, 'submitted'], [ago(2 * 24 + 3), staff, 'taken'], [ago(2 * 24 + 2.9), staff, 'need_doc', 'Загрузи справку о составе семьи (не старше 30 дней)']]);
   const r48taken = ago(19);
-  const r48 = R({ number: num(48), student_id: anna, type: 'study', purpose: 'social', format: 'pdf', status: 'in_work', assignee_id: staff,
+  const r48 = R({ number: num(48), student_id: anna, type: 'study', purpose: 'housing', format: 'pdf', status: 'in_work', assignee_id: staff,
     created_at: ago(20), submitted_at: ago(20), taken_at: r48taken, eta_at: iso(T.at(T.addWorkdays(today, 1), 15 * 60)) },
   [[ago(20), anna, 'submitted'], [r48taken, staff, 'taken']]);
-  R({ number: 'draft-' + anna, student_id: anna, type: 'study', purpose: 'transport', format: 'pdf', status: 'draft', created_at: ago(1) }, []);
+  R({ number: 'draft-' + anna, student_id: anna, type: 'study', purpose: 'housing', format: 'pdf', status: 'draft', created_at: ago(1) }, []);
 
   // Илья
-  R({ number: num(51), student_id: ilya, type: 'visa', details: 'Сербия, 2–9 января', format: 'pdf', status: 'submitted',
-    created_at: ago(3), submitted_at: ago(3), eta_at: iso(estimateEta('visa', 'pdf', new Date(ago(3)))) }, [[ago(3), ilya, 'submitted']]);
+  R({ number: num(51), student_id: ilya, type: 'study', purpose: 'employer', format: 'pdf', status: 'submitted',
+    created_at: ago(3), submitted_at: ago(3), eta_at: iso(estimateEta('study', 'pdf', new Date(ago(3)))) }, [[ago(3), ilya, 'submitted']]);
 
   // Оплата обучения Ильи по договору (для справки на вычет) и черновик заявки
   // Илья поступил в прошлом году: справку можно заказать только за закончившийся год,
@@ -208,7 +208,7 @@ function seed(db) {
   [[ago(50), others.kim, 'submitted'], [ago(26), staff, 'taken']]);
   const kimReq = db.prepare('SELECT id FROM requests WHERE number = ?').get(num(33)).id;
   insF.run(kimReq, 'справка_о_составе_семьи.pdf', 'demo-sample.pdf', 'application/pdf', 1200, ago(50), others.kim);
-  R({ number: num(44), student_id: others.volkova, type: 'visa', details: 'Турция, 28 декабря – 5 января', format: 'pdf', status: 'ready', assignee_id: staff,
+  R({ number: num(44), student_id: others.volkova, type: 'study', purpose: 'employer', format: 'pdf', status: 'ready', assignee_id: staff,
     created_at: ago(5 * 24), submitted_at: ago(5 * 24), taken_at: ago(4 * 24), closed_at: ago(2 * 24), eta_at: ago(2 * 24) },
   [[ago(5 * 24), others.volkova, 'submitted'], [ago(4 * 24), staff, 'taken'], [ago(2 * 24), staff, 'ready']]);
   R({ number: num(49), student_id: others.petrov, type: 'study', purpose: 'other', details: 'Для спортивной секции', format: 'paper', status: 'submitted',
@@ -222,8 +222,8 @@ function seed(db) {
   const insNt = db.prepare('INSERT INTO notifications (user_id, at, category, title, body, link, read) VALUES (?,?,?,?,?,?,?)');
   const tueKey = nextOn(2, T.parseHHMM('10:35'));
   insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации — ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, `/study?d=${tueKey}#pair-${econTue}`, 0);
-  insNt.run(anna, ago(19), 'requests', `Справка об обучении для соцзащиты — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
-  insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Матпомощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, `/requests/${r31}`, 1);
+  insNt.run(anna, ago(19), 'requests', `Справка об обучении для льготы по ЖКУ — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
+  insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Материальная помощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, `/requests/${r31}`, 1);
   insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов — в разделе «Заявки».', '/requests/new?type=aid', 1);
   insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, `/study?d=${nextOn(4, T.parseHHMM('21:05'))}#pair-${innovThu}`, 0);
   insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета — онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);

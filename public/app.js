@@ -65,7 +65,7 @@
     const ask = async (q) => {
       q = q.trim(); if (!q) return;
       const sg = $('#suggest'); if (sg) sg.hidden = true;
-      add('me', q); input.value = '';
+      const me = add('me', q); input.value = '';
       const wait = add('bot', 'Думаю…');
       try {
         const r = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, history }) });
@@ -79,7 +79,13 @@
         const src = document.createElement('span'); src.className = 'src'; src.textContent = j.source === 'gigachat' ? 'Ответ GigaChat по данным кабинета' : j.source === 'calc' ? 'Расчёт по данным кабинета' : 'Ответ по правилам кабинета'; wait.appendChild(src);
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
         wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
-      } catch { wait.textContent = 'Нет связи с сервером. Проверь интернет и попробуй ещё раз.'; }
+      } catch {
+        wait.textContent = 'Нет связи. Вопрос сохранён — проверь интернет и нажми «Повторить».';
+        const box = document.createElement('div'); box.className = 'actions';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn small'; btn.textContent = 'Повторить';
+        btn.addEventListener('click', () => { me.remove(); wait.remove(); ask(q); });
+        box.appendChild(btn); wait.appendChild(box);
+      }
     };
     form.addEventListener('submit', (e) => { e.preventDefault(); ask(input.value); });
     $$('#suggest [data-q]').forEach((b) => b.addEventListener('click', () => ask(b.dataset.q)));

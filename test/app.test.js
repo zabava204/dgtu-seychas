@@ -56,7 +56,7 @@ test('студент видит только свои заявки, файлы �
   const anna = await login('anna'); const ilya = await login('ilya');
   const page = await (await anna.get('/requests')).text();
   assert.match(page, /Материальная помощь/);
-  assert.doesNotMatch(page, /Справка для визы/);
+  assert.doesNotMatch(page, /\d{4}-051/); // заявка Ильи
   const annaReady = 1; // № …-007, готовая справка Анны
   assert.equal((await anna.get(`/requests/${annaReady}/pdf`)).status, 200);
   const foreign = await ilya.get(`/requests/${annaReady}`);
@@ -84,7 +84,7 @@ test('POST с чужого сайта отклоняется', async () => {
 
 test('сквозной сценарий: подача → в работе → PDF → уведомление', async () => {
   const anna = await login('anna'); const dk = await login('dekanat');
-  const r = await anna.post('/requests', { type: 'study', purpose: 'transport', format: 'pdf', details: '' });
+  const r = await anna.post('/requests', { type: 'study', purpose: 'housing', format: 'pdf', details: '' });
   assert.equal(r.status, 302);
   const id = r.headers.get('location').match(/requests\/(\d+)\/sent/)[1];
   assert.match(await (await anna.get(`/requests/${id}/sent`)).text(), /Справка заказана/);
@@ -98,7 +98,7 @@ test('сквозной сценарий: подача → в работе → PD
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
   assert.ok((await pdf.arrayBuffer()).byteLength > 5000);
   const feed = await (await anna.get('/notifications')).text();
-  assert.match(feed, /Справка об обучении для проездного готова/);
+  assert.match(feed, /Справка об обучении для льготы по ЖКУ готова/);
 });
 
 test('запрос документа и загрузка студентом', async () => {
@@ -119,7 +119,7 @@ test('запрос документа и загрузка студентом', a
 
 test('помощник без ключа отвечает по правилам и даёт кнопку', async () => {
   const anna = await login('anna');
-  const r = await anna.post('/api/assistant', { message: 'нужна справка для проездного' }, true);
+  const r = await anna.post('/api/assistant', { message: 'нужна справка для льготы родителей по ЖКУ' }, true);
   const j = await r.json();
   assert.equal(j.source, 'rules');
   assert.ok(j.actions.some((a) => a.href.startsWith('/requests/new?type=study')));

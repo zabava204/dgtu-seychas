@@ -7,9 +7,6 @@ const { purposeOf } = require('./catalog');
 
 const FONT = path.join(__dirname, '..', 'fonts');
 const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
-function translit(s) {
-  return s.split('').map((ch) => { const l = ch.toLowerCase(); const t = TR[l]; if (t == null) return ch; return ch === l ? t : t.charAt(0).toUpperCase() + t.slice(1); }).join('');
-}
 
 function certificate({ r, student, staff, payments = [] }, stream) {
   const doc = new PDFDocument({ size: 'A4', margins: { top: 64, bottom: 64, left: 72, right: 64 }, info: { Title: `Справка № ${r.number} (демо)`, Author: 'ДГТУ.Сейчас — концепт' } });
@@ -24,7 +21,7 @@ function certificate({ r, student, staff, payments = [] }, stream) {
   const issued = new Date(r.closed_at || T.now());
   const w = doc.page.width - 72 - 64;
   doc.fillColor('#B42318').font('S').fontSize(9).text('ДЕМОНСТРАЦИОННЫЙ ОБРАЗЕЦ — НЕ ЯВЛЯЕТСЯ ОФИЦИАЛЬНЫМ ДОКУМЕНТОМ ДГТУ', 72, 40, { width: w, align: 'center' });
-  doc.fillColor('#14213D').font('S').fontSize(11).text('Концепт «ДГТУ.Сейчас» · факультет «Менеджмент и бизнес» (вымышленное подразделение)', 72, 72, { width: w });
+  doc.fillColor('#14213D').font('S').fontSize(11).text('Концепт «ДГТУ.Сейчас» · факультет «Экономика и управление» (вымышленное подразделение)', 72, 72, { width: w });
   doc.font('R').fontSize(10).fillColor('#5B6577').text('Деканат: корпус 1, каб. 210', { width: w });
   doc.moveDown(2);
 
@@ -46,14 +43,6 @@ function certificate({ r, student, staff, payments = [] }, stream) {
     for (const p of rows) doc.text(`   ${p.paid_on.split('-').reverse().join('.')} — ${rub(p.amount)} (${p.note || 'оплата по договору'}), заказчик: ${p.payer}`);
     doc.moveDown(0.4).font('B').text(`Итого: ${rub(sum)}`);
     doc.moveDown(0.6).font('R').fontSize(10).fillColor('#5B6577').text('Форма справки утверждена приказом ФНС России от 18.10.2023 № ЕД-7-11/755@. Этот файл — демонстрационный образец, а не заполненная официальная форма.', { align: 'justify' });
-  } else if (r.type === 'visa') {
-    doc.fillColor('#14213D').font('B').fontSize(18).text(`CERTIFICATE No. ${r.number}`, { align: 'center' });
-    doc.font('R').fontSize(11).fillColor('#5B6577').text(`Issued on ${T.shortDate(issued)}`, { align: 'center' });
-    doc.moveDown(1.5).fillColor('#14213D').font('R').fontSize(12).lineGap(4);
-    const nm = translit(student.full_name.split(' ').slice(0, 2).reverse().join(' '));
-    doc.text(`This is to certify that ${nm} is a ${student.form === 'очная' ? 'full-time' : 'part-time'} ${student.level === 'магистратура' ? "Master's" : "Bachelor's"} student (year ${student.course}, group ${translit(student.group_name)}) of the Faculty of Management and Business (fictional unit used in a contest prototype).`, { align: 'justify' });
-    doc.moveDown(0.8).text(`The student is granted leave during the trip: ${r.details || '—'}. The student's place of study is retained.`, { align: 'justify' });
-    doc.moveDown(0.8).text('This certificate is issued for submission to the consulate.', { align: 'justify' });
   } else {
     const p = purposeOf('study', r.purpose);
     doc.fillColor('#14213D').font('B').fontSize(18).text(`СПРАВКА № ${r.number}`, { align: 'center' });

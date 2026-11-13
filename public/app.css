@@ -294,3 +294,66 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .ask-bar { display: flex; align-items: center; gap: 10px; margin: 14px 20px 0; padding: 12px 16px; min-height: 48px; background: #fff; border: 1px solid var(--line); border-radius: 24px; color: var(--muted); font-size: 14px; text-decoration: none; }
 .ask-bar svg { flex: none; color: var(--blue); }
 .ask-bar:hover { color: var(--ink); border-color: var(--blue); }
+
+/* =====================================================================
+   v3: фирменная шапка, крупнее меню и текст, сгруппированные карточки
+   ===================================================================== */
+:root { --bg: #F2F4F8; --line: #E1E6EF; --shadow: 0 1px 2px rgba(20,33,61,.06), 0 4px 14px rgba(20,33,61,.05); --violet: #6D4AD8; --violet-soft: #F1EDFF; }
+.small { font-size: 14px; }
+.demo-strip { background: #0E1830; color: #AFC3FF; }
+
+/* Шапка */
+.appbar { position: sticky; top: 0; z-index: 9; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 8px 0 16px; background: var(--hero); color: #fff; }
+.appbar .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+.appbar .ab-act { display: flex; }
+.appbar .icon-btn { color: #fff; }
+.appbar .icon-btn .dot { border-color: var(--hero); }
+.greet { padding: 18px 20px 4px; }
+.greet h1 { font-size: 26px; }
+.greet .muted { margin-top: 4px; font-size: 15px; }
+
+/* Быстрые действия */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 16px 12px 0; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px 10px; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; text-align: center; line-height: 1.2; }
+.tile:hover { color: var(--ink); box-shadow: 0 0 0 2px var(--blue); }
+.tile .ti { width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center; }
+.ti.blue { background: var(--blue-soft); color: var(--blue); }
+.ti.amber { background: var(--amber-soft); color: var(--amber); }
+.ti.green { background: var(--green-soft); color: var(--green); }
+.ti.violet { background: var(--violet-soft); color: var(--violet); }
+.ask-bar { margin-top: 12px; box-shadow: var(--shadow); border-color: transparent; }
+
+/* Заголовки разделов — обычным регистром, крупнее */
+.label { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: var(--ink); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.label .cnt { font-size: 13px; font-weight: 700; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; background: var(--blue-soft); color: var(--blue-dark); display: inline-flex; align-items: center; justify-content: center; }
+.label.amber { color: var(--amber); }
+
+/* Списки — белыми карточками с разделителями */
+.group, .section > .row, .section > a.row { background: var(--card); }
+.group { border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.group > .row { padding: 14px 16px; }
+.section > .row, .section > a.row { padding: 14px 16px; border-bottom: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20,33,61,.05); }
+.section > .label + .row, .section > .label + a.row { border-radius: 18px 18px 0 0; }
+.section > .row:last-child, .section > a.row:last-child { border-radius: 0 0 18px 18px; border-bottom: 0; }
+.section > .label + .row:last-child, .section > .label + a.row:last-child { border-radius: 18px; }
+.row .title { font-size: 16px; }
+.row .meta { font-size: 14px; }
+.row .num { font-size: 13px; }
+.row .bar { margin-left: -16px; width: 4px; border-radius: 0 2px 2px 0; }
+.row .bar:not(.amber) { background: var(--blue); opacity: .35; }
+a.row:hover { background: #F7F9FD; }
+.card { border-color: transparent; box-shadow: var(--shadow); border-radius: 18px; }
+.pair { box-shadow: var(--shadow); border-color: transparent; }
+
+/* Нижнее меню — крупнее, активный пункт в «капсуле» */
+.tabbar { box-shadow: 0 -2px 12px rgba(20,33,61,.06); border-top: 0; }
+.tabbar .in { height: 76px; }
+.tabbar a { font-size: 13px; gap: 4px; font-weight: 500; }
+.tabbar .ico { width: 60px; height: 34px; border-radius: 17px; align-items: center; justify-content: center; }
+.tabbar .ico svg { width: 26px; height: 26px; }
+.tabbar a[aria-current] .ico { background: var(--blue-soft); }
+.tabbar a[aria-current] { color: var(--blue-dark); font-weight: 700; }
+.tabbar .badge { top: 2px; right: 12px; }
+.app { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+.section > .row:first-child, .section > a.row:first-child { border-radius: 18px 18px 0 0; }
+.section > .row:first-child:last-child, .section > a.row:first-child:last-child { border-radius: 18px; }

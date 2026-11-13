@@ -21,6 +21,7 @@ const I = {
   send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22, 'stroke-width="2.2"'),
   lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 18),
   check: raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#E7F6EC"/><path d="M17 29l7 7 15-16" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
+  logoSm: raw('<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2A3A66"/><path d="M7 20h8M25 20h8" stroke="#AFC3FF" stroke-width="2.6" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
   logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#14213D"/><path d="M7 20h8M25 20h8" stroke="#8E9BBB" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
 };
 
@@ -28,7 +29,7 @@ function head(title) {
   return html`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F6F7F9">
-<title>${title} · ДГТУ.Сейчас</title>
+<title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/app.css?v=1">
 </head>`;
@@ -47,6 +48,9 @@ function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
   return html`${head(title)}<body>
 <div class="app ${noNav ? 'no-nav' : ''}">
 <div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
+${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a>
+<div class="ab-act"><a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
+<a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
 </div>

@@ -145,7 +145,7 @@ function createApp(opts = {}) {
     const u = req.user;
     const reqs = M.requestsOf(u.id);
     const todo = [];
-    for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.type === 'aid' ? 'Матпомощь' : r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
+    for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
     for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
     const ds = M.disciplines(u.id);
@@ -192,7 +192,6 @@ function createApp(opts = {}) {
     const format = req.body.format;
     if (t.formats && !formatOf(type, format)) return fail('Выбери формат');
     const details = String(req.body.details || '').trim().slice(0, 500);
-    if (type === 'visa' && details.length < 3) return fail('Укажите страну и даты поездки');
     if (type === 'tax') {
       const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
       if (!y) return fail('Выбери год, за который есть оплата по договору');
