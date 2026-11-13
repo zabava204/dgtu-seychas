@@ -19,7 +19,8 @@ const pdf = require('./pdf');
 const assistant = require('./assistant');
 const TAX = require('./tax');
 
-function createApp({ db = open() } = {}) {
+function createApp(opts = {}) {
+  const db = opts.db || open();
   const M = model(db);
   const UPLOADS = path.join(db.dataDir, 'uploads');
   fs.mkdirSync(UPLOADS, { recursive: true });
@@ -99,7 +100,22 @@ function createApp({ db = open() } = {}) {
 
   // ---------- вход ----------
   const attempts = new Map();
-  app.get('/login', (req, res) => (req.user ? res.redirect(req.user.role === 'staff' ? '/staff' : '/') : send(res, A.login({ demo: M.demoUsers() }))));
+  app.get('/login', (req, res) => (req.user ? res.redirect(req.user.role === 'staff' ? '/staff' : '/') : send(res, A.login({ demo: M.demoUsers(), notice: req.query.reset ? 'Демо-данные возвращены к началу. Можно проходить сценарий.' : null }))));
+  // Сброс демо для проверяющих: не чаще раза в 20 секунд, только с этого сайта (проверка Origin выше)
+  let lastReset = 0;
+  app.post('/demo/reset', (req, res) => {
+    if (Date.now() - lastReset > 20e3) { lastReset = Date.now(); resetDemo(M.db); }
+    req.session = null;
+    res.redirect('/login?reset=1');
+  });
+  // Ночной сброс в 3:00 МСК, чтобы каждый день сценарий начинался с чистого листа
+  if (opts.nightlyReset) {
+    let doneFor = T.dateKey();
+    setInterval(() => {
+      const key = T.dateKey();
+      if (key !== doneFor && T.minutesOfDay() >= 180) { doneFor = key; resetDemo(M.db); console.log('Ночной сброс демо-данных', key); }
+    }, 5 * 60e3).unref();
+  }
   app.post('/login', (req, res) => {
     const key = req.ip; const a = attempts.get(key) || { n: 0, t: Date.now() };
     if (Date.now() - a.t > 60e3) { a.n = 0; a.t = Date.now(); }
@@ -160,7 +176,9 @@ function createApp({ db = open() } = {}) {
     const d = M.draftOf(req.user.id);
     const draft = req.query.draft && d && d.type === type ? d : null;
     const payments = M.payments(req.user.id);
-    send(res, V.newRequestForm(ctxOf(req, { type, draft, values: { purpose: req.query.purpose }, payments, years: TAX.yearsFromPayments(payments) })));
+    // Демо: тестовый ИНН подставляется и без черновика, чтобы сценарий можно было пройти повторно
+    const values = { purpose: req.query.purpose, details: type === 'tax' && payments.length ? TAX.DEMO_INN : '' };
+    send(res, V.newRequestForm(ctxOf(req, { type, draft, values, payments, years: TAX.yearsFromPayments(payments) })));
   });
   app.post('/requests', student, withUpload, (req, res) => {
     const type = req.body.type; const t = TYPES[type];
@@ -342,7 +360,7 @@ function createApp({ db = open() } = {}) {
 
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3000;
-  createApp().listen(port, () => console.log(`ДГТУ.Сейчас: http://localhost:${port} · помощник: ${assistant.enabled() ? 'GigaChat' : 'правила'}`));
+  createApp({ nightlyReset: true }).listen(port, () => console.log(`ДГТУ.Сейчас: http://localhost:${port} · помощник: ${assistant.enabled() ? 'GigaChat' : 'правила'}`));
 }
 
 module.exports = { createApp };

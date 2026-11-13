@@ -11,8 +11,8 @@ function shell(title, body) {
 ${body}</div></div><script src="/app.js?v=1" defer></script></body></html>`;
 }
 
-function login({ error, loginValue, demo }) {
-  return shell('Вход', html`<h1>Вход в кабинет</h1>
+function login({ error, loginValue, demo, notice }) {
+  return shell('Вход', html`${notice ? html`<div class="toast" role="status" style="margin:0 0 14px">${notice}</div>` : ''}<h1>Вход в кабинет</h1>
 <form method="post" action="/login" novalidate>
 <label class="field ${error ? 'error' : ''}" style="margin-top:0">Логин<input type="text" name="login" autocomplete="username" autocapitalize="none" spellcheck="false" value="${loginValue || ''}" required></label>
 <label class="field ${error ? 'error' : ''}">Пароль
@@ -28,6 +28,9 @@ ${demo.map((u) => html`<form method="post" action="/login/demo"><input type="hid
 <button class="row" style="width:100%;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer;text-align:left">
 <span class="body"><span class="title strong">${u.role === 'staff' ? 'Сотрудник деканата' : u.short_name}</span><span class="meta">${u.demo_note} · логин <b>${u.login}</b></span></span>${I.chev}</button></form>`)}
 <p class="small muted">Пароль всех демо-аккаунтов: <b>${DEMO_PASSWORD}</b>. Кабинет сотрудника удобнее смотреть с компьютера.</p>
+<form method="post" action="/demo/reset" class="card" style="margin-top:12px" data-confirm="Вернуть заявки, уведомления и сообщения всех демо-аккаунтов к исходному состоянию?">
+<div class="small">Данные общие для всех проверяющих и каждую ночь в 3:00 МСК возвращаются к началу. Если кто-то уже прошёл сценарий до вас — верните его к началу.</div>
+<button class="btn secondary small" type="submit" style="margin-top:10px">Начать сценарий заново</button></form>
 </section>`);
 }
 

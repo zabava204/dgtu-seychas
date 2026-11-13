@@ -273,7 +273,7 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .wk-nav { font-size: 20px; color: var(--blue); background: #fff; border: 1px solid var(--line); }
 
 /* ---------- Страницы ошибок ---------- */
-.err { padding: 56px 24px 24px; text-align: center; }
-.err h1 { font-size: 24px; margin: 16px 0 8px; color: var(--ink); }
-.err .actions { margin-top: 18px; }
-.err p { max-width: 340px; margin: 0 auto; }
+.errpage { padding: 56px 24px 24px; text-align: center; }
+.errpage h1 { font-size: 24px; margin: 16px 0 8px; color: var(--ink); }
+.errpage .actions { margin-top: 18px; }
+.errpage p { max-width: 340px; margin: 0 auto; }

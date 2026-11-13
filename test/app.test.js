@@ -209,3 +209,13 @@ test('напоминания о сроках в ленте и фильтр «С�
   assert.match(f, /Через 2 дня: реферат по маркетингу/);
   assert.doesNotMatch(f, /Экономика организации — ауд/); // другие категории скрыты фильтром
 });
+
+test('повторный проход сценария: ИНН подставлен без черновика, сброс демо возвращает черновик', async () => {
+  const ilya = await login('ilya');
+  assert.match(await (await ilya.get('/requests/new?type=tax')).text(), new RegExp(`value="${DEMO_INN}"`));
+  const r = await client().post('/demo/reset', {});
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/login?reset=1');
+  const again = await login('ilya');
+  assert.match(await (await again.get('/requests')).text(), /Черновики[\s\S]*Справка для налогового вычета/);
+});

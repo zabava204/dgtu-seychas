@@ -68,7 +68,7 @@ function errorPage({ ctx, title, text, links = [] }) {
   const all = [...links, home];
   return page({
     title, active: null, ctx, noNav: !isStudent,
-    body: html`<main class="err"><div>${ERR_ICON}</div><h1>${title}</h1><p class="muted">${text}</p>
+    body: html`<main class="errpage"><div>${ERR_ICON}</div><h1>${title}</h1><p class="muted">${text}</p>
 <div class="actions" style="justify-content:center">${all.map(([href, label], i) => html`<a class="btn ${i === 0 ? '' : 'secondary'} small" href="${href}">${label}</a>`)}</div></main>`,
   });
 }
