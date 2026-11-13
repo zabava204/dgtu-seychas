@@ -229,6 +229,14 @@ function seed(db) {
   insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета — онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);
   insNt.run(ilya, ago(30), 'grades', 'НИР: этап «Научный поиск» вернули на доработку', 'Смотри комментарий руководителя.', '/study/nir', 0);
 
+  // Напоминания о сроках (категория «Дедлайны»): за 2 дня и в день сдачи
+  const dl = (sid, subj) => `/study/grades#d-${did(sid, subj).id}`;
+  insNt.run(anna, ago(1.5), 'deadlines', 'Через 2 дня: реферат по маркетингу', `До ${T.dayMonthKey(T.addDays(today, 2))}, 23:59 · сдать в Moodle · до 20 баллов`, dl(anna, 'Маркетинг'), 0);
+  insNt.run(anna, ago(3 * 24 + 1), 'deadlines', 'Бизнес-планирование: сегодня срок финансового плана', 'До 23:59 · до 20 баллов. Если не успеваешь — помощник подскажет, как попросить отсрочку.', dl(anna, 'Бизнес-планирование'), 1);
+  insNt.run(ilya, ago(2 * 24 + 3), 'deadlines', 'Методы анализа: сегодня срок работы 4', 'До 23:59 · до 10 баллов', dl(ilya, 'Методы анализа в менеджменте'), 1);
+  insNt.run(ilya, ago(2), 'deadlines', 'НИР: доработать «Научный поиск»', `Срок — ${T.dayMonthKey(T.addDays(today, 6))} · комментарий руководителя в разделе НИР`, '/study/nir', 0);
+  for (const sid of [anna, ilya]) insNt.run(sid, ago(5), 'announcements', 'Опубликовано расписание зимней сессии', 'Даты зачётов, экзаменов и консультаций — в «Оценках». Там же видно, есть ли допуск.', '/study/grades#session', 0);
+
   // Настройки уведомлений по умолчанию
   const insSet = db.prepare('INSERT INTO settings (user_id, key, value) VALUES (?,?,?)');
   for (const uid of [anna, ilya]) {

@@ -197,3 +197,10 @@ test('расписание на неделю: все дни, изменения,
   assert.match(w, /aria-current="page">Неделя/);
   assert.doesNotMatch(w, /Методы анализа в менеджменте/); // пары магистрантов ММН-21
 });
+
+test('напоминания о сроках в ленте и фильтр «Сроки»', async () => {
+  const anna = await login('anna');
+  const f = await (await anna.get('/notifications?c=deadlines')).text();
+  assert.match(f, /Через 2 дня: реферат по маркетингу/);
+  assert.doesNotMatch(f, /Экономика организации — ауд/); // другие категории скрыты фильтром
+});

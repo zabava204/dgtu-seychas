@@ -525,7 +525,7 @@ ${NOTIF_CATEGORIES.map((c) => html`<label class="toggle-row"><span class="body">
 const CAT = { schedule: 'Изменение расписания', requests: 'Заявка', deadlines: 'Дедлайн', announcements: 'Деканат', grades: 'Учёба' };
 function notifications(ctx) {
   const { items, filter } = ctx;
-  const f = [['', 'Все'], ['schedule', 'Изменения'], ['requests', 'Заявки'], ['announcements', 'Деканат'], ['grades', 'Учёба']];
+  const f = [['', 'Все'], ['deadlines', 'Сроки'], ['schedule', 'Изменения'], ['requests', 'Заявки'], ['announcements', 'Деканат'], ['grades', 'Учёба']];
   const shown = filter ? items.filter((n) => n.category === filter) : items;
   return page({
     title: 'Уведомления', active: 'today', ctx,
