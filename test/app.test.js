@@ -84,7 +84,7 @@ test('POST с чужого сайта отклоняется', async () => {
 
 test('сквозной сценарий: подача → в работе → PDF → уведомление', async () => {
   const anna = await login('anna'); const dk = await login('dekanat');
-  const r = await anna.post('/requests', { type: 'study', purpose: 'housing', format: 'pdf', details: '' });
+  const r = await anna.post('/requests', { type: 'study', purpose: 'social', format: 'pdf', details: '' });
   assert.equal(r.status, 302);
   const id = r.headers.get('location').match(/requests\/(\d+)\/sent/)[1];
   assert.match(await (await anna.get(`/requests/${id}/sent`)).text(), /Справка заказана/);
@@ -98,7 +98,7 @@ test('сквозной сценарий: подача → в работе → PD
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
   assert.ok((await pdf.arrayBuffer()).byteLength > 5000);
   const feed = await (await anna.get('/notifications')).text();
-  assert.match(feed, /Справка об обучении для льготы по ЖКУ готова/);
+  assert.match(feed, /Справка об обучении в органы соцзащиты готова/);
 });
 
 test('запрос документа и загрузка студентом', async () => {
@@ -119,7 +119,7 @@ test('запрос документа и загрузка студентом', a
 
 test('помощник без ключа отвечает по правилам и даёт кнопку', async () => {
   const anna = await login('anna');
-  const r = await anna.post('/api/assistant', { message: 'нужна справка для льготы родителей по ЖКУ' }, true);
+  const r = await anna.post('/api/assistant', { message: 'нужна справка для субсидии на ЖКУ' }, true);
   const j = await r.json();
   assert.equal(j.source, 'rules');
   assert.ok(j.actions.some((a) => a.href.startsWith('/requests/new?type=study')));

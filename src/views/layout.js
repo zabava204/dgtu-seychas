@@ -21,8 +21,8 @@ const I = {
   send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22, 'stroke-width="2.2"'),
   lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 18),
   check: raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#E7F6EC"/><path d="M17 29l7 7 15-16" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
-  logoSm: raw('<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2A3A66"/><path d="M7 20h8M25 20h8" stroke="#AFC3FF" stroke-width="2.6" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
-  logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#14213D"/><path d="M7 20h8M25 20h8" stroke="#8E9BBB" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
+  logoSm: raw('<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2563EB"/><path d="M7 20h8M25 20h8" stroke="#BFD4FF" stroke-width="2.6" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
+  logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2563EB"/><path d="M7 20h8M25 20h8" stroke="#BFD4FF" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
 };
 
 function head(title) {

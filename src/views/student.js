@@ -105,7 +105,7 @@ function today(ctx) {
     const isToday = T.dateKey(next.startsAt) === key;
     const ch = changeText(next);
     hero = html`<section class="hero" aria-label="Ближайшая пара">
-${isToday ? '' : html`<div class="small" style="color:#AFC3FF">Сегодня пар больше нет · ближайшая</div>`}
+${isToday ? '' : html`<div class="small" style="color:rgba(255,255,255,.82)">Сегодня пар больше нет · ближайшая</div>`}
 ${dayLine(next.dayPairs, isToday, next)}
 <div class="big">${cd.big}</div>
 <div style="display:flex;flex-direction:column;gap:4px">
@@ -209,10 +209,10 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="hero" style="margin-top:14px" aria-label="Готовность к сессии">
-<div class="small" style="color:#AFC3FF;font-weight:600;letter-spacing:.05em">${firstS ? `СЕССИЯ С ${T.dayMonthKey(firstS.date_key).toUpperCase()} · ${inDays(daysUntil(firstS.date_key)).toUpperCase()}` : 'ТЕКУЩИЕ БАЛЛЫ'}</div>
+<div class="small" style="color:rgba(255,255,255,.82);font-weight:600;letter-spacing:.05em">${firstS ? `СЕССИЯ С ${T.dayMonthKey(firstS.date_key).toUpperCase()} · ${inDays(daysUntil(firstS.date_key)).toUpperCase()}` : 'ТЕКУЩИЕ БАЛЛЫ'}</div>
 <div class="subj" style="font-size:22px">${bad ? `Допуск есть по ${ok} из ${ds.length}, по ${bad} не хватает баллов` : 'Допуск есть по всем дисциплинам'}</div>
 <div style="display:flex;gap:4px">${ds.map((d) => html`<span style="flex:1;height:6px;border-radius:3px;background:${raw(color[d.light])}"></span>`)}</div>
-<div class="small" style="color:#D5DDF0">Итоговые оценки ещё не выставлены · допуск — порог текущих баллов (демо-правило) · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
+<div class="small" style="color:rgba(255,255,255,.92)">Итоговые оценки ещё не выставлены · допуск — порог текущих баллов (демо-правило) · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
 </section>
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
 <div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
@@ -256,10 +256,10 @@ function nir(ctx) {
     title: 'НИР', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'nir')}
-<section class="hero" style="margin-top:14px"><div class="small" style="color:#AFC3FF;font-weight:600">НИР · ${user.course * 2 - 1} СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
+<section class="hero" style="margin-top:14px"><div class="small" style="color:rgba(255,255,255,.82);font-weight:600">НИР · ${user.course * 2 - 1} СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
 <div class="big">${sum} <span style="font-size:18px;font-weight:500">из 100 баллов</span></div>
-<div class="progress" style="background:#3A4766"><i style="width:${sum}%"></i></div>
-<div class="small" style="color:#D5DDF0">До «отлично» ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
+<div class="progress" style="background:rgba(255,255,255,.3)"><i style="width:${sum}%"></i></div>
+<div class="small" style="color:rgba(255,255,255,.92)">До «отлично» ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
 <section class="section">${stages.map((s) => html`<div class="card" style="margin-top:10px">
 <div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '—' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
@@ -332,7 +332,7 @@ function newRequestForm(ctx) {
 <input type="hidden" name="type" value="${type}">
 ${error ? html`<div class="note red" role="alert">${error}</div>` : ''}
 ${t.purposes ? html`<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">Куда нужна? <span class="hint">От этого зависит формулировка</span></legend>
-<div class="chips">${t.purposes.map((p) => html`<label><input type="radio" name="purpose" value="${p.id}" ${v.purpose === p.id ? raw('checked') : ''}><span>${p.label}</span></label>`)}</div></fieldset>` : ''}
+<div class="chips">${t.purposes.map((p) => html`<label><input type="radio" name="purpose" value="${p.id}" ${v.purpose === p.id ? raw('checked') : ''}><span>${p.label}</span></label>`)}</div>${t.purposeHint ? html`<p class="small muted" style="margin:8px 0 0;font-weight:400">${t.purposeHint}</p>` : ''}</fieldset>` : ''}
 ${t.reasons ? html`<label class="field">Основание<select name="purpose">${t.reasons.map((r) => html`<option ${v.purpose === r ? raw('selected') : ''}>${r}</option>`)}</select></label>` : ''}
 ${t.detailsLabel || t.purposes ? html`<label class="field">${t.detailsLabel || 'Уточнение'} <span class="hint">${t.detailsLabel ? '' : 'необязательно, например название организации'}</span>
 <textarea name="details" maxlength="500" placeholder="${t.detailsPlaceholder || ''}">${v.details}</textarea></label>` : ''}
@@ -593,7 +593,7 @@ function helper(ctx) {
   const sugg = [
     ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
     ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
-    user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для льготы родителей по ЖКУ', 'Справка для льготы по ЖКУ'],
+    user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для субсидии на ЖКУ', 'Справка в соцзащиту'],
     ['Где завтра пары?', 'Пары на завтра'],
     ['Мне нужно больше времени на работы. Как попросить отсрочку?', 'Попросить отсрочку'],
   ];

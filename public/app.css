@@ -357,3 +357,35 @@ a.row:hover { background: #F7F9FD; }
 .app { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 .section > .row:first-child, .section > a.row:first-child { border-radius: 18px 18px 0 0; }
 .section > .row:first-child:last-child, .section > a.row:first-child:last-child { border-radius: 18px; }
+
+/* =====================================================================
+   v3.1: светлая палитра — белая шапка, синяя карточка «сейчас»
+   ===================================================================== */
+:root { --hero: #2563EB; --blue: #2563EB; --blue-dark: #1D4ED8; --blue-soft: #EAF1FF; --bg: #F4F7FC; }
+.demo-strip { background: #E8F0FF; color: #2B4A9A; }
+.appbar { background: #fff; color: var(--ink); box-shadow: 0 1px 0 var(--line), 0 2px 10px rgba(37,99,235,.06); }
+.appbar .brand { color: var(--ink); }
+.appbar .icon-btn { color: var(--ink); }
+.appbar .icon-btn .dot { border-color: #fff; }
+.hero { background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 55%, #2F6BEE 100%); box-shadow: 0 10px 24px rgba(37,99,235,.25); }
+.hero .where { color: rgba(255,255,255,.92); }
+.hero .warn { color: #FFE08A; }
+.hero .ghost { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.hero .btn-white { color: var(--blue-dark); }
+.hero .btn-white:hover { color: var(--blue-dark); background: #F1F6FF; }
+.dayline .track { background: rgba(255,255,255,.35); }
+.dayline .pt { border-color: rgba(255,255,255,.8); background: #3B7BF5; }
+.dayline .pt.next { background: #FFE08A; }
+.dayline .pt.past { border-color: #fff; background: #fff; }
+.dayline .t { color: rgba(255,255,255,.8); }
+.dayline .t.next { color: #FFE08A; }
+.days a[aria-current] { background: var(--blue); border-color: var(--blue); }
+.days a[aria-current] .ch { background: #FFE08A; }
+.toast { background: #14213D; }
+.toast a { color: #BFD4FF; }
+.staff-layout aside { background: linear-gradient(180deg, #2563EB, #1D4ED8); }
+.staff-layout aside a { color: rgba(255,255,255,.88); }
+.staff-layout aside a[aria-current] { background: rgba(255,255,255,.2); }
+.staff-layout aside .cnt { background: rgba(255,255,255,.22); }
+.hero .progress i { background: #fff; }
+.staff-layout aside .brand svg rect { fill: rgba(255,255,255,.2); }
