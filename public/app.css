@@ -389,3 +389,27 @@ a.row:hover { background: #F7F9FD; }
 .staff-layout aside .cnt { background: rgba(255,255,255,.22); }
 .hero .progress i { background: #fff; }
 .staff-layout aside .brand svg rect { fill: rgba(255,255,255,.2); }
+
+/* =====================================================================
+   v3.2: главная «Сегодня · Требует внимания · Быстрые действия»
+   ===================================================================== */
+.demo-badge { margin-right: auto; margin-left: 10px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 3px 8px; border-radius: 8px; text-decoration: none; }
+.greet { padding: 18px 20px 0; }
+.ask-bar.ai { margin: 14px 20px 0; gap: 12px; color: var(--ink); background: linear-gradient(90deg, #EEF4FF, #F6F0FF); border: 1px solid #D9E4FF; box-shadow: none; }
+.ask-bar.ai b { font-weight: 700; }
+.spark { width: 32px; height: 32px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; background: linear-gradient(135deg, #2563EB, #7C3AED); }
+.row.tp .tm { flex: none; width: 46px; font-size: 13px; color: var(--muted); line-height: 1.3; font-variant-numeric: tabular-nums; align-self: flex-start; }
+.row.tp .body { min-width: 0; }
+.row.tp .meta.chg { color: var(--amber); font-weight: 500; }
+.row.tp.now { box-shadow: inset 4px 0 0 var(--blue); background: #F5F8FF; }
+.row.tp.now .tm { color: var(--blue-dark); font-weight: 600; }
+.row.tp.past .title, .row.tp.past .tm { color: #98A2B3; }
+.row.tp.off .title { text-decoration: line-through; color: var(--muted); }
+.row.more .title { color: var(--blue); font-weight: 600; font-size: 15px; }
+.label .cnt.amber { background: var(--amber-soft); color: var(--amber); }
+.qa { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin: 0 -20px; padding-left: 20px; padding-right: 20px; scrollbar-width: none; }
+.qa a { flex: none; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 22px; background: #fff; box-shadow: var(--shadow); color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.qa a:first-child { background: var(--blue); color: #fff; }
+.readiness .risk { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.readiness .risk .tag { grid-column: 1 / -1; justify-self: start; }
+.readiness .risk .rs { font-weight: 600; }

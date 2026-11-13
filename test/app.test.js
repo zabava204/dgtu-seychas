@@ -182,7 +182,8 @@ test('уведомление об изменении аудитории ведё
 test('сессия: даты, допуск, зачётная книжка, вопрос помощнику', async () => {
   const anna = await login('anna'); const ilya = await login('ilya');
   const g = await (await anna.get('/study/grades')).text();
-  assert.match(g, /СЕССИЯ С \d+ ДЕКАБРЯ/);
+  assert.match(g, /Сессия с \d+ декабря/);
+  assert.match(g, /Что можно сделать/);
   assert.match(g, /Бизнес-планирование[\s\S]*до допуска 38 баллов/);
   assert.match(g, /Маркетинг[\s\S]*допуск есть/);
   assert.match(g, /Зачётная книжка/);

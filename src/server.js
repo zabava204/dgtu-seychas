@@ -149,7 +149,7 @@ function createApp(opts = {}) {
     for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
     const ds = M.disciplines(u.id);
-    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds) })));
+    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds), todayPairs: M.dayPairs(u.group_name, T.dateKey()) })));
   });
 
   app.get('/study', student, (req, res) => {

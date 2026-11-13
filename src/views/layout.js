@@ -47,8 +47,8 @@ function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
   const flash = ctx && ctx.flash;
   return html`${head(title)}<body>
 <div class="app ${noNav ? 'no-nav' : ''}">
-<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
-${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a>
+${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>`}
+${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><a class="demo-badge" href="/me#about" title="Концепт для конкурса, не официальный сервис ДГТУ, данные вымышленные">Демо</a>
 <div class="ab-act"><a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
 <a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}

@@ -96,47 +96,57 @@ const TILE_ICON = {
 };
 const tile = (href, icon, label, color) => html`<a class="tile" href="${href}"><span class="ti ${color}">${raw(`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TILE_ICON[icon]}</svg>`)}</span><span>${label}</span></a>`;
 function today(ctx) {
-  const { user, next, ds, todo, unread, session = [] } = ctx;
-  const firstS = session.find((x) => x.kind !== 'консультация' && x.date_key >= T.dateKey());
+  const { user, next, ds, todo, session = [], todayPairs = [] } = ctx;
   const key = T.dateKey();
-  let hero = html`<div class="hero"><div class="subj">Пар в ближайшие две недели нет</div></div>`;
-  if (next) {
-    const cd = countdown(next.startsAt, next.endsAt);
-    const isToday = T.dateKey(next.startsAt) === key;
-    const ch = changeText(next);
-    hero = html`<section class="hero" aria-label="Ближайшая пара">
-${isToday ? '' : html`<div class="small" style="color:rgba(255,255,255,.82)">Сегодня пар больше нет · ближайшая</div>`}
-${dayLine(next.dayPairs, isToday, next)}
-<div class="big">${cd.big}</div>
-<div style="display:flex;flex-direction:column;gap:4px">
-<div class="subj">${next.subject}</div>
-<div class="where">${whereText(next)} · ${next.kind}</div>
-${ch ? html`<div class="warn">${ch}</div>` : ''}
-</div>
-${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComponent(next.room || '')}">Как пройти</a>`}
-<a class="ghost" href="/study?d=${T.dateKey(next.startsAt)}#pair-${next.id}">Всё расписание дня</a>
-</section>`;
-  }
+  const nowMin = T.minutesOfDay();
+  const firstS = session.find((x) => x.kind !== 'консультация' && x.date_key >= key);
+  const live = todayPairs.filter((p) => !p.cancelled);
+  const left = live.filter((p) => T.parseHHMM(p.end) > nowMin);
+  const nextToday = left[0];
+  // Пары на сегодня — компактным списком; текущая или ближайшая выделена
+  const pairRow = (p) => {
+    const st = T.parseHHMM(p.start); const en = T.parseHHMM(p.end);
+    const cls = p.cancelled ? 'off' : en <= nowMin ? 'past' : nextToday && p.id === nextToday.id ? 'now' : '';
+    const badge = p.cancelled ? 'отменена' : en <= nowMin ? '' : st <= nowMin ? `идёт · до ${p.end}` : nextToday && p.id === nextToday.id ? (st - nowMin < 60 ? `через ${st - nowMin} мин` : `в ${p.start}`) : '';
+    const ch = changeText(p);
+    return html`<a class="row tp ${cls}" href="/study?d=${key}#pair-${p.id}"><span class="tm">${p.start}<br>${p.end}</span>
+<span class="body"><span class="title">${p.subject}</span><span class="meta">${placeText(p)} · ${p.kind}</span>${ch ? html`<span class="meta chg">${ch}</span>` : ''}</span>${badge ? html`<span class="tag ${cls === 'now' ? 'blue' : ''}">${badge}</span>` : ''}</a>`;
+  };
+  const nextLine = next && T.dateKey(next.startsAt) !== key
+    ? html`<div class="row"><span class="body"><span class="title">${live.length ? 'На сегодня пары закончились' : 'Сегодня пар нет'}</span>
+<span class="meta">Следующая — ${T.wdLongKey(T.dateKey(next.startsAt))}, ${T.dayMonthKey(T.dateKey(next.startsAt))}, ${next.start}: ${next.subject}, ${placeText(next)}</span></span></div>`
+    : !left.length ? html`<div class="row"><span class="body"><span class="title">Сегодня пар нет</span><span class="meta">В ближайшие две недели пар нет</span></span></div>` : '';
+  // Требует внимания: заявки и черновики, сроки, риск недопуска
+  const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false);
+  const attention = [
+    ...todo,
+    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `Не хватает ${x.gap} ${plural(x.gap, 'балла', 'баллов', 'баллов')} до порога · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${x.subject}»?`)}`, action: 'Что делать' })),
+  ];
+  // Контекстные действия: зависят от ситуации студента
+  const overdue = ds.some((d) => d.overdue.length);
+  const actions = [
+    firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
+    overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
+    ['/requests/new', 'Заказать справку'],
+    ['/study?view=week', 'Расписание на неделю'],
+    ['/study/record', 'Зачётка'],
+  ].filter(Boolean);
   return page({
     title: 'Сегодня', active: 'today', ctx,
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
-${hero}
-<nav class="tiles" aria-label="Быстрые действия">
-${tile('/study?view=week', 'cal', 'Расписание', 'blue')}
-${tile('/study/grades#session', 'flag', 'Сессия', 'amber')}
-${tile('/requests/new', 'doc', 'Справки', 'green')}
-${tile('/study/record', 'book', 'Зачётка', 'violet')}
-</nav>
-<a class="ask-bar" href="/helper">${I.search}<span>Спроси: ${user.funding === 'контракт' ? 'вычет' : 'справка'}, баллы, экзамены</span></a>
-<section class="section" aria-labelledby="todo-h">
-<h2 class="label" id="todo-h">Нужно сделать <span class="cnt">${todo.length}</span></h2>
-${todo.length ? html`<div class="group">${todo.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
+<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси о своей учёбе или справках</span></span></a>
+<section class="section" aria-labelledby="today-h"><h2 class="label" id="today-h">Сегодня${left.length ? html` <span class="cnt">${left.length}</span>` : ''}</h2>
+<div class="group">${(left.length ? todayPairs : []).map(pairRow)}${nextLine}
+<a class="row more" href="/study?d=${key}"><span class="body"><span class="title">Полное расписание</span></span>${I.chev}</a></div></section>
+<section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
+${attention.length ? html`<div class="group">${attention.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
 <div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`)}</div>`
-    : html`<p class="muted">Всё сделано. Хорошего дня!</p>`}
+    : html`<div class="group"><div class="row"><span class="body"><span class="title">Всё в порядке</span><span class="meta">Срочных дел нет. Хорошего дня!</span></span></div></div>`}
 </section>
-<section class="section"><h2 class="label">Успеваемость</h2><div class="group"><a class="row" href="/study/grades">
-${lightsBar(ds)}<span class="body small" style="font-size:14px">${gradesSummary(ds)}${firstS ? html`<span class="muted" style="display:block;margin-top:2px">Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}</span>` : ''}</span>${I.chev}</a></div></section>`,
+<section class="section" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
+<nav class="qa">${actions.map(([h, l]) => html`<a href="${h}">${l}</a>`)}</nav></section>
+`,
   });
 }
 
@@ -191,6 +201,7 @@ function grades(ctx) {
   const sessList = session.filter((x) => x.kind !== 'консультация').map((x) => ({ ...x, consult: session.find((c) => c.kind === 'консультация' && c.discipline_id === x.discipline_id) }));
   const exCount = sessList.length;
   const early = ds.filter((d) => d.closed_text);
+  const risky = ds.filter((d) => d.gap > 0 && !d.closed_text);
   const bad = ds.filter((d) => d.light === 'red' || d.light === 'amber').length;
   const ok = ds.length - bad;
   const cap = (x) => x[0].toUpperCase() + x.slice(1);
@@ -208,12 +219,13 @@ function grades(ctx) {
     title: 'Оценки', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
-<section class="hero" style="margin-top:14px" aria-label="Готовность к сессии">
-<div class="small" style="color:rgba(255,255,255,.82);font-weight:600;letter-spacing:.05em">${firstS ? `СЕССИЯ С ${T.dayMonthKey(firstS.date_key).toUpperCase()} · ${inDays(daysUntil(firstS.date_key)).toUpperCase()}` : 'ТЕКУЩИЕ БАЛЛЫ'}</div>
-<div class="subj" style="font-size:22px">${bad ? `Допуск есть по ${ok} из ${ds.length}, по ${bad} не хватает баллов` : 'Допуск есть по всем дисциплинам'}</div>
-<div style="display:flex;gap:4px">${ds.map((d) => html`<span style="flex:1;height:6px;border-radius:3px;background:${raw(color[d.light])}"></span>`)}</div>
-<div class="small" style="color:rgba(255,255,255,.92)">Итоговые оценки ещё не выставлены · допуск — порог текущих баллов (демо-правило) · баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}</div>
-</section>
+<section class="section" aria-label="Готовность к сессии"><div class="card readiness">
+<div class="small muted" style="font-weight:600">${firstS ? `Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
+<div style="font-size:20px;font-weight:700;margin-top:4px">${risky.length ? `Допуск есть по ${ds.length - risky.length} из ${ds.length} дисциплин` : 'Допуск есть по всем дисциплинам'}</div>
+${risky.map((d) => html`<div class="risk"><span class="tag red">не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}</span><span class="rs">${d.subject}</span>
+<a class="link" style="padding:0" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Что можно сделать →</a></div>`)}
+<div class="small muted" style="margin-top:10px">Итоговые оценки ещё не выставлены. Допуск — порог текущих баллов (демо-правило). Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
+</div></section>
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
 <div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
 <section class="section" aria-labelledby="pts-h"><h2 class="label" id="pts-h">Текущие баллы</h2>
@@ -518,7 +530,7 @@ ${linkRow('/me/notifications', 'Уведомления', 'Какие уведо�
 ${linkRow('/notifications', 'Все уведомления', '')}
 <form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
 </div>
-<p class="small muted" style="text-align:center;margin:16px 0">Концепт для конкурса MGIMO AI Challenge. Не официальный сервис ДГТУ. Все данные вымышленные.</p></section>`,
+<p id="about" class="small muted" style="text-align:center;margin:16px 0">Концепт для конкурса MGIMO AI Challenge. Не официальный сервис ДГТУ. Все данные вымышленные.</p></section>`,
   });
 }
 
