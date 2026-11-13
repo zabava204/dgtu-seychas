@@ -59,7 +59,12 @@ test('студент видит только свои заявки, файлы �
   assert.doesNotMatch(page, /Справка для визы/);
   const annaReady = 1; // № …-007, готовая справка Анны
   assert.equal((await anna.get(`/requests/${annaReady}/pdf`)).status, 200);
-  assert.equal((await ilya.get(`/requests/${annaReady}`)).status, 404);
+  const foreign = await ilya.get(`/requests/${annaReady}`);
+  assert.equal(foreign.status, 404);
+  const ft = await foreign.text();
+  assert.match(ft, /Такой заявки нет среди твоих/); // понятная страница с меню
+  assert.match(ft, /class="tabbar"/);
+  assert.doesNotMatch(ft, /Справка об обучении/);
   assert.equal((await ilya.get(`/requests/${annaReady}/pdf`)).status, 404);
   assert.equal((await ilya.get('/files/1')).status, 404); // файл чужой студентки
   assert.equal((await ilya.post(`/requests/2/message`, { text: 'чужое' })).status, 404);

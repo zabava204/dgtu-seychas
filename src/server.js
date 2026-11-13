@@ -14,6 +14,7 @@ const { TYPES, purposeOf, formatOf, requestTitle } = require('./catalog');
 const V = require('./views/student');
 const A = require('./views/auth');
 const S = require('./views/staff');
+const { errorPage } = require('./views/layout');
 const pdf = require('./pdf');
 const assistant = require('./assistant');
 const TAX = require('./tax');
@@ -50,7 +51,7 @@ function createApp({ db = open() } = {}) {
     const origin = req.get('origin') || req.get('referer');
     if (!origin) return next();
     try { if (new URL(origin).host === req.get('host')) return next(); } catch { /* ignore */ }
-    res.status(403).send('Запрос с чужого сайта отклонён');
+    fail(req, res, 403, 'Запрос отклонён', 'Форма была отправлена с другого сайта. Для защиты кабинета такие запросы не принимаются — открой страницу заново и повтори действие.');
   });
   app.use((req, res, next) => {
     req.user = req.session.uid ? M.user(req.session.uid) : null;
@@ -65,10 +66,16 @@ function createApp({ db = open() } = {}) {
   });
   const res_flash = (req) => req.res.locals.flash;
   const send = (res, body) => res.type('html').send(String(body));
+  const fail = (req, res, code, title, text, links) => {
+    let ctx = { user: null };
+    try { ctx = { user: req.user, needsAction: false, unread: 0 }; } catch { /* ignore */ }
+    return res.status(code).type('html').send(String(errorPage({ ctx, title, text, links })));
+  };
+  const NOT_YOURS = 'Такой заявки нет среди твоих. Если ссылку прислали — проверь, что вошёл(а) под своим логином.';
 
   const needAuth = (role) => (req, res, next) => {
     if (!req.user) return req.accepts('html') && req.method === 'GET' ? res.redirect('/login') : res.status(401).json({ error: 'Нужно войти' });
-    if (role && req.user.role !== role) return req.user.role === 'staff' ? res.redirect('/staff') : res.status(403).send('Нет доступа');
+    if (role && req.user.role !== role) return req.user.role === 'staff' ? res.redirect('/staff') : fail(req, res, 403, 'Нет доступа', 'Этот раздел только для сотрудников деканата.');
     next();
   };
   const student = needAuth('student');
@@ -77,7 +84,7 @@ function createApp({ db = open() } = {}) {
   // Заявка с проверкой доступа: чужая — 404, чтобы не раскрывать существование
   const loadRequest = (req, res, next) => {
     const r = M.request(Number(req.params.id));
-    if (!r || !M.canSee(req.user, r) || r.status === 'draft') return res.status(404).send('Заявка не найдена');
+    if (!r || !M.canSee(req.user, r) || r.status === 'draft') return fail(req, res, 404, 'Заявка не найдена', req.user && req.user.role === 'staff' ? 'Возможно, её номер изменился или демо-данные сбросили.' : NOT_YOURS, req.user && req.user.role === 'student' ? [['/requests', 'Мои заявки']] : []);
     req.r = r; next();
   };
 
@@ -210,14 +217,14 @@ function createApp({ db = open() } = {}) {
   });
   app.get('/requests/:id/pdf', needAuth(), loadRequest, (req, res) => {
     const r = req.r;
-    if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return res.status(404).send('PDF нет');
+    if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return fail(req, res, 404, 'PDF пока нет', 'Справка ещё не готова или выдаётся на бумаге в деканате. Статус — в карточке заявки.', [[`/requests/${r.id}`, 'Открыть заявку']]);
     res.type('pdf').set('Content-Disposition', `inline; filename="spravka-${r.number}.pdf"`);
     pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null, payments: M.payments(r.student_id) }, res);
   });
   app.get('/files/:id', needAuth(), (req, res) => {
     const f = M.file(Number(req.params.id));
     const r = f && M.request(f.request_id);
-    if (!f || !M.canSee(req.user, r)) return res.status(404).send('Файл не найден');
+    if (!f || !M.canSee(req.user, r)) return fail(req, res, 404, 'Файл не найден', 'Файл удалён или принадлежит другому студенту.');
     res.type(f.mime || 'application/octet-stream').set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(f.name)}`);
     res.sendFile(path.join(UPLOADS, path.basename(f.stored)));
   });
@@ -270,7 +277,7 @@ function createApp({ db = open() } = {}) {
   app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id) }))));
   app.get('/staff/requests/:id/preview', staff, loadRequest, (req, res) => {
     const r = req.r;
-    if (!TYPES[r.type].producesPdf) return res.status(404).send('Нет PDF');
+    if (!TYPES[r.type].producesPdf) return fail(req, res, 404, 'Для этой заявки PDF не формируется', 'Это заявление, а не справка: решение придёт в карточку заявки.', [[`/staff/requests/${r.id}`, 'Вернуться к заявке']]);
     res.type('pdf');
     pdf.certificate({ r: { ...r, closed_at: new Date().toISOString() }, student: M.user(r.student_id), staff: req.user, payments: M.payments(r.student_id) }, res);
   });
@@ -326,8 +333,8 @@ function createApp({ db = open() } = {}) {
   });
   app.post('/staff/reset', staff, (req, res) => { resetDemo(M.db); flash(req, 'Демо-данные возвращены к исходному состоянию'); res.redirect('/staff'); });
 
-  app.use((req, res) => res.status(404).type('html').send('<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/app.css"><div class="app no-nav" style="padding:40px 20px"><h1>Страница не найдена</h1><p><a href="/">На главную</a></p></div>'));
-  app.use((err, req, res, next) => { console.error(err); res.status(500).type('html').send('<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/app.css"><div class="app no-nav" style="padding:40px 20px"><h1>Что-то пошло не так</h1><p>Попробуйте обновить страницу. <a href="/">На главную</a></p></div>'); });
+  app.use((req, res) => fail(req, res, 404, 'Страница не найдена', 'Возможно, ссылка устарела. Нужное можно найти через меню или спросить помощника.', req.user && req.user.role === 'student' ? [['/helper', 'Спросить помощника']] : []));
+  app.use((err, req, res, next) => { console.error(err); fail(req, res, 500, 'Что-то пошло не так', 'Обнови страницу через минуту. Если ошибка повторится — напиши в деканат: корпус 1, каб. 210.'); });
 
   app.locals.M = M;
   return app;

@@ -59,4 +59,18 @@ function backBar(href, label) {
   return html`<div class="back"><a class="icon-btn" href="${href}" aria-label="Назад: ${label}">${I.back}</a><span>${label}</span></div>`;
 }
 
-module.exports = { head, page, tabbar, backBar, I, svg };
+// Понятная страница ошибки в стиле кабинета: что случилось и куда идти дальше
+const ERR_ICON = raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#EEF3FF"/><path d="M28 17v14" stroke="#1F4FD8" stroke-width="4" stroke-linecap="round"/><circle cx="28" cy="39" r="2.6" fill="#1F4FD8"/></svg>');
+function errorPage({ ctx, title, text, links = [] }) {
+  const user = ctx && ctx.user;
+  const isStudent = user && user.role === 'student';
+  const home = !user ? ['/login', 'Войти'] : user.role === 'staff' ? ['/staff', 'К заявкам'] : ['/', 'На главную'];
+  const all = [...links, home];
+  return page({
+    title, active: null, ctx, noNav: !isStudent,
+    body: html`<main class="err"><div>${ERR_ICON}</div><h1>${title}</h1><p class="muted">${text}</p>
+<div class="actions" style="justify-content:center">${all.map(([href, label], i) => html`<a class="btn ${i === 0 ? '' : 'secondary'} small" href="${href}">${label}</a>`)}</div></main>`,
+  });
+}
+
+module.exports = { head, page, tabbar, backBar, errorPage, I, svg };
