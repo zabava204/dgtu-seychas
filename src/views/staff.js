@@ -21,7 +21,7 @@ ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-cu
 </aside>
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
 <div class="small muted" style="margin-bottom:12px">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
-${body}</main></div><script src="/app.js?v=1" defer></script></body></html>`;
+${body}</main></div><script src="/app.js?v=3" defer></script></body></html>`;
 }
 
 function queue(ctx) {

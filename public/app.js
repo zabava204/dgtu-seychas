@@ -16,7 +16,8 @@
 
   // Строки таблицы деканата — целиком кликабельны
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) location.href = tr.dataset.href; }));
-  $$('form').forEach((f) => f.addEventListener('submit', () => { if (f.dataset.askPermission !== undefined || f.dataset.confirm) return; setTimeout(() => f.querySelectorAll('button[type=submit], button:not([type])').forEach((b) => { b.disabled = true; }), 0); }));
+  // Защита от двойной отправки — только для настоящей отправки формы (чат помощника отправляет сам и не блокируется)
+  $$('form').forEach((f) => f.addEventListener('submit', (e) => { if (f.dataset.askPermission !== undefined || f.dataset.confirm || f.id === 'ask') return; setTimeout(() => { if (e.defaultPrevented) return; f.querySelectorAll('button[type=submit], button:not([type])').forEach((b) => { b.disabled = true; }); }, 0); }));
   $$('form[data-confirm]').forEach((f) => f.addEventListener('submit', (e) => { if (!window.confirm(f.dataset.confirm)) e.preventDefault(); }));
 
   // Выбор файла: показываем имя выбранного файла

@@ -31,7 +31,7 @@ function head(title) {
 <meta name="theme-color" content="#F6F7F9">
 <title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=1">
+<link rel="stylesheet" href="/app.css?v=3">
 </head>`;
 }
 
@@ -55,7 +55,7 @@ ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html
 ${body}
 </div>
 ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=1" defer></script>${scripts}
+<script src="/app.js?v=3" defer></script>${scripts}
 </body></html>`;
 }
 
