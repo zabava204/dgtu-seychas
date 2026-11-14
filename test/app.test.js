@@ -282,3 +282,10 @@ test('защита от повторов: вычет за тот же год и 
   const st = await ilya.get('/requests/new?type=stipend');
   assert.equal(st.status, 302);
 });
+
+test('помощник: вузовские термины из словаря', async () => {
+  const anna = await login('anna');
+  const a = await (await anna.post('/api/assistant', { message: 'Что такое академическая разница?' }, true)).json();
+  assert.equal(a.source, 'calc');
+  assert.match(a.text, /которых не было в твоём прежнем учебном плане, но они есть в новом/);
+});
