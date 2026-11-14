@@ -289,7 +289,7 @@ function createApp(opts = {}) {
   app.post('/api/assistant', student, async (req, res) => {
     const u = req.user;
     const ds = M.disciplines(u.id);
-    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id), dayPairs: (key) => M.dayPairs(u.group_name, key) };
+    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id), stipends: M.stipends(u.id), book: M.recordBook(u.id), nir: u.level === 'магистратура' ? M.nir(u.id) : [], dayPairs: (key) => M.dayPairs(u.group_name, key) };
     const a = await assistant.answer(req.body.message, req.body.history, data);
     M.db.prepare('INSERT INTO assistant_log (user_id, at, question, source) VALUES (?,?,?,?)').run(u.id, new Date().toISOString(), a.intent, a.source);
     res.json(a);

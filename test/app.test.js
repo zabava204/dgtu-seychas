@@ -250,3 +250,19 @@ test('жизненная ситуация: пакет справок по дан
   const id = q.match(/\/staff\/requests\/(\d+)[^]*?Справка о размере стипендии/);
   assert.ok(id);
 });
+
+test('помощник: факты из аудита 14.11 считает программа', async () => {
+  const anna = await login('anna'); const ilya = await login('ilya');
+  const ask = async (c, m) => (await c.post('/api/assistant', { message: m }, true)).json();
+  const mon = await ask(anna, 'Какие пары в понедельник?');
+  assert.equal(mon.source, 'calc'); assert.match(mon.text, /Понедельник/); assert.match(mon.text, /Маркетинг|Статистика|Бизнес-планирование/);
+  const avg = await ask(anna, 'Какой у меня средний балл?'); assert.equal(avg.source, 'calc'); assert.match(avg.text, /4,45/);
+  const rt = await ask(anna, 'Можно ли пересдать экзамен?'); assert.match(rt.text, /назначает институт/); assert.doesNotMatch(rt.text, /не хватает/);
+  const st = await ask(anna, 'Когда будет готова справка?'); assert.equal(st.source, 'calc'); assert.match(st.text, /№ \d{4}-048/);
+  const sc = await ask(anna, 'Нужна справка о стипендии'); assert.match(sc.text, /1 рабочий день/); assert.ok(sc.actions.some((a) => a.href === '/requests/new?type=stipend'));
+  const sa = await ask(anna, 'Какая у меня стипендия?'); assert.match(sa.text, /3 800 ₽ в месяц/);
+  const si = await ask(ilya, 'Нужна справка о стипендии'); assert.match(si.text, /по договору/);
+  const nir = await ask(ilya, 'Что с моей НИР, какой у меня балл?'); assert.equal(nir.source, 'calc'); assert.match(nir.text, /42 из 100/);
+  const y26 = await ask(ilya, 'Можно справку за 2026 год?'); assert.match(y26.text, /с января 2027/);
+  const job = await ask(ilya, 'Нужна справка для работы'); assert.ok(job.actions.some((a) => a.href.includes('purpose=employer')));
+});
