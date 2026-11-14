@@ -425,3 +425,8 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .wk-h { min-height: 44px; display: flex; align-items: center; }
 .staff-layout aside a { min-height: 44px; align-items: center; }
 .demo-badge { cursor: help; }
+.more-att summary { padding: 0 16px; color: var(--blue); font-weight: 600; font-size: 15px; cursor: pointer; list-style: none; border-top: 1px solid var(--line); }
+.more-att summary::-webkit-details-marker { display: none; }
+.more-att[open] summary { color: var(--muted); }
+.more-att > .row { padding: 14px 16px; border-top: 1px solid var(--line); }
+.hero { margin: 14px 12px 0; }

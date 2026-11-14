@@ -47,7 +47,9 @@ function riskText(d) {
   if (!d) return '';
   if (d.overdue.length) {
     const names = d.overdue.map((w) => w.title.toLowerCase()).join(' и ');
-    return d.afterOverdue > 0 ? `Сдай ${names} — до порога останется ${d.afterOverdue} ${plural(d.afterOverdue, 'балл', 'балла', 'баллов')}` : `Сдай ${names} — и порог будет набран`;
+    const cap = names[0].toUpperCase() + names.slice(1);
+    const verb = d.overdue.length > 1 ? 'дают' : 'даёт';
+    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} — после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} — этого хватит на порог`;
   }
   const nx = d.upcoming[0];
   return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `: ближайшее — ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
@@ -113,25 +115,32 @@ function today(ctx) {
   const live = todayPairs.filter((p) => !p.cancelled);
   const left = live.filter((p) => T.parseHHMM(p.end) > nowMin);
   const nextToday = left[0];
-  // Пары на сегодня — компактным списком; текущая или ближайшая выделена
-  const pairRow = (p) => {
-    const st = T.parseHHMM(p.start); const en = T.parseHHMM(p.end);
-    const cls = p.cancelled ? 'off' : en <= nowMin ? 'past' : nextToday && p.id === nextToday.id ? 'now' : '';
-    const badge = p.cancelled ? 'отменена' : en <= nowMin ? '' : st <= nowMin ? `идёт · до ${p.end}` : nextToday && p.id === nextToday.id ? (st - nowMin < 60 ? `через ${st - nowMin} мин` : `в ${p.start}`) : '';
-    const ch = changeText(p);
-    return html`<a class="row tp ${cls}" href="/study?d=${key}#pair-${p.id}"><span class="tm">${p.start}<br>${p.end}</span>
-<span class="body"><span class="title">${p.subject}</span><span class="meta">${placeText(p)} · ${p.kind}</span>${ch ? html`<span class="meta chg">${ch}</span>` : ''}</span>${badge ? html`<span class="tag ${cls === 'now' ? 'blue' : ''}">${badge}</span>` : ''}</a>`;
-  };
-  const nextLine = next && T.dateKey(next.startsAt) !== key
-    ? html`<div class="row"><span class="body"><span class="title">${live.length ? 'На сегодня пары закончились' : 'Сегодня пар нет'}</span>
-<span class="meta">Следующая — ${T.wdLongKey(T.dateKey(next.startsAt))}, ${T.dayMonthKey(T.dateKey(next.startsAt))}, ${next.start}: ${next.subject}, ${placeText(next)}</span></span></div>`
-    : !left.length ? html`<div class="row"><span class="body"><span class="title">Сегодня пар нет</span><span class="meta">В ближайшие две недели пар нет</span></span></div>` : '';
+  // Карточка «Сейчас»: текущая или ближайшая пара — время, место, корпус и этаж, «Как пройти»
+  let hero = html`<section class="hero" aria-label="Ближайшая пара"><div class="small" style="color:rgba(255,255,255,.85)">Пар в ближайшие две недели нет</div></section>`;
+  if (next) {
+    const cd = countdown(next.startsAt, next.endsAt);
+    const isToday = T.dateKey(next.startsAt) === key;
+    const going = isToday && T.parseHHMM(next.start) <= nowMin;
+    const nk = T.dateKey(next.startsAt);
+    const rest = isToday ? left.filter((p) => p.id !== next.id) : [];
+    const ch = changeText(next);
+    hero = html`<section class="hero" aria-label="Ближайшая пара">
+<div class="small" style="color:rgba(255,255,255,.85);font-weight:600">${going ? `Сейчас · до ${next.end}` : isToday ? 'Следующая пара' : `${live.length ? 'На сегодня пары закончились' : 'Сегодня пар нет'} · ближайшая — ${T.wdLongKey(nk)}, ${T.dayMonthKey(nk)}`}</div>
+<div class="big">${cd.big}</div>
+<div style="display:flex;flex-direction:column;gap:4px"><div class="subj">${next.subject}</div>
+<div class="where">${whereText(next)} · ${next.kind}</div>${ch ? html`<div class="warn">${ch}</div>` : ''}</div>
+${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComponent(next.room || '')}">Как пройти</a>`}
+${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещё сегодня: ${rest.map((p) => `${p.start} ${p.subject}`).join(' · ')}</div>` : ''}
+<a class="ghost" href="/study?d=${nk}#pair-${next.id}">Всё расписание дня</a></section>`;
+  }
   // Требует внимания: заявки и черновики, сроки, риск недопуска
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false);
-  const attention = [
-    ...todo,
+  const riskItems = [
     ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${x.subject}»?`)}`, action: 'Что делать' })),
   ];
+  const attention = [...todo.filter((t) => t.amber), ...riskItems, ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
+  const attRow = (t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
+<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`;
   // Контекстные действия: зависят от ситуации студента
   const overdue = ds.some((d) => d.overdue.length);
   const actions = [
@@ -145,13 +154,10 @@ function today(ctx) {
     title: 'Сегодня', active: 'today', ctx,
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
+${hero}
 <a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси о своей учёбе или справках</span></span></a>
-<section class="section" aria-labelledby="today-h"><h2 class="label" id="today-h">Сегодня${left.length ? html` <span class="cnt">${left.length}</span>` : ''}</h2>
-<div class="group">${(left.length ? todayPairs : []).map(pairRow)}${nextLine}
-<a class="row more" href="/study?d=${key}"><span class="body"><span class="title">Полное расписание</span></span>${I.chev}</a></div></section>
 <section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
-${attention.length ? html`<div class="group">${attention.map((t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
-<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`)}</div>`
+${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Ещё ${attention.length - 2}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>`
     : html`<div class="group"><div class="row"><span class="body"><span class="title">Всё в порядке</span><span class="meta">Срочных дел нет. Хорошего дня!</span></span></div></div>`}
 </section>
 <section class="section" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
