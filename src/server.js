@@ -105,9 +105,10 @@ function createApp(opts = {}) {
   // Сброс демо для проверяющих: не чаще раза в 20 секунд, только с этого сайта (проверка Origin выше)
   let lastReset = 0;
   app.post('/demo/reset', (req, res) => {
+    if (!req.user) return res.redirect('/login');
     if (Date.now() - lastReset > 20e3) { lastReset = Date.now(); resetDemo(M.db); }
-    req.session = null;
-    res.redirect('/login?reset=1');
+    flash(req, 'Демо-данные возвращены к началу. Можно проходить сценарий.');
+    res.redirect(req.user.role === 'staff' ? '/staff' : '/');
   });
   // Ночной сброс в 3:00 МСК, чтобы каждый день сценарий начинался с чистого листа
   if (opts.nightlyReset) {
@@ -174,6 +175,7 @@ function createApp(opts = {}) {
   app.get('/requests/new', student, (req, res) => {
     const type = req.query.type;
     if (!TYPES[type]) return send(res, V.newRequestChoose(ctxOf(req, { situations: SIT.SITUATIONS })));
+    if (TYPES[type].budgetOnly && req.user.funding !== 'бюджет') { flash(req, 'Справка о стипендии выдаётся тем, кто получает стипендию. На договоре академическая стипендия не назначается.'); return res.redirect('/requests/new'); }
     const d = M.draftOf(req.user.id);
     const draft = req.query.draft && d && d.type === type ? d : null;
     const payments = M.payments(req.user.id);
@@ -200,6 +202,8 @@ function createApp(opts = {}) {
       if (!y.closed) return fail(`Справку за ${y.year} год можно заказать с января ${y.year + 1}, когда год закончится`);
       if (!details) return fail('Укажи ИНН — 12 цифр. Он обязателен в справке для налоговой.');
       if (!TAX.innOk(details)) return fail('ИНН не прошёл проверку: должно быть 12 цифр, две последние — контрольные. Проверь, нет ли опечатки.');
+      const dup = M.requestsOf(req.user.id).find((x) => x.type === 'tax' && String(x.purpose) === String(y.year) && ['submitted', 'in_work', 'need_student', 'ready'].includes(x.status));
+      if (dup) return fail(`Справка за ${y.year} год уже ${dup.status === 'ready' ? 'выдана' : 'заказана'}: № ${dup.number}. Сумма за закончившийся год не меняется — повторно заказывать не нужно.`);
     }
     const note = type === 'tax' ? String(req.body.note || '').trim().slice(0, 500) : '';
     const id = M.submitRequest(req.user, { type, purpose, format, details, note });
@@ -332,7 +336,8 @@ function createApp(opts = {}) {
     return 'Заявка взята в работу. Студент видит ваше имя и срок.';
   }));
   app.post('/staff/requests/:id/need', ...act((r, text, req) => {
-    if (!['submitted', 'in_work'].includes(r.status) || !text) return 'Укажите, какой документ нужен';
+    if (r.status !== 'in_work') return 'Сначала возьмите заявку в работу';
+    if (!text) return 'Укажите, какой документ нужен';
     M.db.prepare("UPDATE requests SET status = 'need_student', needs_text = ?, assignee_id = COALESCE(assignee_id, ?), taken_at = COALESCE(taken_at, ?) WHERE id = ?").run(text, req.user.id, new Date().toISOString(), r.id);
     if (!r.taken_at) M.addEvent(r.id, req.user.id, 'taken');
     M.addEvent(r.id, req.user.id, 'need_doc', text);

@@ -565,6 +565,9 @@ ${linkRow('/me/notifications', 'Уведомления', 'Какие уведо�
 ${linkRow('/notifications', 'Все уведомления', '')}
 <form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
 </div>
+<section class="section"><form method="post" action="/demo/reset" class="card" data-confirm="Вернуть заявки, уведомления и сообщения всех демо-аккаунтов к исходному состоянию? Это сбросит данные и для других проверяющих.">
+<b>Демо для жюри</b><div class="small muted" style="margin-top:4px">Данные общие для всех проверяющих и сбрасываются каждую ночь в 3:00 МСК. Если сценарий уже кто-то прошёл — верни его к началу.</div>
+<button class="btn secondary small" type="submit" style="margin-top:10px">Начать сценарий заново</button></form></section>
 <p id="about" class="small muted" style="text-align:center;margin:16px 0">Концепт для конкурса MGIMO AI Challenge. Не официальный сервис ДГТУ. Все данные вымышленные.</p></section>`,
   });
 }

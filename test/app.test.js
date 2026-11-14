@@ -105,6 +105,9 @@ test('запрос документа и загрузка студентом', a
   const anna = await login('anna'); const dk = await login('dekanat');
   const r = await anna.post('/requests', { type: 'aid', purpose: 'Лечение', details: 'тест' });
   const id = r.headers.get('location').match(/requests\/(\d+)/)[1];
+  const early = await dk.post(`/staff/requests/${id}/need`, { text: 'до взятия' });
+  assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Новая/); // запросить документ до «Взять в работу» нельзя
+  await dk.post(`/staff/requests/${id}/take`, {});
   await dk.post(`/staff/requests/${id}/need`, { text: 'Загрузи справку о составе семьи' });
   assert.match(await (await anna.get('/requests')).text(), /Нужно твоё действие/);
   const fd = new FormData();
@@ -214,9 +217,11 @@ test('напоминания о сроках в ленте и фильтр «С�
 test('повторный проход сценария: ИНН подставлен без черновика, сброс демо возвращает черновик', async () => {
   const ilya = await login('ilya');
   assert.match(await (await ilya.get('/requests/new?type=tax')).text(), new RegExp(`value="${DEMO_INN}"`));
-  const r = await client().post('/demo/reset', {});
+  const anon = await client().post('/demo/reset', {});
+  assert.equal(anon.headers.get('location'), '/login'); // без входа сброса нет
+  const r = await ilya.post('/demo/reset', {});
   assert.equal(r.status, 302);
-  assert.equal(r.headers.get('location'), '/login?reset=1');
+  assert.equal(r.headers.get('location'), '/');
   const again = await login('ilya');
   assert.match(await (await again.get('/requests')).text(), /Черновики[\s\S]*Справка для налогового вычета/);
 });
@@ -265,4 +270,15 @@ test('помощник: факты из аудита 14.11 считает про
   const nir = await ask(ilya, 'Что с моей НИР, какой у меня балл?'); assert.equal(nir.source, 'calc'); assert.match(nir.text, /42 из 100/);
   const y26 = await ask(ilya, 'Можно справку за 2026 год?'); assert.match(y26.text, /с января 2027/);
   const job = await ask(ilya, 'Нужна справка для работы'); assert.ok(job.actions.some((a) => a.href.includes('purpose=employer')));
+});
+
+test('защита от повторов: вычет за тот же год и стипендия на договоре', async () => {
+  const ilya = await login('ilya');
+  const y = String(new Date(Date.now() + 3 * 3600e3).getUTCFullYear() - 1);
+  await ilya.post('/requests', { type: 'tax', purpose: y, format: 'pdf', details: DEMO_INN });
+  const second = await ilya.post('/requests', { type: 'tax', purpose: y, format: 'pdf', details: DEMO_INN });
+  assert.equal(second.status, 400);
+  assert.match(await second.text(), /уже (заказана|выдана)/);
+  const st = await ilya.get('/requests/new?type=stipend');
+  assert.equal(st.status, 302);
 });

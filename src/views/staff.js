@@ -87,7 +87,8 @@ ${r.status === 'in_work' && t.producesPdf ? html`<div class="card"><b>${r.format
 ${r.status === 'in_work' && !t.producesPdf ? html`<div class="card"><b>Решение по заявлению</b>
 <form method="post" action="/staff/requests/${r.id}/ready"><label class="field" style="margin-top:6px">Текст для студента<textarea name="text" required>Материальная помощь назначена, выплата — со стипендией в следующем месяце.</textarea></label>
 <button class="btn block" style="margin-top:10px">Сообщить решение</button></form></div>` : ''}
-${['submitted', 'in_work'].includes(r.status) ? html`<div class="card"><b>Запросить документ у студента</b>
+${r.status === 'submitted' ? html`<p class="small muted" style="margin:4px 4px 0">Запросить документ или отклонить заявку можно после того, как возьмёте её в работу.</p>` : ''}
+${r.status === 'in_work' ? html`<div class="card"><b>Запросить документ у студента</b>
 <form method="post" action="/staff/requests/${r.id}/need"><label class="field" style="margin-top:6px">Что нужно<input type="text" name="text" required maxlength="200" value="${r.type === 'aid' ? 'Загрузи справку о составе семьи (не старше 30 дней)' : ''}"></label>
 <button class="btn secondary block" style="margin-top:10px">Запросить</button></form></div>
 <div class="card"><b>Отклонить</b><form method="post" action="/staff/requests/${r.id}/reject"><label class="field" style="margin-top:6px">Причина — её увидит студент<input type="text" name="text" required maxlength="200"></label>

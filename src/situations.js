@@ -19,10 +19,10 @@ function build(id, data) {
   const s = SITUATIONS.find((x) => x.id === id);
   if (!s) return null;
   const { user, payments = [], stipends = [], disciplines = [], session = [], requests = [] } = data;
-  const busy = (type, purpose) => requests.find((r) => r.type === type && (purpose == null || r.purpose === purpose) && ['submitted', 'in_work', 'need_student'].includes(r.status));
+  const busy = (type, purpose) => requests.find((r) => r.type === type && (purpose == null || r.purpose === purpose) && ['submitted', 'in_work', 'need_student', ...(type === 'tax' ? ['ready'] : [])].includes(r.status));
   const order = (key, type, purpose, title, hint, extra = {}) => {
     const b = busy(type, purpose);
-    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}` : extra.reason, ...extra };
+    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? (b.status === 'ready' ? `Уже выдана: № ${b.number} — PDF в «Заявках»` : `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}`) : extra.reason, ...extra };
   };
   const out = { ...s, orders: [], todo: [], notes: [], links: [] };
 
