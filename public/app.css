@@ -430,3 +430,19 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .more-att[open] summary { color: var(--muted); }
 .more-att > .row { padding: 14px 16px; border-top: 1px solid var(--line); }
 .hero { margin: 14px 12px 0; }
+
+/* =====================================================================
+   v3.4: приглушённый «пыльный синий» (выбор команды 14.11)
+   ===================================================================== */
+:root { --hero: #4A6FA5; --blue: #4A6FA5; --blue-dark: #36557F; --blue-soft: #EDF2F8; --bg: #F5F7FA; }
+.demo-strip { background: #EDF2F8; color: #36557F; }
+.appbar { box-shadow: 0 1px 0 var(--line), 0 2px 10px rgba(54,85,127,.06); }
+.hero { background: linear-gradient(135deg, #42659A 0%, #4A6FA5 55%, #5679AE 100%); box-shadow: 0 10px 24px rgba(54,85,127,.22); }
+.hero .btn-white:hover { background: #F2F5FA; }
+.dayline .pt { background: #6E8DBB; }
+.toast a { color: #C9D7EA; }
+.staff-layout aside { background: linear-gradient(180deg, #4A6FA5, #36557F); }
+.stage.current::before { box-shadow: 0 0 0 5px rgba(74,111,165,.18); }
+.bubble.staff { border-color: #D3DEEC; }
+.ask-bar.ai { background: linear-gradient(90deg, #EDF2F8, #F3F1F8); border-color: #D5DFEC; }
+.spark { background: linear-gradient(135deg, #4A6FA5, #6F639F); }

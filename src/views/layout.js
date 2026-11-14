@@ -21,17 +21,17 @@ const I = {
   send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22, 'stroke-width="2.2"'),
   lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 18),
   check: raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#E7F6EC"/><path d="M17 29l7 7 15-16" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
-  logoSm: raw('<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2563EB"/><path d="M7 20h8M25 20h8" stroke="#BFD4FF" stroke-width="2.6" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
-  logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#2563EB"/><path d="M7 20h8M25 20h8" stroke="#BFD4FF" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
+  logoSm: raw('<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#4A6FA5"/><path d="M7 20h8M25 20h8" stroke="#C9D7EA" stroke-width="2.6" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
+  logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#4A6FA5"/><path d="M7 20h8M25 20h8" stroke="#C9D7EA" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
 };
 
 function head(title) {
   return html`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F6F7F9">
+<meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=3">
+<link rel="stylesheet" href="/app.css?v=4">
 </head>`;
 }
 
@@ -55,7 +55,7 @@ ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html
 ${body}
 </div>
 ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=3" defer></script>${scripts}
+<script src="/app.js?v=4" defer></script>${scripts}
 </body></html>`;
 }
 
@@ -64,7 +64,7 @@ function backBar(href, label) {
 }
 
 // Понятная страница ошибки в стиле кабинета: что случилось и куда идти дальше
-const ERR_ICON = raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#EEF3FF"/><path d="M28 17v14" stroke="#1F4FD8" stroke-width="4" stroke-linecap="round"/><circle cx="28" cy="39" r="2.6" fill="#1F4FD8"/></svg>');
+const ERR_ICON = raw('<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" fill="#EDF2F8"/><path d="M28 17v14" stroke="#36557F" stroke-width="4" stroke-linecap="round"/><circle cx="28" cy="39" r="2.6" fill="#36557F"/></svg>');
 function errorPage({ ctx, title, text, links = [] }) {
   const user = ctx && ctx.user;
   const isStudent = user && user.role === 'student';
