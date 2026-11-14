@@ -71,6 +71,7 @@ ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.ty
 ${files.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a> · ${T.stamp(new Date(f.uploaded_at))}</span></div>`)}
 ${r.type === 'aid' && !files.length ? html`<div class="kv"><span>Документы</span><span class="muted">не загружены</span></div>` : ''}
 </div></div>
+${r.type === 'stipend' ? html`<div class="card"><b>Выплаты стипендии</b>${(ctx.stipends || []).map((x) => html`<div class="kv"><span>${x.month.split('-').reverse().join('.')}</span><span>${x.amount.toLocaleString('ru-RU').replace(/\u00a0/g, ' ')} ₽</span></div>`)}<div class="kv"><b>Итого</b><b>${(ctx.stipends || []).reduce((a, x) => a + x.amount, 0).toLocaleString('ru-RU').replace(/\u00a0/g, ' ')} ₽</b></div></div>` : ''}
 ${r.type === 'tax' ? html`<div class="card"><b>Оплаты по договору</b><table class="table" style="margin-top:8px"><thead><tr><th>Дата</th><th>Договор</th><th>Заказчик</th><th>Сумма</th></tr></thead><tbody>
 ${ctx.payments.map((p) => html`<tr><td>${p.paid_on.split('-').reverse().join('.')}</td><td>${p.contract}</td><td>${p.payer}</td><td>${TAX.rub(p.amount)}</td></tr>`)}</tbody></table>
 <div class="small muted" style="margin-top:6px">За ${r.purpose} год: ${TAX.rub(ctx.payments.filter((p) => p.paid_on.startsWith(r.purpose)).reduce((s, p) => s + p.amount, 0))} — эта сумма попадёт в справку.</div></div>` : ''}

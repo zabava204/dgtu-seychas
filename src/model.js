@@ -79,7 +79,8 @@ function model(db) {
         else if (overdue.length || gap > 10) light = gap > 0 ? 'red' : 'amber';
         else if (gap > 0) light = 'amber';
         const autoGap = d.auto_threshold ? Math.max(0, d.auto_threshold - points) : null;
-        return { ...d, works, points, gap, light, overdue, upcoming, autoGap };
+        const overdueMax = overdue.reduce((s, w) => s + w.max, 0);
+        return { ...d, works, points, gap, light, overdue, upcoming, autoGap, overdueMax, afterOverdue: gap - overdueMax };
       });
     },
     // ---------- Сессия ----------

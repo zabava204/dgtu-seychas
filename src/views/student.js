@@ -42,6 +42,16 @@ const changeText = (p) => {
 const MON_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const daysUntil = (key) => Math.round((Date.parse(key + 'T00:00:00Z') - Date.parse(T.dateKey() + 'T00:00:00Z')) / T.DAY_MS);
 const inDays = (n) => (n === 0 ? 'сегодня' : n === 1 ? 'завтра' : `через ${n} ${plural(n, 'день', 'дня', 'дней')}`);
+// Что делать с недобором: сначала действие, потом число
+function riskText(d) {
+  if (!d) return '';
+  if (d.overdue.length) {
+    const names = d.overdue.map((w) => w.title.toLowerCase()).join(' и ');
+    return d.afterOverdue > 0 ? `Сдай ${names} — до порога останется ${d.afterOverdue} ${plural(d.afterOverdue, 'балл', 'балла', 'баллов')}` : `Сдай ${names} — и порог будет набран`;
+  }
+  const nx = d.upcoming[0];
+  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `: ближайшее — ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
+}
 const KIND_CAP = { зачёт: 'Зачёт', экзамен: 'Экзамен', консультация: 'Консультация' };
 function admitTag(s) {
   if (s.kind === 'консультация' || s.admitted == null) return '';
@@ -120,7 +130,7 @@ function today(ctx) {
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false);
   const attention = [
     ...todo,
-    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `Не хватает ${x.gap} ${plural(x.gap, 'балла', 'баллов', 'баллов')} до порога · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${x.subject}»?`)}`, action: 'Что делать' })),
+    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${x.subject}»?`)}`, action: 'Что делать' })),
   ];
   // Контекстные действия: зависят от ситуации студента
   const overdue = ds.some((d) => d.overdue.length);
@@ -158,7 +168,7 @@ function studyTabs(user, cur) {
 }
 
 function schedule(ctx) {
-  const { user, sel, week, pairs, exams = [], view = 'day' } = ctx;
+  const { user, sel, week, pairs, exams = [], view = 'day', nextDay } = ctx;
   const q = (d, v = view) => `/study?d=${d}${v === 'week' ? '&view=week' : ''}`;
   const todayKey = T.dateKey();
   const weekBody = () => html`<section class="section" style="padding-top:4px" aria-label="Пары на неделю">
@@ -190,7 +200,7 @@ ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="nm">${p.subject}</div>
 <div class="small muted" style="margin-top:2px">${p.teacher} · ${placeText(p)}</div>
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
-</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>Пар нет.</b><div class="small muted">Выбери другой день или неделю.</div></div>`}
+</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>В этот день пар нет</b>${nextDay ? html`<div class="small muted" style="margin-top:4px">Следующая пара — ${T.wdLongKey(nextDay.key)}, ${T.dayMonthKey(nextDay.key)}, ${nextDay.pair.start}: ${nextDay.pair.subject}, ${placeText(nextDay.pair)}</div><div class="actions"><a class="btn secondary small" href="/study?d=${nextDay.key}#pair-${nextDay.pair.id}">Открыть этот день</a></div>` : html`<div class="small muted">Выбери другой день или неделю.</div>`}</div>`}
 </section>`}`,
   });
 }
@@ -220,9 +230,9 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="section" aria-label="Готовность к сессии"><div class="card readiness">
-<div class="small muted" style="font-weight:600">${firstS ? `Сессия с ${T.dayMonthKey(firstS.date_key)} · ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
+<div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} — ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
 <div style="font-size:20px;font-weight:700;margin-top:4px">${risky.length ? `Допуск есть по ${ds.length - risky.length} из ${ds.length} дисциплин` : 'Допуск есть по всем дисциплинам'}</div>
-${risky.map((d) => html`<div class="risk"><span class="tag red">не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}</span><span class="rs">${d.subject}</span>
+${risky.map((d) => html`<div class="risk"><span class="rs">${d.subject}</span><span class="small muted" style="grid-column:1 / -1">${riskText(d)}</span>
 <a class="link" style="padding:0" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Что можно сделать →</a></div>`)}
 <div class="small muted" style="margin-top:10px">Итоговые оценки ещё не выставлены. Допуск — порог текущих баллов (демо-правило). Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
 </div></section>
@@ -271,7 +281,7 @@ ${studyTabs(user, 'nir')}
 <section class="hero" style="margin-top:14px"><div class="small" style="color:rgba(255,255,255,.82);font-weight:600">НИР · ${user.course * 2 - 1} СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
 <div class="big">${sum} <span style="font-size:18px;font-weight:500">из 100 баллов</span></div>
 <div class="progress" style="background:rgba(255,255,255,.3)"><i style="width:${sum}%"></i></div>
-<div class="small" style="color:rgba(255,255,255,.92)">До «отлично» ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
+<div class="small" style="color:rgba(255,255,255,.92)">До «отлично» (от 85 баллов) ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
 <section class="section">${stages.map((s) => html`<div class="card" style="margin-top:10px">
 <div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '—' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
@@ -390,7 +400,7 @@ ${isTax ? taxFields(payments, taxYears, v, user) : ''}
 ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="hint">PDF или фото, до 5 МБ. Можно загрузить позже.</span>
 <span class="filepick"><input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png"><span class="btn secondary small" aria-hidden="true">Выбрать файл</span><span class="fname" data-fname>Файл не выбран</span></span></label>
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
-<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" href="/help/data">Ошибка в данных?</a></div>
+<div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" style="display:inline-flex;align-items:center;min-height:44px;margin:-12px 0" href="/help/data">Ошибка в данных?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
 <button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>${t.producesPdf ? 'Заказать справку' : 'Подать заявление'}</button>
 </form>`,
@@ -602,7 +612,7 @@ function notifications(ctx) {
 <section class="section" style="padding-top:6px">${shown.length ? shown.map((n) => html`<a class="feed-item ${n.read ? '' : 'unread'}" href="${n.link || '#'}"><div style="flex:1">
 <div class="req-head"><span class="cat">${CAT[n.category] || ''}</span><span class="small muted">${T.relDateTime(new Date(n.at))}</span></div>
 <div style="font-weight:600;margin-top:2px">${n.title}</div>${n.body ? html`<div class="small muted" style="font-size:14px;margin-top:2px">${n.body}</div>` : ''}</div></a>`)
-    : html`<p class="muted">Уведомлений нет.</p>`}</section>`,
+    : filter ? html`<div class="card"><b>В категории «${(f.find((x) => x[0] === filter) || [, ''])[1]}» уведомлений нет</b><div class="actions"><a class="btn secondary small" href="/notifications">Показать все</a></div></div>` : html`<p class="muted">Уведомлений нет.</p>`}</section>`,
   });
 }
 

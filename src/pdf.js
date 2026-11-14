@@ -57,6 +57,7 @@ function certificate({ r, student, staff, payments = [], stipends = [] }, stream
   } else {
     const p = purposeOf('study', r.purpose);
     doc.fillColor('#14213D').font('B').fontSize(18).text(`СПРАВКА № ${r.number}`, { align: 'center' });
+    doc.font('S').fontSize(11).text('об обучении (Форма 2)', { align: 'center' });
     doc.font('R').fontSize(11).fillColor('#5B6577').text(`от ${T.shortDate(issued)}`, { align: 'center' });
     doc.moveDown(1.5).fillColor('#14213D').font('R').fontSize(12).lineGap(4);
     const verb = student.gender === 'f' ? 'она действительно обучается' : 'он действительно обучается';

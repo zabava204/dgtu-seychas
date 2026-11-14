@@ -149,8 +149,15 @@ function createApp(opts = {}) {
     const todo = [];
     for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
     for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
-    for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) todo.push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}` });
     const ds = M.disciplines(u.id);
+    // Работы «на балл» (допуск уже есть) — ниже срочного и с пометкой
+    const later = [];
+    for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) {
+      const d = ds.find((x) => t.title.toLowerCase().includes(x.subject.toLowerCase().slice(0, 6)));
+      const ok = d && d.gap === 0;
+      (ok ? later : todo).push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}${ok ? ' · на балл, допуск уже есть' : ''}`, low: ok });
+    }
+    todo.push(...later);
     send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds), todayPairs: M.dayPairs(u.group_name, T.dateKey()) })));
   });
 
@@ -162,7 +169,9 @@ function createApp(opts = {}) {
     const week = [0, 1, 2, 3, 4, 5].map((i) => { const key = T.addDays(monday, i); return { key, changed: M.dayPairs(u.group_name, key).some((p) => p.change), session: M.sessionOn(u.id, key) }; });
     const view = req.query.view === 'week' ? 'week' : 'day';
     if (view === 'week') week.forEach((d) => { d.pairs = M.dayPairs(u.group_name, d.key); });
-    send(res, V.schedule(ctxOf(req, { sel, week, view, pairs: M.dayPairs(u.group_name, sel), exams: M.sessionOn(u.id, sel) })));
+    let nextDay = null;
+    for (let i = 1; i <= 14 && !nextDay; i++) { const k = T.addDays(sel, i); const ps = M.dayPairs(u.group_name, k).filter((p) => !p.cancelled); if (ps.length) nextDay = { key: k, pair: ps[0] }; }
+    send(res, V.schedule(ctxOf(req, { sel, week, view, nextDay, pairs: M.dayPairs(u.group_name, sel), exams: M.sessionOn(u.id, sel) })));
   });
   app.get('/study/grades', student, (req, res) => {
     const ds = M.disciplines(req.user.id);
@@ -314,7 +323,7 @@ function createApp(opts = {}) {
     const filter = ['new', 'work', 'student', 'done'].includes(req.query.f) ? req.query.f : 'new';
     send(res, S.queue(staffCtx(req, { list: M.staffQueue(filter), filter })));
   });
-  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id) }))));
+  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id), stipends: M.stipends(req.r.student_id) }))));
   app.get('/staff/requests/:id/preview', staff, loadRequest, (req, res) => {
     const r = req.r;
     if (!TYPES[r.type].producesPdf) return fail(req, res, 404, 'Для этой заявки PDF не формируется', 'Это заявление, а не справка: решение придёт в карточку заявки.', [[`/staff/requests/${r.id}`, 'Вернуться к заявке']]);
@@ -332,7 +341,7 @@ function createApp(opts = {}) {
     if (r.status !== 'submitted') return 'Заявка уже в работе';
     M.db.prepare("UPDATE requests SET status = 'in_work', assignee_id = ?, taken_at = ? WHERE id = ?").run(req.user.id, new Date().toISOString(), r.id);
     M.addEvent(r.id, req.user.id, 'taken');
-    notifyStudent(r, `${r.title} взята в работу`, `Заявка № ${r.number}. Оформляет ${req.user.short_name}. Ожидаемый срок — ${T.relDateTime(new Date(r.eta_at))}.`);
+    notifyStudent(r, `${r.title} взята в работу`, `Заявка № ${r.number}. Оформляет ${req.user.short_name.replace(/\.$/, '')}. Ожидаемый срок — ${T.relDateTime(new Date(r.eta_at))}.`);
     return 'Заявка взята в работу. Студент видит ваше имя и срок.';
   }));
   app.post('/staff/requests/:id/need', ...act((r, text, req) => {
