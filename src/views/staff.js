@@ -16,12 +16,13 @@ function shell({ title, ctx, cur, body }) {
 <div class="brand" style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${I.logo}<div class="brand-t"><div style="font-weight:700">ДГТУ.Сейчас</div><div class="small" style="color:rgba(255,255,255,.82)">Кабинет деканата</div></div></div>
 ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-current="page"') : ''}><span>${l}</span><span class="cnt">${n}</span></a>`)}
 <a href="/staff/announce" ${cur === 'announce' ? raw('aria-current="page"') : ''}><span>Объявление студентам</span></a>
+<a href="/a11y"><span class="lv-off">Версия для слабовидящих</span><span class="lv-on">Обычная версия</span></a>
 <div class="who" style="margin-top:auto;font-size:13px;color:rgba(255,255,255,.82);padding:12px"><span class="who-name">${ctx.user.full_name}<br>${ctx.user.position}</span>
 <form method="post" action="/logout" style="margin-top:8px"><button class="link" style="color:#fff;padding:0;min-height:36px">Выйти</button></form></div>
 </aside>
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
 <div class="small muted" style="margin-bottom:12px">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
-${body}</main></div><script src="/app.js?v=3" defer></script></body></html>`;
+${body}</main></div><script src="/app.js?v=5" defer></script></body></html>`;
 }
 
 function queue(ctx) {

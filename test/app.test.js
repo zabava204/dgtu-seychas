@@ -289,3 +289,28 @@ test('помощник: вузовские термины из словаря', 
   assert.equal(a.source, 'calc');
   assert.match(a.text, /которых не было в твоём прежнем учебном плане, но они есть в новом/);
 });
+
+test('помощник отвечает по-английски: факты считает программа', async () => {
+  const anna = await login('anna'); const ilya = await login('ilya');
+  const ask = async (c, m) => (await c.post('/api/assistant', { message: m }, true)).json();
+  const mon = await ask(anna, 'What classes do I have on Monday?');
+  assert.equal(mon.lang, 'en'); assert.equal(mon.source, 'calc'); assert.match(mon.text, /^Monday, \d+ [A-Z][a-z]+:/); assert.match(mon.text, /room /);
+  const ex = await ask(anna, 'When are my exams?'); assert.equal(ex.source, 'calc'); assert.match(ex.text, /credit test|exam/); assert.doesNotMatch(ex.text, /зачёт:|экзамен:/);
+  const st = await ask(anna, 'What is the status of my request?'); assert.equal(st.source, 'calc'); assert.match(st.text, /No\. \d{4}-048/);
+  const tx = await ask(ilya, 'Can I get a tax deduction?'); assert.equal(tx.source, 'calc'); assert.match(tx.text, /RUB/);
+  const ce = await ask(anna, 'How do I get a certificate of enrollment?'); assert.ok(ce.actions.some((a) => a.href === '/requests/new?type=study'));
+  const ru = await ask(anna, 'Какие пары в понедельник?'); assert.equal(ru.lang, 'ru');
+});
+
+test('версия для слабовидящих: включается и выключается, работает и до входа', async () => {
+  const c = client();
+  const on = await c.get('/a11y');
+  assert.equal(on.status, 302);
+  assert.match(await (await c.get('/login')).text(), /<html lang="ru" class="lv">/);
+  const anna = await login('anna');
+  await anna.get('/a11y?on=1');
+  const me = await (await anna.get('/me')).text();
+  assert.match(me, /class="lv"/); assert.match(me, /Версия для слабовидящих/);
+  await anna.get('/a11y');
+  assert.doesNotMatch(await (await anna.get('/me')).text(), /class="lv"/);
+});

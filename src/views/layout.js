@@ -13,6 +13,7 @@ const ICON = {
 };
 const svg = (inner, size = 24, extra = '') => raw(`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`);
 const I = {
+  eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 22),
   search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 22),
   bell: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>', 22),
   back: svg('<path d="M15 18l-6-6 6-6"/>', 22, 'stroke-width="2"'),
@@ -31,7 +32,7 @@ function head(title) {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=4">
+<link rel="stylesheet" href="/app.css?v=5">
 </head>`;
 }
 
@@ -49,13 +50,13 @@ function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
 <div class="app ${noNav ? 'no-nav' : ''}">
 ${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>`}
 ${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><span class="demo-badge" title="Концепт для конкурса, не официальный сервис ДГТУ, данные вымышленные">Демо</span>
-<div class="ab-act"><a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
+<div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}</a><a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
 <a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
 </div>
 ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=4" defer></script>${scripts}
+<script src="/app.js?v=5" defer></script>${scripts}
 </body></html>`;
 }
 

@@ -9,6 +9,7 @@ const tls = require('tls');
 const T = require('./time');
 const TAX = require('./tax');
 const GR = require('./grades');
+const EN = require('./assistant-en');
 
 const OAUTH_URL = process.env.GIGACHAT_OAUTH_URL || 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const API_URL = process.env.GIGACHAT_API_URL || 'https://gigachat.devices.sberbank.ru/api/v1';
@@ -215,9 +216,10 @@ async function getToken() {
   return token;
 }
 
-function systemPrompt(data) {
+function systemPrompt(data, lang) {
   const u = data.user;
   const lines = [
+    ...(lang === 'en' ? ['Студент пишет по-английски (иностранный студент). Отвечай по-английски, просто и коротко, 2–5 предложений; названия дисциплин и документов можно оставить по-русски с пояснением. Все правила ниже действуют так же.'] : []),
     'Ты — помощник «Что нужно?» в концепте личного кабинета студента «ДГТУ.Сейчас» (прототип для конкурса, данные вымышленные).',
     'Отвечай по-русски, на «ты», коротко: 2–5 предложений, без markdown-заголовков.',
     'Опирайся только на данные студента и демо-правила ниже. Не выдумывай нормативы, сроки, суммы, телефоны и ссылки. Если не знаешь — так и скажи и предложи обратиться в деканат: корпус 1, каб. 210, пн–пт 9:00–17:00.',
@@ -238,10 +240,10 @@ function systemPrompt(data) {
   return lines.join('\n');
 }
 
-async function askGigaChat(question, history, data) {
+async function askGigaChat(question, history, data, lang) {
   const run = async () => {
     const tk = await getToken();
-    const messages = [{ role: 'system', content: systemPrompt(data) }];
+    const messages = [{ role: 'system', content: systemPrompt(data, lang) }];
     for (const h of (history || []).slice(-6)) if (h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string') messages.push({ role: h.role, content: h.content.slice(0, 800) });
     messages.push({ role: 'user', content: question });
     const r = await post(`${API_URL}/chat/completions`, { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${tk}` },
@@ -259,19 +261,22 @@ async function askGigaChat(question, history, data) {
 async function answer(question, history, data) {
   const q = String(question || '').trim().slice(0, 500);
   if (!q) return { text: 'Напиши, что нужно.', actions: [], source: 'rules', intent: 'empty' };
-  const it = intents(q, data);
-  if (it.id === 'support') return { text: it.text, actions: it.actions, source: 'rules', intent: it.id };
+  // Вопрос на английском — английские правила (первая часть английской версии кабинета)
+  const lang = EN.isEnglish(q) ? 'en' : 'ru';
+  const it = lang === 'en' ? EN.intents(q, data) : intents(q, data);
+  const res = (o) => ({ ...o, lang, intent: it.id });
+  if (it.id === 'support') return res({ text: it.text, actions: it.actions, source: 'rules' });
   // Цифры (баллы, суммы, статусы, расписание) отдаём из расчёта кабинета, без пересказа моделью
-  if (it.exact) return { text: it.text, actions: it.actions, source: 'calc', intent: it.id };
+  if (it.exact) return res({ text: it.text, actions: it.actions, source: 'calc' });
   if (enabled()) {
     try {
-      const text = await askGigaChat(q, history, data);
-      if (text) return { text, actions: it.actions, source: 'gigachat', intent: it.id };
+      const text = await askGigaChat(q, history, data, lang);
+      if (text) return res({ text, actions: it.actions, source: 'gigachat' });
     } catch (e) {
       console.error('[assistant] GigaChat недоступен:', e.message);
     }
   }
-  return { text: it.text || fallbackText(), actions: it.actions, source: 'rules', intent: it.id };
+  return res({ text: it.text || (lang === 'en' ? EN.fallbackText() : fallbackText()), actions: it.actions, source: 'rules' });
 }
 
 module.exports = { answer, intents, enabled };

@@ -77,7 +77,7 @@
           j.actions.forEach((a) => { const l = document.createElement('a'); l.className = 'btn small'; l.href = a.href; l.textContent = a.label; box.appendChild(l); });
           wait.appendChild(box);
         }
-        const src = document.createElement('span'); src.className = 'src'; src.textContent = j.source === 'gigachat' ? 'Ответ GigaChat по данным кабинета' : j.source === 'calc' ? 'Расчёт по данным кабинета' : 'Ответ по правилам кабинета'; wait.appendChild(src);
+        const src = document.createElement('span'); src.className = 'src'; const en = j.lang === 'en'; src.textContent = j.source === 'gigachat' ? (en ? 'GigaChat answer based on cabinet data' : 'Ответ GigaChat по данным кабинета') : j.source === 'calc' ? (en ? 'Calculated from your cabinet data' : 'Расчёт по данным кабинета') : (en ? 'Answer by cabinet rules' : 'Ответ по правилам кабинета'); wait.appendChild(src);
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
         wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
       } catch {

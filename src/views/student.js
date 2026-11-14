@@ -576,6 +576,7 @@ function me(ctx) {
 <div class="small muted" style="margin-top:6px;font-size:14px">Корпус 1, каб. 210 · пн–пт 9:00–17:00<br>${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</div>
 <div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/helper">Спросить помощника</a></div></div>
 <div class="card" style="padding-top:4px;padding-bottom:4px">
+${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
 ${linkRow('/hard', 'Если тяжело', 'Контакты психолога и телефоны помощи')}
 ${linkRow('/me/notifications', 'Уведомления', 'Какие уведомления получать')}
 ${linkRow('/notifications', 'Все уведомления', '')}
@@ -666,11 +667,12 @@ function helper(ctx) {
   return page({
     title: 'Помощник', active: 'today', ctx,
     body: html`${backBar('/', 'Помощник')}
-<div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по данным твоего кабинета и демо-правилам. Может ошибаться — важное уточняй в деканате.</p></div>
+<div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по данным твоего кабинета и демо-правилам. Может ошибаться — важное уточняй в деканате. <span lang="en">You can also ask in English.</span></p></div>
 <div class="chat" id="chat" aria-live="polite">
 <div class="msg bot">Что нужно? Спроси про справку, баллы до допуска, даты зачётов и экзаменов или пары на завтра.</div></div>
 <div class="suggest" id="suggest" style="margin-top:10px">
 ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
+<button type="button" data-q="What classes do I have tomorrow?" lang="en">In English</button>
 <a href="/hard">Мне тяжело</a></div>
 <div style="height:170px"></div>
 <div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу" value="${q || ''}">

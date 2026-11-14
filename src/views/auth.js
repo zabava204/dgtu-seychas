@@ -8,7 +8,7 @@ function shell(title, body) {
 <div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
 <div style="padding:32px 20px 0;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;align-items:center;gap:12px">${I.logo}<div><div style="font-size:22px;font-weight:700">ДГТУ.Сейчас</div><div class="small muted">Личный кабинет студента</div></div></div>
-${body}</div></div><script src="/app.js?v=3" defer></script></body></html>`;
+${body}</div></div><script src="/app.js?v=5" defer></script></body></html>`;
 }
 
 function login({ error, loginValue, demo, notice }) {
@@ -21,6 +21,7 @@ function login({ error, loginValue, demo, notice }) {
 ${error ? html`<div class="err" role="alert" id="login-err">${error}</div>` : ''}
 <button class="btn block" type="submit" style="margin-top:18px">Войти</button>
 <div style="text-align:center"><a class="link" href="/forgot">Забыли пароль?</a></div>
+<div style="text-align:center"><a class="link" href="/a11y"><span class="lv-off">Версия для слабовидящих</span><span class="lv-on">Обычная версия</span></a></div>
 </form>
 <section aria-labelledby="demo-h" style="margin-top:8px">
 <h2 class="label" id="demo-h">Демо-доступ для жюри</h2>

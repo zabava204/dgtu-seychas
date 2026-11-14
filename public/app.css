@@ -446,3 +446,37 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .bubble.staff { border-color: #D3DEEC; }
 .ask-bar.ai { background: linear-gradient(90deg, #EDF2F8, #F3F1F8); border-color: #D5DFEC; }
 .spark { background: linear-gradient(135deg, #4A6FA5, #6F639F); }
+
+/* =====================================================================
+   v3.5: версия для слабовидящих (класс lv на <html>, включается в шапке, на входе и в «Я»)
+   Крупнее текст, выше контраст, видимые границы, без анимаций.
+   ===================================================================== */
+.lv-on { display: none; }
+.lv .lv-on { display: inline; }
+.lv .lv-off { display: none; }
+.lv { --ink: #0B1220; --muted: #2B3445; --line: #7C8799; --bg: #FFFFFF; --blue: #36557F; --blue-dark: #263F60; --blue-soft: #E3EAF4; }
+.lv body { background: #fff; }
+.lv .app > :not(.appbar):not(.demo-strip):not(.toast) { zoom: 1.2; }
+.lv .demo-strip, .lv .toast { font-size: 16px; }
+.lv .appbar .brand span { font-size: 19px; }
+.lv .tabbar a { font-size: 14px; font-weight: 700; color: var(--ink); }
+.lv .tabbar a[aria-current] { text-decoration: underline; text-underline-offset: 3px; }
+.lv .card, .lv .tile, .lv .linkcard, .lv .ask-bar, .lv .row-list, .lv .sess, .lv .wk-day { box-shadow: none !important; border: 1.5px solid var(--line); }
+.lv .hero { background: #263F60 !important; box-shadow: none; }
+.lv .small:not(.btn), .lv .meta, .lv .muted { color: var(--muted) !important; }
+.lv .hero .small, .lv .hero .meta, .lv .hero .muted, .lv .hero small, .lv .hero .where, .lv .msg.me .small { color: #fff !important; }
+.lv a.link, .lv .row .act, .lv .more-att summary, .lv .card a:not(.btn):not(.row):not(.tile):not(.linkcard) { text-decoration: underline; text-underline-offset: 3px; }
+.lv .btn.secondary { border: 2px solid var(--blue); }
+.lv :focus-visible { outline: 4px solid #0B1220; outline-offset: 3px; }
+.lv *, .lv *::before, .lv *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+.lv .staff-layout main { zoom: 1.15; }
+.lv .staff-layout aside { background: #263F60; font-size: 17px; }
+.lv .staff-layout aside a { color: #fff; }
+.lv .demo-badge { color: #6B3300; background: #FFE7C2; }
+@media (max-width: 380px) {
+  .appbar { padding-left: 12px; padding-right: 4px; }
+  .appbar .brand { gap: 8px; font-size: 16px; }
+  .appbar .brand svg { width: 28px; height: 28px; }
+  .demo-badge { margin-left: 6px; padding: 3px 6px; }
+  .lv .appbar .brand span { font-size: 16px; }
+}

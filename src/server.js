@@ -41,6 +41,22 @@ function createApp(opts = {}) {
     });
     next();
   });
+  // Версия для слабовидящих: настройка браузера в cookie «lv», класс lv на <html> у каждой страницы
+  app.use((req, res, next) => {
+    req.lv = /(?:^|;\s*)lv=1(?:;|$)/.test(req.headers.cookie || '');
+    if (req.lv) {
+      const orig = res.send.bind(res);
+      res.send = (b) => orig(typeof b === 'string' && b.startsWith('<!doctype html><html lang="ru">') ? b.replace('<html lang="ru">', '<html lang="ru" class="lv">') : b);
+    }
+    next();
+  });
+  app.get('/a11y', (req, res) => {
+    const on = req.query.on === '1' ? true : req.query.on === '0' ? false : !req.lv;
+    res.cookie('lv', on ? '1' : '0', { maxAge: 365 * 864e5, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+    let back = '/';
+    try { const u = new URL(req.get('Referer') || '', `http://${req.get('Host')}`); if (u.host === req.get('Host') && !u.pathname.startsWith('/a11y')) back = u.pathname + u.search; } catch { /* по умолчанию на главную */ }
+    res.redirect(back);
+  });
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
   app.use(express.json({ limit: '20kb' }));
