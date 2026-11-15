@@ -4,6 +4,7 @@
 // Названия дисциплин остаются как в учебном плане — на русском.
 const T = require('./time');
 const TAX = require('./tax');
+const PREP = require('./prep');
 
 const has = (q, words) => words.some((w) => q.includes(w));
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -41,6 +42,8 @@ function intents(question, data) {
   if (has(q, ['suicid', 'kill myself', 'want to die', 'self-harm', 'depress', 'panic', 'anxiety', 'feel bad', 'can’t cope', "can't cope", 'too hard', 'overwhelm', 'stress'])) {
     return set('support', 'Thank you for writing. You are not alone with this. If your life is in danger, call 112. The “If it’s hard” page has the university psychologist’s contacts and simple next steps — you don’t have to explain anything to the dean’s office.', [{ label: 'If it’s hard', href: '/hard' }]);
   }
+  const prep = PREP.match(question, data, 'en');
+  if (prep) return set(prep.id, prep.text, prep.actions, true);
   if (has(q, ['english', 'other language', 'speak russian', 'translate', 'foreign student', 'international student'])) {
     return set('lang', 'Yes, you can ask me in English. I answer from your cabinet data: classes for any day, your requests, credit tests and exams, points, certificates. Course names stay in Russian, as in the official curriculum. The rest of the cabinet is in Russian for now; official certificates are issued in Russian.', [{ label: 'Classes tomorrow', href: '/helper?q=' + encodeURIComponent('What classes do I have tomorrow?') }]);
   }

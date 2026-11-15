@@ -58,6 +58,16 @@
     poll(); setInterval(poll, 30000);
   }
 
+  // Черновик письма преподавателю: копирование, без отправки
+  $$('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+    const el = $(b.dataset.copy);
+    const text = el ? (el.value || el.textContent || '') : '';
+    const done = b.textContent;
+    try { await navigator.clipboard.writeText(text); b.textContent = 'Скопировано'; }
+    catch { if (el && el.select) el.select(); b.textContent = 'Выдели текст и скопируй'; }
+    setTimeout(() => { b.textContent = done; }, 2000);
+  }));
+
   // Помощник
   const form = $('#ask');
   if (form) {

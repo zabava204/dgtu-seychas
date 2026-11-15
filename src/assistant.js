@@ -10,6 +10,7 @@ const T = require('./time');
 const TAX = require('./tax');
 const GR = require('./grades');
 const EN = require('./assistant-en');
+const PREP = require('./prep');
 
 const OAUTH_URL = process.env.GIGACHAT_OAUTH_URL || 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const API_URL = process.env.GIGACHAT_API_URL || 'https://gigachat.devices.sberbank.ru/api/v1';
@@ -27,6 +28,9 @@ function intents(question, data) {
   if (has(q, ['не хочу жить', 'покончить', 'суицид', 'умереть', 'самоуб', 'тяжело', 'плохо мне', 'паник', 'депресс', 'не справляюсь с жизнью'])) {
     return set('support', 'Спасибо, что написал(а). Ты не один(одна) с этим. Если есть угроза жизни — звони 112. Контакты психолога вуза — в разделе «Если тяжело»; открытие этого раздела не создаёт обращения в деканат.', [{ label: 'Если тяжело', href: '/hard' }, { label: 'Позвонить 112', href: 'tel:112' }]);
   }
+  // Четыре готовых вопроса: план, письмо, отсрочка, вечер. Раньше общего ответа про баллы, чтобы «до сессии» не ушло в пересказ оценок.
+  const prep = PREP.match(question, data, 'ru');
+  if (prep) { out.exact = true; return set(prep.id, prep.text, prep.actions); }
   if (has(q, ['состав семьи', 'составе семьи'])) return set('doc_family', 'Справку о составе семьи обычно выдают МФЦ или управляющая компания / ТСЖ по месту регистрации. Для подачи достаточно скана или фото. Точные требования (например, срок давности) уточни в деканате — это демо-правило.', [{ label: 'Где взять справку', href: '/help/doc?name=' + encodeURIComponent('Справка о составе семьи') }]);
   // Вузовские термины — из словаря, без пересказа моделью (модель путала «академическую разницу»)
   const TERMS = [
@@ -95,7 +99,8 @@ function intents(question, data) {
       const ps = data.dayPairs(key).filter((p) => !p.cancelled);
       const ex = (data.session || []).filter((x) => x.date_key === key);
       const room = (p) => (p.online ? 'онлайн' : `ауд. ${p.room}`);
-      const head = `${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)}`;
+      const rel = key === nowKey ? 'Сегодня' : key === T.addDays(nowKey, 1) ? 'Завтра' : key === T.addDays(nowKey, 2) ? 'Послезавтра' : '';
+      const head = `${rel ? rel + ', ' : ''}${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)}`;
       const lines = [...ex.map((x) => `${x.start} ${x.kind}: ${x.subject}, ауд. ${x.room}`), ...ps.map((p) => `${p.start}–${p.end} ${p.subject}, ${room(p)}${p.old_room || p.old_start ? ' (изменение)' : ''}`)];
       return set('schedule', lines.length ? `${head}:\n${lines.join('\n')}` : `${head} — пар нет.`, [{ label: 'Расписание дня', href: `/study?d=${key}` }]);
     }
@@ -122,7 +127,12 @@ function intents(question, data) {
   if (has(q, ['балл', 'зачет', 'оценк', 'экзамен', 'сесси', 'долг', 'автомат', 'порог', 'хватит', 'допуск']) || GR.findDiscipline(q, data.disciplines)) {
     const g = GR.answer(q, data.disciplines);
     out.exact = true;
-    return set('grades', g.text, [{ label: g.discipline ? `Открыть: ${g.discipline.subject}` : 'Открыть оценки', href: g.discipline ? `/study/grades#d-${g.discipline.id}` : '/study/grades' }]);
+    const gradeActions = !g.discipline
+      ? [{ label: 'Открыть оценки', href: '/study/grades' }]
+      : g.discipline.gap > 0 && !g.discipline.closed_text
+        ? [{ label: 'Разобраться с допуском', href: `/study/session-support/${g.discipline.id}` }, { label: `Открыть: ${g.discipline.subject}`, href: `/study/grades#d-${g.discipline.id}` }]
+        : [{ label: `Открыть: ${g.discipline.subject}`, href: `/study/grades#d-${g.discipline.id}` }];
+    return set('grades', g.text, gradeActions);
   }
   if (has(q, ['вычет', 'налог', 'ндфл'])) {
     out.exact = true;
@@ -146,7 +156,6 @@ function intents(question, data) {
   if (has(q, ['справк', 'работодател'])) return set('study', 'Справку об обучении можно заказать в «Заявках»: выбери, куда она нужна, и формат — электронный или бумажный.', [{ label: 'Заказать справку об обучении', href: '/requests/new?type=study' }, { label: 'Все справки и ситуации', href: '/requests/new' }]);
   if (has(q, ['заочк', 'перевод', 'перевест', 'другую форму'])) return set('transfer', 'Это перевод на другую форму обучения. Демо-правило концепта: подаётся заявление в деканат, его согласуют в институте и оформляют приказом. На заочной форме обычно не назначается академическая стипендия, условия оплаты зависят от направления — уточни в деканате (корпус 1, каб. 210) до подачи.', [{ label: 'Мой деканат', href: '/me' }]);
   if (has(q, ['академ', 'академическ'])) return set('academic_leave', 'Академический отпуск оформляется через заявление в деканат с подтверждающим документом. В первой версии кабинета эта заявка не подаётся онлайн — уточни порядок в деканате (корпус 1, каб. 210).', [{ label: 'Мой деканат', href: '/me' }]);
-  if (has(q, ['отсрочк', 'больше времени', 'не успеваю', 'продлить срок', 'перенести срок'])) return set('extension', 'Можно написать преподавателю так: «Здравствуйте! Я не успеваю сдать работу к сроку. Могу ли я сдать её до [дата]? Спасибо». Объяснять причины не обязательно. Если работ несколько — посмотри «Оценки»: там видно, что важнее.', [{ label: 'Открыть оценки', href: '/study/grades' }, { label: 'Готовлюсь к сессии', href: '/situations/behind' }]);
   if (has(q, ['пара', 'расписан', 'аудитор', 'где занят', 'куда идти'])) {
     out.exact = true;
     const n = data.next;
@@ -224,6 +233,7 @@ function systemPrompt(data, lang) {
     'Отвечай по-русски, на «ты», коротко: 2–5 предложений, без markdown-заголовков.',
     'Опирайся только на данные студента и демо-правила ниже. Не выдумывай нормативы, сроки, суммы, телефоны и ссылки. Если не знаешь — так и скажи и предложи обратиться в деканат: корпус 1, каб. 210, пн–пт 9:00–17:00.',
     'Никогда не называй расписание на конкретные дни, баллы, даты сессии, сроки, суммы, стипендию и статусы заявок — эти ответы кабинет считает программой, у тебя полных данных нет. Если спрашивают о них, ответь одной фразой, в каком разделе кабинета это видно («Учёба», «Оценки», «Заявки»), и не добавляй цифр.',
+    'Вопросы про план до сессии, письмо преподавателю, отсрочку и подготовку вечером кабинет отвечает сам. Не подставляй дату отсрочки и не пересказывай баллы.',
     'Никогда не пиши, что ты что-то проверил, отправил или оформил — ты только подсказываешь. Кнопки для действий интерфейс покажет сам.',
     'Если студенту плохо — мягко предложи раздел «Если тяжело» и номер 112 при угрозе жизни; не ставь диагнозов.',
     '', `Сегодня: ${T.wdLongKey(T.dateKey())}, ${T.dayMonthKey(T.dateKey())}, ${T.timeOf(T.now())}, неделя — ${T.parityLabel()}.`,

@@ -302,6 +302,174 @@ test('помощник отвечает по-английски: факты сч
   const ru = await ask(anna, 'Какие пары в понедельник?'); assert.equal(ru.lang, 'ru');
 });
 
+test('план на 7 дней не пересекает пары, не ставит прошлое и не меняет баллы', async () => {
+  const P = require('../src/plan');
+  const Tm = require('../src/time');
+  const monday = [
+    { start: '9:00', end: '10:35' },
+    { start: '10:45', end: '12:20' },
+    { start: '13:20', end: '14:55' },
+  ];
+  const fit = P.place({
+    days: [{ key: '2026-11-16', pairs: monday }], minutes: 60, part: 'day',
+    tasks: [{ discipline_id: 1, kind: 'self_study', title: 'Подготовиться', detail: 'из журнала' }],
+    nowKey: '2026-11-16', nowMin: Tm.parseHHMM('8:00'),
+  });
+  assert.equal(fit.placed.length, 1);
+  assert.equal(fit.placed[0].start_min, Tm.parseHHMM('8:00'));
+  assert.equal(fit.placed[0].end_min, Tm.parseHHMM('9:00'));
+  const late = P.place({
+    days: [{ key: '2026-11-16', pairs: monday }, { key: '2026-11-17', pairs: [] }], minutes: 60, part: 'day',
+    tasks: [{ discipline_id: 1, kind: 'clarify', title: 'Уточнить', detail: 'из журнала' }],
+    nowKey: '2026-11-16', nowMin: Tm.parseHHMM('16:40'),
+  });
+  assert.equal(late.placed[0].date_key, '2026-11-17');
+  assert.ok(late.placed[0].start_min >= Tm.parseHHMM('8:00'));
+  const evening = P.place({
+    days: [{ key: '2026-11-16', pairs: [{ start: '18:30', end: '20:05' }] }], minutes: 60, part: 'evening',
+    tasks: [{ discipline_id: 2, kind: 'clarify', title: 'Уточнить', detail: 'из журнала' }],
+    nowKey: '2026-11-16', nowMin: Tm.parseHHMM('12:00'),
+  });
+  assert.equal(evening.placed[0].start_min, Tm.parseHHMM('20:05'));
+  assert.equal(evening.placed[0].end_min, Tm.parseHHMM('21:05'));
+  assert.ok(!P.overlaps(evening.placed[0].start_min, evening.placed[0].end_min, Tm.parseHHMM('18:30'), Tm.parseHHMM('20:05')));
+
+  const anna = await login('anna');
+  const { open } = require('../src/db');
+  const { model } = require('../src/model');
+  const db = open();
+  const M = model(db);
+  const annaId = M.userByLogin('anna').id;
+  const points = () => M.disciplines(annaId).find((d) => d.subject === 'Бизнес-планирование').points;
+  const before = points();
+  assert.equal((await anna.post('/study/plan', { minutes: '45', part: 'night' })).status, 302);
+  assert.doesNotMatch(await (await anna.get('/study/plan')).text(), /data-date=/);
+  assert.equal((await anna.post('/study/plan', { minutes: '60', part: 'day' })).status, 302);
+  const page = await (await anna.get('/study/plan')).text();
+  assert.match(page, /Подготовиться самой/);
+  assert.match(page, /Уточнить у преподавателя: Бизнес-планирование/);
+  assert.match(page, /баллы не меняет/);
+  assert.match(page, /Модель время не назначает/);
+  const slots = [...page.matchAll(/data-date="(\d{4}-\d{2}-\d{2})" data-start="(\d+)" data-end="(\d+)"/g)];
+  assert.ok(slots.length >= 1 && slots.length <= 7);
+  const today = Tm.dateKey();
+  const nowMin = Tm.minutesOfDay();
+  const byDay = {};
+  for (const [, date, a, b] of slots) {
+    const start = Number(a); const end = Number(b);
+    assert.ok(date >= today, date);
+    assert.ok(end - start <= 60 && end - start >= 30);
+    if (date === today) assert.ok(start >= nowMin - 1);
+    byDay[date] = (byDay[date] || 0) + (end - start);
+    const busy = M.dayPairs('МН-31', date).filter((p) => !p.cancelled);
+    for (const p of busy) assert.ok(!P.overlaps(start, end, Tm.parseHHMM(p.start), Tm.parseHHMM(p.end)), `${date} ${p.subject}`);
+  }
+  for (const used of Object.values(byDay)) assert.ok(used <= 60);
+  const slotId = page.match(/data-slot="(\d+)"/)[1];
+  assert.equal((await anna.post(`/study/plan/slots/${slotId}/done`)).status, 302);
+  assert.equal(points(), before);
+  assert.match(await (await anna.get('/')).text(), /Дальше по плану/);
+  const ilya = await login('ilya');
+  assert.equal((await ilya.post(`/study/plan/slots/${slotId}/done`)).status, 404);
+  assert.doesNotMatch(await (await ilya.get('/study/plan')).text(), /Бизнес-планирование/);
+  assert.equal((await ilya.post('/study/plan', { minutes: '60', part: 'evening' })).status, 302);
+  const ip = await (await ilya.get('/study/plan')).text();
+  assert.match(ip, /Подготовиться самому/);
+  for (const [, date, a, b] of ip.matchAll(/data-date="(\d{4}-\d{2}-\d{2})" data-start="(\d+)" data-end="(\d+)"/g)) {
+    const start = Number(a); const end = Number(b);
+    assert.ok(date >= today);
+    if (date === today) assert.ok(start >= nowMin - 1);
+    assert.ok(end - start <= 60);
+    for (const p of M.dayPairs('ММН-21', date).filter((x) => !x.cancelled)) assert.ok(!P.overlaps(start, end, Tm.parseHHMM(p.start), Tm.parseHHMM(p.end)), `${date} ${p.start}`);
+  }
+  const dean = await login('dekanat');
+  assert.equal((await dean.post('/staff/reset')).status, 302);
+  const again = await login('anna');
+  assert.doesNotMatch(await (await again.get('/study/plan')).text(), /data-date=/);
+  assert.doesNotMatch(await (await again.get('/')).text(), /Дальше по плану/);
+  db.close();
+});
+
+test('разбор допуска: свои баллы, чужая дисциплина скрыта, письмо не отправляется', async () => {
+  const anna = await login('anna');
+  const ilya = await login('ilya');
+  const list = await (await anna.get('/study/session-support')).text();
+  const m = list.match(/href="(\/study\/session-support\/(\d+))"[^>]*>[\s\S]{0,240}Бизнес-планирование/);
+  assert.ok(m, 'у Анны есть разбор бизнес-планирования');
+  const page = await (await anna.get(m[1])).text();
+  assert.match(page, /Расчёт кабинета: 50 − 12 = 38/);
+  assert.match(page, /12 \+ 35 = 47/);
+  assert.match(page, /останется 3/);
+  assert.match(page, /Кабинет не знает/);
+  assert.match(page, /Не хватает 38/);
+  assert.match(page, /допуска к экзамену/);
+  assert.match(page, /Кабинет письмо не отправляет/);
+  assert.doesNotMatch(page, /type="submit"|письмо отправлено/);
+  assert.equal((await ilya.get(m[1])).status, 404);
+  assert.doesNotMatch(await (await ilya.get(m[1])).text(), /Бизнес-планирование|Не хватает 38/);
+  const il = await (await ilya.get('/study/session-support')).text();
+  assert.match(il, /Методы анализа в менеджменте/);
+  assert.doesNotMatch(il, /Бизнес-планирование/);
+  const im = il.match(/href="(\/study\/session-support\/\d+)"/);
+  const ip = await (await ilya.get(im[1])).text();
+  assert.match(ip, /Не хватает 19/);
+  assert.match(ip, /Этого хватит на порог/);
+  assert.equal((await client().get(m[1])).status, 302);
+  const ask = await (await anna.post('/api/assistant', { message: 'Сколько баллов не хватает по бизнес-планированию?' }, true)).json();
+  assert.equal(ask.source, 'calc');
+  assert.ok(ask.actions.some((a) => a.href === m[1]));
+});
+
+test('четыре вопроса помощника: план, письмо, отсрочка без даты, вечер', async () => {
+  const anna = await login('anna');
+  const ask = async (c, m) => (await c.post('/api/assistant', { message: m }, true)).json();
+  const chips = await (await anna.get('/helper')).text();
+  assert.match(chips, /До сессии/);
+  assert.match(chips, /Письмо преподавателю/);
+  assert.match(chips, /Попросить отсрочку/);
+  assert.match(chips, /Если пары вечером/);
+  const before = await ask(anna, 'Что сделать до сессии?');
+  assert.equal(before.source, 'calc');
+  assert.match(before.text, /Плана ещё нет/);
+  assert.match(before.text, /Бизнес-планирование/);
+  assert.match(before.text, /не хватает 38/);
+  assert.ok(before.actions.some((a) => a.href === '/study/plan'));
+  const letter = await ask(anna, 'Как написать преподавателю о допуске?');
+  assert.equal(letter.source, 'calc');
+  assert.match(letter.text, /12 из 50/);
+  assert.match(letter.text, /Не хватает 38/);
+  assert.match(letter.text, /не отправляет/);
+  assert.doesNotMatch(letter.text, /\[дата\]/);
+  assert.ok(letter.actions.some((a) => /\/study\/session-support\/\d+#letter/.test(a.href)));
+  const ext = await ask(anna, 'Как попросить отсрочку по работе?');
+  assert.equal(ext.source, 'calc');
+  assert.match(ext.text, /дату не подставляю/);
+  assert.doesNotMatch(ext.text, /\[дата\]/);
+  const day = await ask(anna, 'Пары вечером, когда готовиться?');
+  assert.equal(day.source, 'calc');
+  assert.match(day.text, /Твои пары днём/);
+  assert.match(day.text, /18:00–22:00/);
+  assert.equal((await anna.post('/study/plan', { minutes: '60', part: 'day' })).status, 302);
+  const next = await ask(anna, 'Что сделать до сессии?');
+  assert.match(next.text, /Ближайшее по плану/);
+  assert.doesNotMatch(next.text, /\[дата\]|212/);
+  const ilya = await login('ilya');
+  const eve = await ask(ilya, 'Пары вечером, когда готовиться?');
+  assert.equal(eve.source, 'calc');
+  assert.match(eve.text, /Пары у тебя вечером/);
+  assert.ok(eve.actions.some((a) => a.href.includes('part=evening')));
+  const en = await ask(anna, 'What should I do before the session?');
+  assert.equal(en.lang, 'en');
+  assert.equal(en.source, 'calc');
+  assert.match(en.text, /Next in your plan|don’t have a plan/);
+  const enLetter = await ask(anna, 'How do I write to my teacher?');
+  assert.equal(enLetter.source, 'calc');
+  assert.match(enLetter.text, /38 more needed/);
+  assert.doesNotMatch(enLetter.text, /\[date\]|\[дата\]/);
+  const dean = await login('dekanat');
+  assert.equal((await dean.post('/staff/reset')).status, 302);
+});
+
 test('версия для слабовидящих: включается и выключается, работает и до входа', async () => {
   const c = client();
   const on = await c.get('/a11y');

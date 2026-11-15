@@ -56,7 +56,7 @@ ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html
 ${body}
 </div>
 ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=5" defer></script>${scripts}
+<script src="/app.js?v=6" defer></script>${scripts}
 </body></html>`;
 }
 

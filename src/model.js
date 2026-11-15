@@ -108,6 +108,40 @@ function model(db) {
     payments: (studentId) => q('SELECT * FROM payments WHERE student_id = ? ORDER BY paid_on').all(studentId),
     tasks: (studentId) => q('SELECT * FROM tasks WHERE student_id = ? AND due_at >= ? ORDER BY due_at').all(studentId, iso()),
 
+    // План подготовки: один активный на студента. Отметка «сделано» живёт только здесь.
+    studyPlan(studentId) {
+      const plan = q('SELECT * FROM study_plans WHERE student_id = ? ORDER BY id DESC').get(studentId);
+      if (!plan) return null;
+      plan.slots = q('SELECT * FROM study_slots WHERE plan_id = ? ORDER BY date_key, start_min').all(plan.id);
+      return plan;
+    },
+    replaceStudyPlan(studentId, plan, slots) {
+      const tx = db.transaction(() => {
+        const old = q('SELECT id FROM study_plans WHERE student_id = ?').all(studentId);
+        for (const o of old) q('DELETE FROM study_slots WHERE plan_id = ?').run(o.id);
+        q('DELETE FROM study_plans WHERE student_id = ?').run(studentId);
+        const id = q('INSERT INTO study_plans (student_id, minutes, part, created_at) VALUES (?,?,?,?)').run(studentId, plan.minutes, plan.part, iso()).lastInsertRowid;
+        const ins = q(`INSERT INTO study_slots (plan_id, student_id, discipline_id, kind, title, detail, date_key, start_min, end_min, done)
+          VALUES (?,?,?,?,?,?,?,?,?,0)`);
+        for (const s of slots) ins.run(id, studentId, s.discipline_id, s.kind, s.title, s.detail, s.date_key, s.start_min, s.end_min);
+        return id;
+      });
+      return tx();
+    },
+    toggleStudySlot(studentId, slotId) {
+      const s = q('SELECT * FROM study_slots WHERE id = ? AND student_id = ?').get(Number(slotId), studentId);
+      if (!s) return null;
+      q('UPDATE study_slots SET done = ? WHERE id = ?').run(s.done ? 0 : 1, s.id);
+      return true;
+    },
+    nextStudySlot(studentId) {
+      const plan = m.studyPlan(studentId);
+      if (!plan) return null;
+      const key = T.dateKey();
+      const min = T.minutesOfDay();
+      return plan.slots.find((s) => !s.done && (s.date_key > key || (s.date_key === key && s.end_min > min))) || null;
+    },
+
     // ---------- Заявки ----------
     requestsOf(studentId) {
       return q("SELECT * FROM requests WHERE student_id = ? ORDER BY COALESCE(submitted_at, created_at) DESC").all(studentId).map(m.decorate);

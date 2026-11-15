@@ -19,6 +19,8 @@ const pdf = require('./pdf');
 const assistant = require('./assistant');
 const TAX = require('./tax');
 const SIT = require('./situations');
+const AD = require('./admission');
+const PLAN = require('./plan');
 
 function createApp(opts = {}) {
   const db = opts.db || open();
@@ -174,7 +176,7 @@ function createApp(opts = {}) {
       (ok ? later : todo).push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}${ok ? ' · на балл, допуск уже есть' : ''}`, low: ok });
     }
     todo.push(...later);
-    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds), todayPairs: M.dayPairs(u.group_name, T.dateKey()) })));
+    send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds), todayPairs: M.dayPairs(u.group_name, T.dateKey()), nextSlot: M.nextStudySlot(u.id) })));
   });
 
   app.get('/study', student, (req, res) => {
@@ -192,6 +194,52 @@ function createApp(opts = {}) {
   app.get('/study/grades', student, (req, res) => {
     const ds = M.disciplines(req.user.id);
     send(res, V.grades(ctxOf(req, { ds, session: M.session(req.user.id, ds), book: M.recordBook(req.user.id) })));
+  });
+  // Разбор допуска: цифры из журнала этого студента. Чужой id — 404, как у чужой заявки.
+  const ownDiscipline = (req) => M.disciplines(req.user.id).find((d) => d.id === Number(req.params.id)) || null;
+  app.get('/study/session-support', student, (req, res) => {
+    send(res, V.sessionList(ctxOf(req, { risks: AD.openRisks(M.disciplines(req.user.id)) })));
+  });
+  app.get('/study/session-support/:id', student, (req, res) => {
+    const d = ownDiscipline(req);
+    if (!d || d.closed_text) return fail(req, res, 404, 'Дисциплина не найдена', 'Такой дисциплины нет среди твоих. Если ссылку прислали — проверь, что вошёл(а) под своим логином.', [['/study/session-support', 'Допуск к сессии']]);
+    const session = M.session(req.user.id);
+    send(res, V.sessionSupport(ctxOf(req, {
+      d, exam: AD.examOf(session, d.id), consult: AD.consultOf(session, d.id), math: AD.arithmetic(d), draft: AD.letter({ user: req.user, d, exam: AD.examOf(session, d.id) }),
+    })));
+  });
+  // План на 7 дней: слоты считает сервер по расписанию, состав — по журналу этого студента.
+  const horizon = (user) => {
+    const ds = M.disciplines(user.id);
+    const session = M.session(user.id, ds);
+    const nowKey = T.dateKey();
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const key = T.addDays(nowKey, i);
+      const pairs = M.dayPairs(user.group_name, key).filter((p) => !p.cancelled);
+      const exams = session.filter((s) => s.date_key === key).map((s) => ({ start: s.start, end: T.hhmm(Math.min(T.parseHHMM(s.start) + 90, 23 * 60)) }));
+      days.push({ key, pairs: [...pairs, ...exams] });
+    }
+    return { ds, session, days, nowKey, nowMin: T.minutesOfDay() };
+  };
+  app.get('/study/plan', student, (req, res) => send(res, V.studyPlan(ctxOf(req, { plan: M.studyPlan(req.user.id), showForm: req.query.new === '1', prefer: req.query.part === 'evening' ? 'evening' : req.query.part === 'day' ? 'day' : null }))));
+  app.post('/study/plan', student, (req, res) => {
+    const minutes = Number(req.body.minutes);
+    const part = req.body.part === 'evening' || req.body.part === 'day' ? req.body.part : null;
+    if (!PLAN.ALLOWED.includes(minutes) || !part) { flash(req, 'Выбери 30, 60, 90 или 120 минут и день или вечер.'); return res.redirect('/study/plan?new=1'); }
+    const h = horizon(req.user);
+    const tasks = PLAN.queue(h.ds, h.session, req.user.gender);
+    const { placed, left } = PLAN.place({ days: h.days, minutes, part, tasks, nowKey: h.nowKey, nowMin: h.nowMin });
+    M.replaceStudyPlan(req.user.id, { minutes, part }, placed);
+    const when = part === 'day' ? 'днём, с 8:00 до 17:00' : 'вечером, с 18:00 до 22:00';
+    flash(req, placed.length
+      ? `План на ${minutes} минут ${when}. Задач в окнах: ${placed.length}${left.length ? `, ещё ${left.length} не поместились` : ''}. Отметка «сделано» баллы не меняет.`
+      : 'В выбранном окне на ближайшие 7 дней нет места между парами. Баллы не изменились.');
+    res.redirect('/study/plan');
+  });
+  app.post('/study/plan/slots/:id/done', student, (req, res) => {
+    if (!M.toggleStudySlot(req.user.id, req.params.id)) return fail(req, res, 404, 'Задача не найдена', 'Такой задачи нет в твоём плане. Если ссылку прислали — проверь, что вошёл(а) под своим логином.', [['/study/plan', 'Мой план']]);
+    res.redirect('/study/plan');
   });
   app.get('/study/record', student, (req, res) => send(res, V.recordBook(ctxOf(req, { book: M.recordBook(req.user.id) }))));
   app.get('/study/nir', student, (req, res) => (req.user.level !== 'магистратура' ? res.redirect('/study') : send(res, V.nir(ctxOf(req, { stages: M.nir(req.user.id) })))));
@@ -318,7 +366,7 @@ function createApp(opts = {}) {
   app.post('/api/assistant', student, async (req, res) => {
     const u = req.user;
     const ds = M.disciplines(u.id);
-    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id), stipends: M.stipends(u.id), book: M.recordBook(u.id), nir: u.level === 'магистратура' ? M.nir(u.id) : [], dayPairs: (key) => M.dayPairs(u.group_name, key) };
+    const data = { user: u, next: M.nextPair(u.group_name), disciplines: ds, session: M.session(u.id, ds), requests: M.requestsOf(u.id), payments: M.payments(u.id), stipends: M.stipends(u.id), book: M.recordBook(u.id), nir: u.level === 'магистратура' ? M.nir(u.id) : [], dayPairs: (key) => M.dayPairs(u.group_name, key), plan: M.studyPlan(u.id), nextSlot: M.nextStudySlot(u.id) };
     const a = await assistant.answer(req.body.message, req.body.history, data);
     M.db.prepare('INSERT INTO assistant_log (user_id, at, question, source) VALUES (?,?,?,?)').run(u.id, new Date().toISOString(), a.intent, a.source);
     res.json(a);

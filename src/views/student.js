@@ -108,7 +108,7 @@ const TILE_ICON = {
 };
 const tile = (href, icon, label, color) => html`<a class="tile" href="${href}"><span class="ti ${color}">${raw(`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TILE_ICON[icon]}</svg>`)}</span><span>${label}</span></a>`;
 function today(ctx) {
-  const { user, next, ds, todo, session = [], todayPairs = [] } = ctx;
+  const { user, next, ds, todo, session = [], todayPairs = [], nextSlot } = ctx;
   const key = T.dateKey();
   const nowMin = T.minutesOfDay();
   const firstS = session.find((x) => x.kind !== 'консультация' && x.date_key >= key);
@@ -136,7 +136,7 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
   // Требует внимания: заявки и черновики, сроки, риск недопуска
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false);
   const riskItems = [
-    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${x.subject}»?`)}`, action: 'Что делать' })),
+    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' })),
   ];
   const attention = [...todo.filter((t) => t.amber), ...riskItems, ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
   const attRow = (t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
@@ -156,6 +156,7 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 ${hero}
 <a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси о своей учёбе или справках</span></span></a>
+${nextSlot ? html`<section class="section" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>` : ''}
 <section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
 ${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Ещё ${attention.length - 2}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>`
     : html`<div class="group"><div class="row"><span class="body"><span class="title">Всё в порядке</span><span class="meta">Срочных дел нет. Хорошего дня!</span></span></div></div>`}
@@ -239,7 +240,7 @@ ${studyTabs(user, 'grades')}
 <div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} — ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
 <div style="font-size:20px;font-weight:700;margin-top:4px">${risky.length ? `Допуск есть по ${ds.length - risky.length} из ${ds.length} дисциплин` : 'Допуск есть по всем дисциплинам'}</div>
 ${risky.map((d) => html`<div class="risk"><span class="rs">${d.subject}</span><span class="small muted" style="grid-column:1 / -1">${riskText(d)}</span>
-<a class="link" style="padding:0" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Что можно сделать →</a></div>`)}
+<a class="link" style="padding:0" href="/study/session-support/${d.id}">Что можно сделать →</a></div>`)}
 <div class="small muted" style="margin-top:10px">Итоговые оценки ещё не выставлены. Допуск — порог текущих баллов (демо-правило). Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
 </div></section>
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
@@ -658,11 +659,14 @@ function route(ctx) {
 function helper(ctx) {
   const { q, user } = ctx;
   const sugg = [
+    ['Что сделать до сессии?', 'До сессии'],
+    ['Как написать преподавателю о допуске?', 'Письмо преподавателю'],
+    ['Как попросить отсрочку по работе?', 'Попросить отсрочку'],
+    ['Пары вечером, когда готовиться?', 'Если пары вечером'],
     ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
     ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
     user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для субсидии на ЖКУ', 'Справка в соцзащиту'],
     ['Где завтра пары?', 'Пары на завтра'],
-    ['Мне нужно больше времени на работы. Как попросить отсрочку?', 'Попросить отсрочку'],
   ];
   return page({
     title: 'Помощник', active: 'today', ctx,
@@ -672,6 +676,7 @@ function helper(ctx) {
 <div class="msg bot">Что нужно? Спроси про справку, баллы до допуска, даты зачётов и экзаменов или пары на завтра.</div></div>
 <div class="suggest" id="suggest" style="margin-top:10px">
 ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
+<button type="button" data-q="What should I do before the session?" lang="en">Before the session</button>
 <button type="button" data-q="What classes do I have tomorrow?" lang="en">In English</button>
 <a href="/hard">Мне тяжело</a></div>
 <div style="height:170px"></div>
@@ -680,4 +685,91 @@ ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`
   });
 }
 
-module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, plural };
+function sessionList(ctx) {
+  const { risks = [] } = ctx;
+  return page({
+    title: 'Допуск к сессии', active: 'study', ctx,
+    body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Допуск к сессии</h1>
+<p class="muted" style="margin:6px 0 0">Кабинет считает недобор по журналу. Дополнительные задания, которых нет в списке работ, ему неизвестны.</p></div>
+<section class="section">${risks.length ? html`<div class="group">${risks.map((d) => html`<a class="row" href="/study/session-support/${d.id}"><span class="bar amber"></span>
+<span class="body"><span class="title">${d.subject}</span><span class="meta">Сейчас ${d.points} из ${d.pass_threshold} · не хватает ${d.gap}</span></span>${I.chev}</a>`)}</div>`
+    : html`<div class="card"><b>Порог набран по всем дисциплинам</b><div class="small muted" style="margin-top:4px">Итоговые оценки ещё не выставлены.</div></div>`}</section>`,
+  });
+}
+
+function sessionSupport(ctx) {
+  const { user, d, exam, consult, math, draft } = ctx;
+  const control = d.control === 'экзамен' ? 'экзамену' : 'зачёту';
+  const open = d.works.filter((w) => w.score == null);
+  const when = (w) => (w.due_key ? (w.due_key < T.dateKey() ? `срок прошёл ${T.dayMonthKey(w.due_key)}` : `срок ${T.dayMonthKey(w.due_key)}`) : 'срок в журнале не указан');
+  return page({
+    title: d.subject, active: 'study', ctx,
+    body: html`${backBar('/study/session-support', 'Допуск')}
+<div class="page-head"><h1>${d.subject}</h1>
+<p class="muted" style="margin:6px 0 0">${d.teacher} · ${d.control} · данные журнала на ${T.dayMonthKey(T.dateKey(new Date(d.updated_at)))}</p></div>
+<section class="section" aria-label="Расчёт допуска"><div class="card">
+<div class="kv"><span>Сейчас</span><span>${d.points}</span></div>
+<div class="kv"><span>Порог допуска</span><span>${d.pass_threshold}</span></div>
+<div class="kv"><span>Не хватает</span><span>${d.gap}</span></div>
+<div class="small muted" style="margin-top:8px">Расчёт кабинета: ${d.pass_threshold} − ${d.points} = ${d.gap}. Это баллы до допуска к ${control}, не итоговая оценка.</div>
+</div></section>
+<section class="section" aria-labelledby="works-h"><h2 class="label" id="works-h">Что есть в журнале</h2>
+<div class="card">${open.length ? open.map((w) => html`<div style="padding:6px 0"><b style="font-weight:600">${w.title}</b><div class="small muted">до ${w.max} ${plural(w.max, 'балла', 'баллов', 'баллов')} · ${when(w)}</div></div>`) : html`<div class="small">Несданных работ в журнале нет.</div>`}
+${d.overdue.length ? html`<div class="small" style="margin-top:8px">Если просроченные работы примут на максимум: ${d.points} + ${math.overdueSum} = ${math.ifOverdueMax}. ${math.covers ? 'Этого хватит на порог.' : `До порога останется ${math.leftAfter}.`}</div>` : ''}
+<div class="note" style="margin-top:10px">Кабинет не знает, примет ли преподаватель просроченное и какие ещё задания можно получить. Этого списка в журнале нет.</div>
+</div></section>
+<section class="section" aria-labelledby="do-h"><h2 class="label" id="do-h">Что можно сделать</h2>
+<div class="actions">
+<a class="btn small" href="/study/plan">План на 7 дней</a>
+<a class="btn secondary small" href="/study/grades#d-${d.id}">Открыть оценки</a>
+${consult ? html`<a class="btn secondary small" href="/study?d=${consult.date_key}#exam-${consult.id}">Консультация ${T.dayMonthKey(consult.date_key)}, ${consult.start}</a>` : ''}
+${exam ? html`<a class="btn secondary small" href="/study?d=${exam.date_key}#exam-${exam.id}">${exam.kind[0].toUpperCase()}${exam.kind.slice(1)} ${T.dayMonthKey(exam.date_key)}</a>` : ''}
+</div></section>
+${d.gap > 0 ? html`<section class="section" id="letter" aria-labelledby="let-h"><h2 class="label" id="let-h">Сообщение преподавателю</h2>
+<div class="card"><p class="small muted" style="margin:0 0 8px">Текст собран программой из цифр выше. Кабинет письмо не отправляет: скопируй и отправь сам.</p>
+<label class="field" style="margin-top:0">Текст
+<textarea id="letter-text" rows="12">${draft}</textarea></label>
+<button type="button" class="btn secondary small" data-copy="#letter-text" style="margin-top:10px">Скопировать</button>
+<p class="small muted" style="margin:8px 0 0">${user.short_name} · ${user.group_name}. Модель этот текст не переписывает, чтобы не изменить баллы.</p>
+</div></section>` : html`<section class="section"><div class="note green">Порог допуска уже набран. Сообщение преподавателю о недоборе не нужно.</div></section>`}`,
+  });
+}
+
+function studyPlan(ctx) {
+  const { plan, showForm, prefer } = ctx;
+  const form = !plan || showForm;
+  const part = prefer || (plan && plan.part) || 'day';
+  const when = plan && (plan.part === 'evening' ? 'вечером, с 18:00 до 22:00' : 'днём, с 8:00 до 17:00');
+  const chip = (name, value, label, checked) => html`<label><input type="radio" name="${name}" value="${value}" ${checked ? raw('checked') : ''} required><span>${label}</span></label>`;
+  return page({
+    title: 'План на 7 дней', active: 'study', ctx,
+    body: html`${backBar('/study/grades', 'Оценки')}
+<div class="page-head"><h1>План на 7 дней</h1>
+<p class="muted" style="margin:6px 0 0">Кабинет ставит задачи в свободные окна между парами. Состав берётся из журнала. Отметка «сделано» баллы не меняет.</p></div>
+${form ? html`<section class="section"><form method="post" action="/study/plan">
+<div class="field">Сколько есть времени<div class="chips">
+${chip('minutes', 30, '30 мин', plan && plan.minutes === 30)}
+${chip('minutes', 60, '60 мин', !plan || plan.minutes === 60)}
+${chip('minutes', 90, '90 мин', plan && plan.minutes === 90)}
+${chip('minutes', 120, '2 часа', plan && plan.minutes === 120)}
+</div></div>
+<div class="field">Когда удобно<div class="chips">
+${chip('part', 'day', 'День, 8:00–17:00', part === 'day')}
+${chip('part', 'evening', 'Вечер, 18:00–22:00', part === 'evening')}
+</div></div>
+<button class="btn" type="submit" style="margin-top:16px">${plan ? 'Составить заново' : 'Составить план'}</button>
+</form></section>` : ''}
+${plan ? html`<section class="section" aria-label="Задачи плана"><h2 class="label">${plan.minutes} минут ${when}</h2>
+${plan.slots.length ? plan.slots.map((s) => html`<article class="card" style="margin-top:10px" data-slot="${s.id}" data-date="${s.date_key}" data-start="${s.start_min}" data-end="${s.end_min}" data-kind="${s.kind}">
+<div class="small muted">${T.wdLongKey(s.date_key)[0].toUpperCase()}${T.wdLongKey(s.date_key).slice(1)}, ${T.dayMonthKey(s.date_key)} · ${T.hhmm(s.start_min)}–${T.hhmm(s.end_min)}${s.end_min - s.start_min < plan.minutes ? ' · окно короче выбранного времени' : ''}</div>
+<div style="font-weight:600;margin-top:4px${s.done ? ';text-decoration:line-through' : ''}">${s.title}</div>
+<p class="small muted" style="margin:6px 0 0">${s.detail}</p>
+<form method="post" action="/study/plan/slots/${s.id}/done" style="margin-top:10px"><button class="btn secondary small" type="submit">${s.done ? 'Вернуть в план' : 'Сделано'}</button></form>
+</article>`) : html`<div class="card">В эти 7 дней выбранное окно занято парами. Баллы не изменились.</div>`}
+<p class="small muted" style="margin-top:12px">Задачи собраны из журнала. Модель время не назначает и новые работы не придумывает.</p>
+${form ? '' : html`<div class="actions"><a class="btn secondary small" href="/study/plan?new=1">Изменить время</a></div>`}
+</section>` : ''}`,
+  });
+}
+
+module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, sessionList, sessionSupport, studyPlan, plural };

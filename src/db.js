@@ -45,6 +45,15 @@ CREATE TABLE IF NOT EXISTS nir_stages (
 CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES users(id), title TEXT NOT NULL, due_at TEXT NOT NULL, note TEXT
 );
+CREATE TABLE IF NOT EXISTS study_plans (
+  id INTEGER PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES users(id),
+  minutes INTEGER NOT NULL, part TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS study_slots (
+  id INTEGER PRIMARY KEY, plan_id INTEGER NOT NULL REFERENCES study_plans(id), student_id INTEGER NOT NULL REFERENCES users(id),
+  discipline_id INTEGER REFERENCES disciplines(id), kind TEXT NOT NULL, title TEXT NOT NULL, detail TEXT NOT NULL,
+  date_key TEXT NOT NULL, start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY, number TEXT UNIQUE NOT NULL, student_id INTEGER NOT NULL REFERENCES users(id),
   type TEXT NOT NULL, purpose TEXT, details TEXT, format TEXT, status TEXT NOT NULL, needs_text TEXT,
@@ -76,7 +85,7 @@ CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY, user_id INTEGER, at
 CREATE TABLE IF NOT EXISTS assistant_log (id INTEGER PRIMARY KEY, user_id INTEGER, at TEXT NOT NULL, question TEXT, source TEXT);
 `;
 
-const TABLES = ['stipends', 'payments', 'assistant_log', 'feedback', 'notifications', 'events', 'request_files', 'requests', 'tasks', 'nir_stages', 'session_items', 'record_book',
+const TABLES = ['study_slots', 'study_plans', 'stipends', 'payments', 'assistant_log', 'feedback', 'notifications', 'events', 'request_files', 'requests', 'tasks', 'nir_stages', 'session_items', 'record_book',
   'works', 'disciplines', 'schedule_changes', 'schedule', 'settings', 'counters', 'users'];
 
 function open(file = process.env.DB_FILE || path.join(DATA_DIR, 'dgtu.sqlite')) {
