@@ -386,7 +386,10 @@ test('план на 7 дней не пересекает пары, не став
   assert.equal((await dean.post('/staff/reset')).status, 302);
   const again = await login('anna');
   assert.doesNotMatch(await (await again.get('/study/plan')).text(), /data-date=/);
-  assert.doesNotMatch(await (await again.get('/')).text(), /Дальше по плану/);
+  const homeAgain = await (await again.get('/')).text();
+  assert.doesNotMatch(homeAgain, /Дальше по плану/);
+  assert.match(homeAgain, /Составить план на 7 дней/);
+  assert.match(homeAgain, /href="\/study\/plan\?new=1"/);
   db.close();
 });
 

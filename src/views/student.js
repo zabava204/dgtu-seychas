@@ -143,8 +143,10 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
 <div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`;
   // Контекстные действия: зависят от ситуации студента
   const overdue = ds.some((d) => d.overdue.length);
+  const needPlan = !nextSlot && risks.length > 0;
   const actions = [
     firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
+    needPlan ? ['/study/plan?new=1', 'План на 7 дней'] : null,
     overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
     ['/requests/new', 'Жизненные ситуации'],
     ['/study?view=week', 'Расписание на неделю'],
@@ -156,7 +158,8 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 ${hero}
 <a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси о своей учёбе или справках</span></span></a>
-${nextSlot ? html`<section class="section" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>` : ''}
+${nextSlot ? html`<section class="section" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
+  : needPlan ? html`<section class="section" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Кабинет поставит задачи из журнала в окна между парами. Баллы отметкой «сделано» не меняются.</span></span>${I.chev}</a></section>` : ''}
 <section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
 ${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Ещё ${attention.length - 2}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>`
     : html`<div class="group"><div class="row"><span class="body"><span class="title">Всё в порядке</span><span class="meta">Срочных дел нет. Хорошего дня!</span></span></div></div>`}
