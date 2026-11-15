@@ -563,32 +563,42 @@ function docHelp(ctx) {
 }
 
 // ---------- Я ----------
+// Реквизиты билета для демо-студентов (как поля в реальном кабинете: номер, приказ, дата выдачи)
+const CARD_META = {
+  anna: { issued: '01.09.2023', order: '3120-ЛС' },
+  ilya: { issued: '01.09.2024', order: '4466-ЛС' },
+};
 function studentDocs(ctx) {
   const { user, book } = ctx;
-  const initials = user.full_name.split(' ').slice(0, 2).map((s) => s[0]).reverse().join('');
-  const level = user.level === 'магистратура' ? 'магистрант' : user.level === 'аспирантура' ? 'аспирант' : 'студент';
+  const meta = CARD_META[user.login] || { issued: '01.09.2024', order: '1000-ЛС' };
+  const level = user.level === 'магистратура' ? 'Высшее — магистратура' : user.level === 'аспирантура' ? 'Высшее — аспирантура' : 'Высшее — бакалавриат';
+  const form = user.form === 'очно-заочная' ? 'Очно-заочная (вечерняя)' : user.form[0].toUpperCase() + user.form.slice(1);
+  const field = (label, value, wide) => html`<div class="id-field ${wide ? 'wide' : ''}"><span class="id-label">${label}</span><span class="id-value">${value}</span></div>`;
   return page({
     title: 'Мои документы', active: 'me', ctx,
     body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Мои документы</h1>
-<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётка из данных кабинета. Для конкурса и военкомата часто нужен оригинал — этот экран его не заменяет.</p></div>
+<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка.</p></div>
 <section class="section" aria-label="Студенческий билет">
 <article class="id-card">
-<div class="id-card-top"><span>Студенческий билет</span><span class="id-card-mark">ОБРАЗЕЦ · ДЕМО</span></div>
-<div class="id-card-body">
-<span class="id-card-photo" aria-hidden="true">${initials}</span>
-<div class="id-card-info">
+<div class="id-card-head">Студенческий билет</div>
 <div class="id-card-name">${user.full_name}</div>
-<div class="small" style="opacity:.9">${user.gender === 'f' ? 'Студентка' : 'Студент'} · ${level}</div>
-<div class="id-card-kv"><span>Факультет</span><span>${user.faculty}</span></div>
-<div class="id-card-kv"><span>Направление</span><span>${user.program}</span></div>
-<div class="id-card-kv"><span>Курс, группа</span><span>${user.course} курс · ${user.group_name}</span></div>
-<div class="id-card-kv"><span>Форма</span><span>${user.form}, ${user.funding}</span></div>
-<div class="id-card-kv"><span>№ билета / зачётки</span><span>${user.record_book}</span></div>
-</div></div>
-<p class="id-card-note">Вымышленные данные концепта. Не действителен как пропуск и не заменяет оригинал.</p>
+<div class="id-grid">
+${field('Номер билета', user.record_book)}
+${field('Приказ о зачислении', meta.order)}
+${field('Дата выдачи', meta.issued)}
+${field('Курс', String(user.course))}
+${field('Уровень образования', level)}
+${field('Форма обучения', form)}
+${field('Направление подготовки', user.program, true)}
+${field('Группа', user.group_name)}
+${field('Факультет', user.faculty, true)}
+</div>
 </article></section>
-<section class="section"><a class="card linkcard" href="/study/record"><span style="flex:1"><b>Электронная зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">${book && book.total ? `${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')}${book.avg ? ` · средний балл ${book.avg.toFixed(1).replace('.', ',')}` : ''}${book.debts ? ` · долгов: ${book.debts}` : ' · долгов нет'}` : 'Итоги прошлых сессий'}</span></span>${I.chev}</a>
-<a class="card linkcard" href="/requests/new?type=study" style="margin-top:10px"><span style="flex:1"><b>Справка об обучении</b><span class="small muted" style="display:block;margin-top:2px">Если нужен официальный PDF по месту требования</span></span>${I.chev}</a>
+<section class="section" aria-label="Зачётная книжка">
+<a class="card linkcard" href="/study/record"><span style="flex:1"><b>Зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">№ ${user.record_book}${book && book.avg ? ` · средний балл ${book.avg.toFixed(2).replace('.', ',')}` : ''}${book && book.total ? ` · ${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')}` : ''}</span></span>${I.chev}</a>
+${book && book.avg ? html`<div class="card" style="margin-top:10px"><div class="req-head"><span class="small muted">Успеваемость</span><a class="small" href="/study/record">Подробнее</a></div>
+<div style="margin-top:8px;font-size:28px;font-weight:700;color:var(--green)">${book.avg.toFixed(2).replace('.', ',')}</div>
+<div class="small muted">средний балл по оценкам в зачётке</div></div>` : ''}
 </section>`,
   });
 }

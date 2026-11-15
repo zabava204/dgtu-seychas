@@ -94,7 +94,7 @@ function intents(question, data) {
   if (has(q, ['student id', 'student card', 'record book', 'grade book', 'transcript card'])) {
     const u = data.user;
     const b = data.book;
-    return set('idcard', `In your cabinet: ${u.full_name}, ${u.faculty}, year ${u.course}, group ${u.group_name}, No. ${u.record_book}.${b && b.avg ? ` Record-book average — ${b.avg.toFixed(2)}.` : ''} These are profile data, not an official digital ID. Contests and offices often still need the original card or a certified scan.`, [{ label: 'My documents', href: '/me/docs' }, { label: 'Record book', href: '/study/record' }], true);
+    return set('idcard', `Student ID and record book: ${u.full_name}, ${u.faculty}, year ${u.course}, group ${u.group_name}, No. ${u.record_book}.${b && b.avg ? ` Record-book average — ${b.avg.toFixed(2)}.` : ''} Open them in “My documents”.`, [{ label: 'My documents', href: '/me/docs' }, { label: 'Record book', href: '/study/record' }], true);
   }
   // Стипендия
   if (has(q, ['scholarship', 'stipend'])) {

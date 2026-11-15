@@ -487,11 +487,16 @@ test('студенческий билет и зачётка: экран доку
   assert.match(me, /href="\/me\/docs"/);
   assert.match(me, /Студенческий и зачётка|Мои документы/);
   const docs = await (await anna.get('/me/docs')).text();
-  assert.match(docs, /ОБРАЗЕЦ · ДЕМО/);
+  assert.match(docs, /Студенческий билет/);
   assert.match(docs, /Орлова Анна Сергеевна/);
+  assert.match(docs, /Номер билета/);
   assert.match(docs, /230471/);
-  assert.match(docs, /не заменяет оригинал/);
+  assert.match(docs, /Приказ о зачислении/);
+  assert.match(docs, /Дата выдачи/);
+  assert.match(docs, /Уровень образования/);
+  assert.match(docs, /Высшее — бакалавриат/);
   assert.match(docs, /href="\/study\/record"/);
+  assert.doesNotMatch(docs, /не заменяет оригинал|военкомат|ОБРАЗЕЦ/);
   assert.equal((await ilya.get('/me/docs')).status, 200);
   assert.match(await (await ilya.get('/me/docs')).text(), /Смирнов Илья Андреевич/);
   assert.doesNotMatch(await (await ilya.get('/me/docs')).text(), /Орлова Анна/);
@@ -501,7 +506,7 @@ test('студенческий билет и зачётка: экран доку
   const ask = await (await anna.post('/api/assistant', { message: 'Где мой студенческий билет?' }, true)).json();
   assert.equal(ask.source, 'calc');
   assert.match(ask.text, /230471/);
-  assert.match(ask.text, /не официальный/);
+  assert.doesNotMatch(ask.text, /не официальный|военкомат|оригинал/);
   assert.ok(ask.actions.some((a) => a.href === '/me/docs'));
 });
 
