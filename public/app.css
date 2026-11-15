@@ -177,6 +177,19 @@ a.row:hover { color: var(--ink); background: linear-gradient(90deg, transparent,
 .admit-prog-top .need { color: var(--amber); }
 .admit-prog-top .ok { color: var(--green); }
 
+/* ---------- Студенческий билет (демо) ---------- */
+.id-card { background: linear-gradient(145deg, #42659A 0%, #4A6FA5 50%, #36557F 100%); color: #fff; border-radius: 20px; padding: 16px; box-shadow: 0 10px 24px rgba(54,85,127,.22); }
+.id-card-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .92; margin-bottom: 14px; }
+.id-card-mark { font-size: 11px; letter-spacing: .06em; padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,.18); }
+.id-card-body { display: flex; gap: 14px; align-items: flex-start; }
+.id-card-photo { width: 72px; height: 90px; border-radius: 12px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex: none; }
+.id-card-info { flex: 1; min-width: 0; }
+.id-card-name { font-size: 18px; font-weight: 700; line-height: 1.25; margin-bottom: 4px; }
+.id-card-kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.16); }
+.id-card-kv span:first-child { opacity: .8; flex: none; }
+.id-card-kv span:last-child { text-align: right; font-weight: 500; }
+.id-card-note { margin: 12px 0 0; font-size: 12px; line-height: 1.4; opacity: .88; }
+
 /* ---------- Нижнее меню ---------- */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: #fff; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
 .tabbar .in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 68px; }

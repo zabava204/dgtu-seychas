@@ -90,6 +90,12 @@ function intents(question, data) {
     const cur = ys.find((x) => !x.closed);
     return set('tax', y ? `In ${y.year} you paid ${rub(y.sum)} under your contract, so you can get back up to ${rub(y.refund)} if your income is taxed at 13%. Order the certificate for ${y.year} and attach it to the 3-NDFL declaration in the taxpayer’s personal account.${cur ? ` The certificate for ${cur.year} can be ordered from January ${cur.year + 1}.` : ''}` : 'The tax deduction is for paid (contract) studies. Your cabinet has no contract payments.', y ? [{ label: 'Order the certificate', href: '/requests/new?type=tax' }] : [{ label: 'My dean’s office', href: '/me' }], true);
   }
+  // Student ID / record book
+  if (has(q, ['student id', 'student card', 'record book', 'grade book', 'transcript card'])) {
+    const u = data.user;
+    const b = data.book;
+    return set('idcard', `In your cabinet: ${u.full_name}, ${u.faculty}, year ${u.course}, group ${u.group_name}, No. ${u.record_book}.${b && b.avg ? ` Record-book average — ${b.avg.toFixed(2)}.` : ''} These are profile data, not an official digital ID. Contests and offices often still need the original card or a certified scan.`, [{ label: 'My documents', href: '/me/docs' }, { label: 'Record book', href: '/study/record' }], true);
+  }
   // Стипендия
   if (has(q, ['scholarship', 'stipend'])) {
     const st = data.stipends || [];

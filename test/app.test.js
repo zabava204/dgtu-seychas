@@ -480,6 +480,31 @@ test('четыре вопроса помощника: план, письмо, о
   assert.equal((await dean.post('/staff/reset')).status, 302);
 });
 
+test('студенческий билет и зачётка: экран документов, ситуация и помощник', async () => {
+  const anna = await login('anna');
+  const ilya = await login('ilya');
+  const me = await (await anna.get('/me')).text();
+  assert.match(me, /href="\/me\/docs"/);
+  assert.match(me, /Студенческий и зачётка|Мои документы/);
+  const docs = await (await anna.get('/me/docs')).text();
+  assert.match(docs, /ОБРАЗЕЦ · ДЕМО/);
+  assert.match(docs, /Орлова Анна Сергеевна/);
+  assert.match(docs, /230471/);
+  assert.match(docs, /не заменяет оригинал/);
+  assert.match(docs, /href="\/study\/record"/);
+  assert.equal((await ilya.get('/me/docs')).status, 200);
+  assert.match(await (await ilya.get('/me/docs')).text(), /Смирнов Илья Андреевич/);
+  assert.doesNotMatch(await (await ilya.get('/me/docs')).text(), /Орлова Анна/);
+  const sit = await (await anna.get('/situations/idcard')).text();
+  assert.match(sit, /Нужен студенческий или зачётка/);
+  assert.match(sit, /href="\/me\/docs"/);
+  const ask = await (await anna.post('/api/assistant', { message: 'Где мой студенческий билет?' }, true)).json();
+  assert.equal(ask.source, 'calc');
+  assert.match(ask.text, /230471/);
+  assert.match(ask.text, /не официальный/);
+  assert.ok(ask.actions.some((a) => a.href === '/me/docs'));
+});
+
 test('версия для слабовидящих: включается и выключается, работает и до входа', async () => {
   const c = client();
   const on = await c.get('/a11y');

@@ -346,6 +346,7 @@ const SIT_ICON = {
   tax: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   aid: '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/>',
+  id: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.5"/><path d="M14 10h5M14 14h4"/>',
 };
 const sitIcon = (k) => raw(`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SIT_ICON[k]}</svg>`);
 function situationList(list) {
@@ -562,6 +563,36 @@ function docHelp(ctx) {
 }
 
 // ---------- Я ----------
+function studentDocs(ctx) {
+  const { user, book } = ctx;
+  const initials = user.full_name.split(' ').slice(0, 2).map((s) => s[0]).reverse().join('');
+  const level = user.level === 'магистратура' ? 'магистрант' : user.level === 'аспирантура' ? 'аспирант' : 'студент';
+  return page({
+    title: 'Мои документы', active: 'me', ctx,
+    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Мои документы</h1>
+<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётка из данных кабинета. Для конкурса и военкомата часто нужен оригинал — этот экран его не заменяет.</p></div>
+<section class="section" aria-label="Студенческий билет">
+<article class="id-card">
+<div class="id-card-top"><span>Студенческий билет</span><span class="id-card-mark">ОБРАЗЕЦ · ДЕМО</span></div>
+<div class="id-card-body">
+<span class="id-card-photo" aria-hidden="true">${initials}</span>
+<div class="id-card-info">
+<div class="id-card-name">${user.full_name}</div>
+<div class="small" style="opacity:.9">${user.gender === 'f' ? 'Студентка' : 'Студент'} · ${level}</div>
+<div class="id-card-kv"><span>Факультет</span><span>${user.faculty}</span></div>
+<div class="id-card-kv"><span>Направление</span><span>${user.program}</span></div>
+<div class="id-card-kv"><span>Курс, группа</span><span>${user.course} курс · ${user.group_name}</span></div>
+<div class="id-card-kv"><span>Форма</span><span>${user.form}, ${user.funding}</span></div>
+<div class="id-card-kv"><span>№ билета / зачётки</span><span>${user.record_book}</span></div>
+</div></div>
+<p class="id-card-note">Вымышленные данные концепта. Не действителен как пропуск и не заменяет оригинал.</p>
+</article></section>
+<section class="section"><a class="card linkcard" href="/study/record"><span style="flex:1"><b>Электронная зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">${book && book.total ? `${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')}${book.avg ? ` · средний балл ${book.avg.toFixed(1).replace('.', ',')}` : ''}${book.debts ? ` · долгов: ${book.debts}` : ' · долгов нет'}` : 'Итоги прошлых сессий'}</span></span>${I.chev}</a>
+<a class="card linkcard" href="/requests/new?type=study" style="margin-top:10px"><span style="flex:1"><b>Справка об обучении</b><span class="small muted" style="display:block;margin-top:2px">Если нужен официальный PDF по месту требования</span></span>${I.chev}</a>
+</section>`,
+  });
+}
+
 function me(ctx) {
   const { user } = ctx;
   const wd = T.weekday(); const min = T.minutesOfDay();
@@ -574,11 +605,13 @@ function me(ctx) {
 <div style="display:flex;gap:12px;align-items:center"><span style="width:52px;height:52px;border-radius:26px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700">${user.full_name.split(' ').slice(0, 2).map((s) => s[0]).reverse().join('')}</span>
 <div><div style="font-weight:600;font-size:17px">${user.full_name}</div><div class="small muted">${user.gender === 'f' ? 'Студентка' : 'Студент'} · ${user.form} форма, ${user.funding}</div></div></div>
 <div style="margin-top:12px"><div class="kv"><span>Факультет</span><span>${user.faculty}</span></div><div class="kv"><span>Направление</span><span>${user.program}</span></div>
-<div class="kv"><span>Курс и группа</span><span>${user.course} курс · ${user.group_name}</span></div><div class="kv"><span>Зачётная книжка</span><span>№ ${user.record_book}</span></div></div></div>
+<div class="kv"><span>Курс и группа</span><span>${user.course} курс · ${user.group_name}</span></div><div class="kv"><span>Зачётная книжка</span><span>№ ${user.record_book}</span></div></div>
+<div class="actions" style="margin-top:12px"><a class="btn small" href="/me/docs">Студенческий и зачётка</a></div></div>
 <div class="card"><div class="req-head"><b>Мой деканат</b><span class="small" style="color:${raw(open ? 'var(--green)' : 'var(--muted)')};font-weight:600">${open ? 'сейчас открыт' : 'сейчас закрыт'}</span></div>
 <div class="small muted" style="margin-top:6px;font-size:14px">Корпус 1, каб. 210 · пн–пт 9:00–17:00<br>${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</div>
 <div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/helper">Спросить помощника</a></div></div>
 <div class="card" style="padding-top:4px;padding-bottom:4px">
+${linkRow('/me/docs', 'Мои документы', 'Студенческий билет и зачётная книжка')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
 ${linkRow('/hard', 'Если тяжело', 'Контакты психолога и телефоны помощи')}
 ${linkRow('/me/notifications', 'Уведомления', 'Какие уведомления получать')}
@@ -665,6 +698,7 @@ function helper(ctx) {
     ['Как написать преподавателю о допуске?', 'Письмо преподавателю'],
     ['Как попросить отсрочку по работе?', 'Попросить отсрочку'],
     ['Пары вечером, когда готовиться?', 'Если пары вечером'],
+    ['Где мой студенческий билет?', 'Студенческий билет'],
     ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
     ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
     user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для субсидии на ЖКУ', 'Справка в соцзащиту'],
@@ -779,4 +813,4 @@ ${form ? '' : html`<div class="actions"><a class="btn secondary small" href="/st
   });
 }
 
-module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, notifSettings, notifications, hard, route, helper, sessionList, sessionSupport, studyPlan, plural };
+module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, studentDocs, notifSettings, notifications, hard, route, helper, sessionList, sessionSupport, studyPlan, plural };

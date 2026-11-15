@@ -346,6 +346,7 @@ function createApp(opts = {}) {
   app.get('/help/doc', student, (req, res) => send(res, V.docHelp(ctxOf(req, { name: String(req.query.name || ''), back: /^\/[a-z0-9/?=&#-]*$/i.test(req.query.back || '') ? req.query.back : '/requests' }))));
 
   app.get('/me', student, (req, res) => send(res, V.me(ctxOf(req))));
+  app.get('/me/docs', student, (req, res) => send(res, V.studentDocs(ctxOf(req, { book: M.recordBook(req.user.id) }))));
   app.get('/me/notifications', student, (req, res) => send(res, V.notifSettings(ctxOf(req, { settings: M.settings(req.user.id) }))));
   app.post('/me/notifications', student, (req, res) => {
     for (const c of NOTIF_CATEGORIES) M.setSetting(req.user.id, 'notif_' + c.key, req.body['notif_' + c.key] === '1' ? '1' : '0');
