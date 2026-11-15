@@ -133,20 +133,19 @@ ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComp
 ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещё сегодня: ${rest.map((p) => `${p.start} ${p.subject}`).join(' · ')}</div>` : ''}
 <a class="ghost" href="/study?d=${nk}#pair-${next.id}">Всё расписание дня</a></section>`;
   }
-  // Требует внимания: заявки и черновики, сроки, риск недопуска
-  const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false);
-  const riskItems = [
-    ...risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' })),
-  ];
-  const attention = [...todo.filter((t) => t.amber), ...riskItems, ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
+  // Требует внимания: сначала допуск (сюжет жюри), потом заявки и сроки
+  const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false)
+    .slice()
+    .sort((a, b) => (b.d.gap || 0) - (a.d.gap || 0) || String(a.date_key).localeCompare(String(b.date_key)));
+  const riskItems = risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' }));
+  const attention = [...riskItems, ...todo.filter((t) => t.amber), ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
   const attRow = (t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
 <div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`;
-  // Контекстные действия: зависят от ситуации студента
+  // Контекстные действия: зависят от ситуации студента. План уже на карточке выше — в чипах не дублируем.
   const overdue = ds.some((d) => d.overdue.length);
   const needPlan = !nextSlot && risks.length > 0;
   const actions = [
     firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
-    needPlan ? ['/study/plan?new=1', 'План на 7 дней'] : null,
     overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
     ['/requests/new', 'Жизненные ситуации'],
     ['/study?view=week', 'Расписание на неделю'],
@@ -705,12 +704,17 @@ function sessionSupport(ctx) {
   const control = d.control === 'экзамен' ? 'экзамену' : 'зачёту';
   const open = d.works.filter((w) => w.score == null);
   const when = (w) => (w.due_key ? (w.due_key < T.dateKey() ? `срок прошёл ${T.dayMonthKey(w.due_key)}` : `срок ${T.dayMonthKey(w.due_key)}`) : 'срок в журнале не указан');
+  const pct = d.pass_threshold > 0 ? Math.max(0, Math.min(100, Math.round((100 * d.points) / d.pass_threshold))) : 0;
   return page({
     title: d.subject, active: 'study', ctx,
     body: html`${backBar('/study/session-support', 'Допуск')}
 <div class="page-head"><h1>${d.subject}</h1>
 <p class="muted" style="margin:6px 0 0">${d.teacher} · ${d.control} · данные журнала на ${T.dayMonthKey(T.dateKey(new Date(d.updated_at)))}</p></div>
 <section class="section" aria-label="Расчёт допуска"><div class="card">
+<div class="admit-prog" role="img" aria-label="Сейчас ${d.points} из ${d.pass_threshold}${d.gap ? `, не хватает ${d.gap}` : ', порог набран'}">
+<div class="admit-prog-top"><span>${d.points} из ${d.pass_threshold}</span><span class="${d.gap ? 'need' : 'ok'}">${d.gap ? `не хватает ${d.gap}` : 'порог набран'}</span></div>
+<div class="progress ${d.gap ? 'gap' : 'ok'}" aria-hidden="true"><i style="width:${pct}%"></i></div>
+</div>
 <div class="kv"><span>Сейчас</span><span>${d.points}</span></div>
 <div class="kv"><span>Порог допуска</span><span>${d.pass_threshold}</span></div>
 <div class="kv"><span>Не хватает</span><span>${d.gap}</span></div>

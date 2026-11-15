@@ -390,6 +390,11 @@ test('план на 7 дней не пересекает пары, не став
   assert.doesNotMatch(homeAgain, /Дальше по плану/);
   assert.match(homeAgain, /Составить план на 7 дней/);
   assert.match(homeAgain, /href="\/study\/plan\?new=1"/);
+  assert.doesNotMatch(homeAgain, /Быстрые действия[\s\S]*План на 7 дней/);
+  const att = homeAgain.match(/id="att-h"[\s\S]*?<\/section>/)[0];
+  assert.match(att, /Допуск к сессии: Бизнес-планирование/);
+  assert.ok(att.indexOf('Допуск к сессии: Бизнес-планирование') < att.indexOf('Материальная помощь'), 'допуск выше заявок');
+  assert.ok(att.indexOf('Бизнес-планирование') < att.indexOf('Статистика'), 'больший недобор выше');
   db.close();
 });
 
@@ -404,7 +409,9 @@ test('разбор допуска: свои баллы, чужая дисцип�
   assert.match(page, /12 \+ 35 = 47/);
   assert.match(page, /останется 3/);
   assert.match(page, /Кабинет не знает/);
-  assert.match(page, /Не хватает 38/);
+  assert.match(page, /Не хватает 38|не хватает 38/);
+  assert.match(page, /12 из 50/);
+  assert.match(page, /admit-prog|progress gap/);
   assert.match(page, /допуска к экзамену/);
   assert.match(page, /Кабинет письмо не отправляет/);
   assert.doesNotMatch(page, /type="submit"|письмо отправлено/);

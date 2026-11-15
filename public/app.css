@@ -168,8 +168,14 @@ a.row:hover { color: var(--ink); background: linear-gradient(90deg, transparent,
 .lights i { width: 6px; height: 18px; border-radius: 3px; display: block; }
 .l-green { background: var(--green); } .l-amber { background: #D97706; } .l-red { background: var(--red-dot); } .l-done { background: #98A2B3; }
 .dotc { width: 10px; height: 10px; border-radius: 5px; flex: none; margin-top: 6px; }
-.progress { height: 6px; border-radius: 3px; background: #E3E7EE; overflow: hidden; }
-.progress i { display: block; height: 100%; background: var(--green); }
+.progress { height: 8px; border-radius: 4px; background: #E3E7EE; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--green); max-width: 100%; }
+.progress.gap i { background: var(--amber); }
+.progress.ok i { background: var(--green); }
+.admit-prog { margin-bottom: 14px; }
+.admit-prog-top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.admit-prog-top .need { color: var(--amber); }
+.admit-prog-top .ok { color: var(--green); }
 
 /* ---------- Нижнее меню ---------- */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: #fff; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
