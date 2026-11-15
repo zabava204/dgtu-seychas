@@ -69,8 +69,11 @@ function build(id, data) {
       const ex = session.find((x) => x.discipline_id === d.id && x.kind !== 'консультация');
       out.todo.push(`${d.subject}: ${d.gap ? `до допуска не хватает ${d.gap} ${pl(d.gap)}` : 'порог набран'}${d.overdue.length ? `; просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max} ${pl(w.max)})`).join(', ')}` : ''}${ex ? `; ${ex.kind} ${T.dayMonthKey(ex.date_key)}` : ''}. Преподаватель — ${d.teacher}`);
     }
-    if (risky.some((d) => d.gap > 0)) out.links.push({ href: '/study/session-support', label: 'Разобрать допуск' });
-    if (risky.some((d) => d.gap > 0)) out.links.push({ href: '/study/plan', label: 'План на 7 дней' });
+    const topGap = [...risky].filter((d) => d.gap > 0).sort((a, b) => b.gap - a.gap)[0];
+    if (topGap) out.links.push({ href: `/study/session-support/${topGap.id}`, label: 'Разобрать допуск' });
+    else if (risky.some((d) => d.gap > 0)) out.links.push({ href: '/study/session-support', label: 'Разобрать допуск' });
+    if (risky.some((d) => d.gap > 0)) out.links.push({ href: '/study/plan?new=1', label: 'План на 7 дней' });
+    if (topGap) out.links.push({ href: `/study/session-support/${topGap.id}#letter`, label: 'Черновик письма преподавателю' });
     if (risky.length) out.links.push({ href: '/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), label: 'Как попросить отсрочку' });
     out.links.push({ href: '/study/grades#session', label: 'Даты сессии и допуск' });
   }
