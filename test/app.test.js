@@ -125,9 +125,31 @@ test('помощник без ключа отвечает по правилам 
   const r = await anna.post('/api/assistant', { message: 'нужна справка для субсидии на ЖКУ' }, true);
   const j = await r.json();
   assert.equal(j.source, 'rules');
+  assert.equal(j.cascade, 'decision'); // каскад Decision Models: уверенное правило, не LLM
   assert.ok(j.actions.some((a) => a.href.startsWith('/requests/new?type=study')));
   const s = await (await anna.post('/api/assistant', { message: 'мне очень тяжело' }, true)).json();
   assert.ok(s.actions.some((a) => a.href === '/hard'));
+  assert.equal(s.cascade, 'decision');
+  const grades = await (await anna.post('/api/assistant', { message: 'Сколько баллов не хватает по бизнес-планированию?' }, true)).json();
+  assert.equal(grades.source, 'calc');
+  assert.equal(grades.cascade, 'calc');
+});
+
+test('RAG-lite: в факты для LLM не попадают баллы и суммы студента', async () => {
+  const assistant = require('../src/assistant');
+  const data = {
+    user: { first_name: 'Анна', level: 'бакалавриат', course: 3, group_name: 'ЭБ-31', form: 'очная', funding: 'бюджет' },
+    disciplines: [{ subject: 'Бизнес-планирование', points: 47, pass_threshold: 50, overdue: [], closed_text: null }],
+    payments: [{ year: 2024, amount: 96000 }],
+    requests: [{ number: '2024-048', title: 'Справка', status: 'in_work', statusText: 'В обработке' }],
+    session: [],
+  };
+  const taxFacts = assistant.retrieveFacts('как оформить вычет', data);
+  assert.ok(taxFacts.some((b) => b.id === 'tax'));
+  assert.ok(taxFacts.every((b) => !/47|96\s*000|2024-048|Бизнес-планирование — 47/.test(b.text)));
+  const termFacts = assistant.retrieveFacts('что такое академическая разница', data);
+  assert.ok(termFacts.some((b) => b.id === 'terms'));
+  assert.ok(termFacts.every((b) => !/\b47\b|96000/.test(b.text)));
 });
 
 test('основной сценарий: справка для налогового вычета', async () => {
