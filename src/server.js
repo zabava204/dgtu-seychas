@@ -242,6 +242,10 @@ function createApp(opts = {}) {
     res.redirect('/study/plan');
   });
   app.get('/study/record', student, (req, res) => send(res, V.recordBook(ctxOf(req, { book: M.recordBook(req.user.id) }))));
+  app.get('/study/record/pdf', student, (req, res) => {
+    res.type('pdf').set('Content-Disposition', `inline; filename="record-book-${req.user.record_book}.pdf"`);
+    pdf.recordBookPdf({ user: req.user, book: M.recordBook(req.user.id) }, res);
+  });
   app.get('/study/nir', student, (req, res) => (req.user.level !== 'магистратура' ? res.redirect('/study') : send(res, V.nir(ctxOf(req, { stages: M.nir(req.user.id) })))));
 
   app.get('/requests', student, (req, res) => send(res, V.requestsList(ctxOf(req, { list: M.requestsOf(req.user.id) }))));
@@ -347,6 +351,11 @@ function createApp(opts = {}) {
 
   app.get('/me', student, (req, res) => send(res, V.me(ctxOf(req))));
   app.get('/me/docs', student, (req, res) => send(res, V.studentDocs(ctxOf(req, { book: M.recordBook(req.user.id) }))));
+  app.get('/me/docs/id.pdf', student, (req, res) => {
+    const meta = ({ anna: { issued: '01.09.2023', order: '3120-ЛС' }, ilya: { issued: '01.09.2024', order: '4466-ЛС' } })[req.user.login] || { issued: '01.09.2024', order: '1000-ЛС' };
+    res.type('pdf').set('Content-Disposition', `inline; filename="student-id-${req.user.record_book}.pdf"`);
+    pdf.studentIdPdf({ user: req.user, meta }, res);
+  });
   app.get('/me/notifications', student, (req, res) => send(res, V.notifSettings(ctxOf(req, { settings: M.settings(req.user.id) }))));
   app.post('/me/notifications', student, (req, res) => {
     for (const c of NOTIF_CATEGORIES) M.setSetting(req.user.id, 'notif_' + c.key, req.body['notif_' + c.key] === '1' ? '1' : '0');

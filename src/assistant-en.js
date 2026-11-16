@@ -40,7 +40,7 @@ function intents(question, data) {
   const nowKey = T.dateKey();
 
   if (has(q, ['suicid', 'kill myself', 'want to die', 'self-harm', 'depress', 'panic', 'anxiety', 'feel bad', 'can’t cope', "can't cope", 'too hard', 'overwhelm', 'stress'])) {
-    return set('support', 'Thank you for writing. You are not alone with this. If your life is in danger, call 112. The “If it’s hard” page has the university psychologist’s contacts and simple next steps — you don’t have to explain anything to the dean’s office.', [{ label: 'If it’s hard', href: '/hard' }]);
+    return set('support', 'Thank you for writing. You are not alone with this. If your life is in danger, call 112. The Psychological support page has anonymous contacts and next steps.', [{ label: 'Psychological support', href: '/hard#psy' }]);
   }
   const prep = PREP.match(question, data, 'en');
   if (prep) return set(prep.id, prep.text, prep.actions, true);

@@ -128,7 +128,7 @@ test('помощник без ключа отвечает по правилам 
   assert.equal(j.cascade, 'decision'); // каскад Decision Models: уверенное правило, не LLM
   assert.ok(j.actions.some((a) => a.href.startsWith('/requests/new?type=study')));
   const s = await (await anna.post('/api/assistant', { message: 'мне очень тяжело' }, true)).json();
-  assert.ok(s.actions.some((a) => a.href === '/hard'));
+  assert.ok(s.actions.some((a) => a.href === '/hard' || a.href.startsWith('/hard#')));
   assert.equal(s.cascade, 'decision');
   const grades = await (await anna.post('/api/assistant', { message: 'Сколько баллов не хватает по бизнес-планированию?' }, true)).json();
   assert.equal(grades.source, 'calc');
@@ -514,10 +514,18 @@ test('лупа ищет разделы, помощник — чат по сво�
   assert.match(find, /href="\/study"/);
   assert.match(find, /href="\/me\/docs"/);
   assert.match(find, /Спросить помощника/);
+  assert.match(find, /Психологическая помощь/);
+  assert.match(find, /Служба поддержки/);
+  assert.doesNotMatch(find, /Как получить вычет/);
   assert.doesNotMatch(find, /id="ask"|id="chat"/);
   const help = await (await anna.get('/helper')).text();
   assert.match(help, /id="ask"/);
   assert.match(help, /не поиск по сайту|лупой вверху/);
+  const hard = await (await anna.get('/hard')).text();
+  assert.match(hard, /Психологическая помощь/);
+  assert.match(hard, /Служба поддержки/);
+  assert.match(hard, /support@demo\.dgtu-seychas\.ru/);
+  assert.doesNotMatch(hard, /<h1>Если тяжело<\/h1>|Если тяжело прямо сейчас/);
 });
 
 test('студенческий билет и зачётка: экран документов, ситуация и помощник', async () => {
@@ -548,6 +556,16 @@ test('студенческий билет и зачётка: экран доку
   assert.match(ask.text, /230471/);
   assert.doesNotMatch(ask.text, /не официальный|военкомат|оригинал/);
   assert.ok(ask.actions.some((a) => a.href === '/me/docs'));
+  assert.match(docs, /Скачать билет \(PDF\)/);
+  assert.match(docs, /href="\/me\/docs\/id\.pdf"/);
+  assert.match(docs, /Скачать зачётку \(PDF\)/);
+  const idPdf = await anna.get('/me/docs/id.pdf');
+  assert.equal(idPdf.status, 200);
+  assert.match(idPdf.headers.get('content-type') || '', /pdf/);
+  const rbPdf = await anna.get('/study/record/pdf');
+  assert.equal(rbPdf.status, 200);
+  assert.match(rbPdf.headers.get('content-type') || '', /pdf/);
+  assert.equal((await ilya.get('/me/docs/id.pdf')).status, 200);
 });
 
 test('версия для слабовидящих: включается и выключается, работает и до входа', async () => {

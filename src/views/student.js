@@ -268,7 +268,8 @@ function recordBook(ctx) {
   return page({
     title: 'Зачётная книжка', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Зачётная книжка</h1>
-<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в «Оценках».</p></div>
+<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в «Оценках».</p>
+<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётку (PDF)</a></div></div>
 <section class="section"><div class="card"><div class="kv"><span>Сдано</span><span>${book.total} из ${book.total}</span></div>
 <div class="kv"><span>Академические задолженности</span><span>${book.debts ? book.debts : 'нет'}</span></div>
 ${book.avg ? html`<div class="kv"><span>Средний балл по оценкам</span><span>${book.avg.toFixed(2).replace('.', ',')}</span></div>` : ''}</div></section>
@@ -577,7 +578,7 @@ function studentDocs(ctx) {
   return page({
     title: 'Мои документы', active: 'me', ctx,
     body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Мои документы</h1>
-<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка.</p></div>
+<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF — демо-образец.</p></div>
 <section class="section" aria-label="Студенческий билет">
 <article class="id-card">
 <div class="id-card-head">Студенческий билет</div>
@@ -593,12 +594,15 @@ ${field('Направление подготовки', user.program, true)}
 ${field('Группа', user.group_name)}
 ${field('Факультет', user.faculty, true)}
 </div>
-</article></section>
+</article>
+<div class="actions" style="margin-top:12px"><a class="btn small" href="/me/docs/id.pdf" target="_blank" rel="noopener">${I.file}Скачать билет (PDF)</a></div>
+</section>
 <section class="section" aria-label="Зачётная книжка">
 <a class="card linkcard" href="/study/record"><span style="flex:1"><b>Зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">№ ${user.record_book}${book && book.avg ? ` · средний балл ${book.avg.toFixed(2).replace('.', ',')}` : ''}${book && book.total ? ` · ${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')}` : ''}</span></span>${I.chev}</a>
 ${book && book.avg ? html`<div class="card" style="margin-top:10px"><div class="req-head"><span class="small muted">Успеваемость</span><a class="small" href="/study/record">Подробнее</a></div>
 <div style="margin-top:8px;font-size:28px;font-weight:700;color:var(--green)">${book.avg.toFixed(2).replace('.', ',')}</div>
 <div class="small muted">средний балл по оценкам в зачётке</div></div>` : ''}
+<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётку (PDF)</a></div>
 </section>`,
   });
 }
@@ -623,7 +627,7 @@ function me(ctx) {
 <div class="card" style="padding-top:4px;padding-bottom:4px">
 ${linkRow('/me/docs', 'Мои документы', 'Студенческий билет и зачётная книжка')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
-${linkRow('/hard', 'Если тяжело', 'Контакты психолога и телефоны помощи')}
+${linkRow('/hard', 'Помощь', 'Психологическая помощь и служба поддержки')}
 ${linkRow('/me/notifications', 'Уведомления', 'Какие уведомления получать')}
 ${linkRow('/notifications', 'Все уведомления', '')}
 <form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
@@ -672,18 +676,29 @@ function notifications(ctx) {
 function hard(ctx) {
   const opt = (href, title, text) => html`<a class="card" href="${href}" style="display:flex;gap:12px;text-decoration:none;color:var(--ink);margin-top:10px"><span style="flex:1"><b>${title}</b><span class="small muted" style="display:block;margin-top:2px;font-size:14px">${text}</span></span>${I.chev}</a>`;
   return page({
-    title: 'Если тяжело', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Хорошо, что ты здесь</h1><p class="muted" style="margin:6px 0 0">Можно ничего не объяснять. Выбери, что сейчас ближе — или просто закрой.</p></div>
-<section class="section" style="padding-top:8px">
-${opt('#psy', 'Поговорить с психологом', 'Контакт психологической службы вуза')}
+    title: 'Помощь', active: 'me', ctx,
+    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Помощь</h1><p class="muted" style="margin:6px 0 0">Два канала: психологическая помощь и служба поддержки по кабинету и документам.</p></div>
+<section class="section" style="padding-top:8px" aria-labelledby="psy-h">
+<h2 class="label" id="psy-h">Психологическая помощь</h2>
+<p class="small muted" style="margin:0 0 8px">Можно ничего не объяснять. Контакты анонимной поддержки.</p>
+${opt('#psy', 'Поговорить с психологом', 'Психологическая служба вуза')}
 ${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник подготовит просьбу об отсрочке — без объяснения причин')}
 ${opt('/study/grades', 'Не справляюсь с учёбой', 'Разберём по шагам, что можно сделать позже')}
-<div class="card" id="psy" style="margin-top:16px"><b>Если тяжело прямо сейчас</b>
+<div class="card" id="psy" style="margin-top:16px"><b>Если нужна помощь прямо сейчас</b>
 <div class="actions"><a class="btn small" href="tel:112">112 — экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
 <p class="small muted" style="margin:8px 0 0">+7 495 989-50-50 — телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
 <p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00.</p></div>
-<div class="note" style="margin-top:12px">${I.lock}<span>Открытие этой страницы не создаёт обращения в деканат и не отправляет уведомлений куратору.</span></div>
-</section>`,
+<div class="note" style="margin-top:12px">${I.lock}<span>Открытие этого раздела не создаёт обращение в деканат и не отправляет уведомлений куратору.</span></div>
+</section>
+<section class="section" aria-labelledby="sup-h">
+<h2 class="label" id="sup-h">Служба поддержки</h2>
+<div class="card" id="support"><b>Вопросы по кабинету и документам</b>
+<p class="small muted" style="margin:6px 0 0;line-height:1.45">Если не открывается заявка, ошибка в профиле, нужен бумажный документ или непонятно, куда нажать — напиши в службу поддержки. Это не психологическая помощь и не замена деканату по приказам.</p>
+<div class="kv" style="margin-top:10px"><span>Куда писать</span><span><a href="mailto:support@demo.dgtu-seychas.ru">support@demo.dgtu-seychas.ru</a></span></div>
+<div class="kv"><span>Часы ответа</span><span>пн–пт 9:00–18:00 (демо)</span></div>
+<div class="kv"><span>Деканат</span><span>корпус 1, каб. 210 · пн–пт 9:00–17:00</span></div>
+<div class="actions" style="margin-top:12px"><a class="btn small" href="mailto:support@demo.dgtu-seychas.ru">Написать в поддержку</a><a class="btn secondary small" href="/me">К профилю и деканату</a></div>
+</div></section>`,
   });
 }
 
@@ -704,20 +719,19 @@ function route(ctx) {
 // Каталог разделов для лупы в шапке — не чат: «куда перейти», а не «спроси про себя».
 function findItems(user) {
   const items = [
-    { keys: 'расписание пары неделя учёба', title: 'Расписание', meta: 'Пары на день и на неделю', href: '/study' },
+    { keys: 'расписание пары неделя учёба верхняя нижняя', title: 'Расписание', meta: 'Пары на день и на неделю', href: '/study' },
     { keys: 'оценки баллы допуск сессия зачёт экзамен журнал', title: 'Оценки и допуск', meta: 'Баллы, порог, даты сессии', href: '/study/grades' },
     { keys: 'план подготовка сессия 7 дней', title: 'План на 7 дней', meta: 'Задачи из журнала между парами', href: '/study/plan' },
-    { keys: 'зачётка зачетка зачётная книжка оценки', title: 'Зачётная книжка', meta: 'Оценки по семестрам', href: '/study/record' },
+    { keys: 'зачётка зачетка зачётная книжка оценки скачать', title: 'Зачётная книжка', meta: 'Оценки по семестрам · можно скачать PDF', href: '/study/record' },
     { keys: 'заявки справки статусы', title: 'Мои заявки', meta: 'Статусы справок и обращений', href: '/requests' },
-    { keys: 'ситуации жку субсидия работа вычет помощь', title: 'Жизненные ситуации', meta: 'Пакет справок под задачу', href: '/requests/new' },
-    { keys: 'студенческий билет документы зачётка', title: 'Студенческий билет', meta: 'Электронный образец в кабинете', href: '/me/docs' },
+    { keys: 'ситуации жку субсидия работа вычет налог ифнс помощь справка', title: 'Жизненные ситуации', meta: 'Пакет справок: ЖКУ, работа, вычет и др.', href: '/requests/new' },
+    { keys: 'студенческий билет документы зачётка скачать', title: 'Студенческий билет', meta: 'Электронный образец · можно скачать PDF', href: '/me/docs' },
     { keys: 'профиль я деканат группа', title: 'Профиль и деканат', meta: 'Данные студента и контакты', href: '/me' },
     { keys: 'уведомления колокольчик', title: 'Уведомления', meta: 'Лента и настройки', href: '/notifications' },
-    { keys: 'вычет налог справка ифнс', title: 'Как получить вычет', meta: 'Пояснение к справке для налоговой', href: '/help/tax' },
-    { keys: 'тяжело психолог поддержка', title: 'Если тяжело', meta: 'Контакты поддержки, без заявки в деканат', href: '/hard' },
+    { keys: 'психолог помощь тяжело кризис анонимн', title: 'Психологическая помощь', meta: 'Контакты анонимной поддержки', href: '/hard#psy' },
+    { keys: 'служба поддержки поддержка кабинет ошибка документ письмо', title: 'Служба поддержки', meta: 'Вопросы по кабинету и документам', href: '/hard#support' },
   ];
   if (user.level === 'магистратура') items.splice(4, 0, { keys: 'нир научная работа этапы', title: 'НИР', meta: 'Этапы и баллы', href: '/study/nir' });
-  if (user.funding === 'контракт') items.splice(-2, 0, { keys: 'налог вычет оплата договор справка', title: 'Справка для налогового вычета', meta: 'Заказ справки об оплате обучения', href: '/requests/new?type=tax' });
   return items;
 }
 
@@ -727,10 +741,10 @@ function findPage(ctx) {
   return page({
     title: 'Найти', active: null, ctx,
     body: html`${backBar('/', 'Найти в кабинете')}
-<div class="page-head" style="padding-top:0"><h1 style="font-size:26px;margin:0">Найти раздел</h1>
-<p class="muted" style="margin:6px 0 0">Лупа ищет страницы кабинета. Вопросы про свои баллы и справки — у <a href="/helper">помощника</a>.</p></div>
+<div class="find-intro"><h1>Найти раздел</h1>
+<p class="muted">Поиск по разделам кабинета — расписание, заявки, документы. Вопросы про свои баллы и справки — у <a href="/helper">помощника</a>.</p></div>
 <div class="find-box"><label class="sr-only" for="find-q">Поиск по разделам</label>
-<input id="find-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Например: расписание, вычет, зачётка" value="${q}"></div>
+<input id="find-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Например: расписание, зачётка, справка" value="${q}"></div>
 <section class="section" aria-label="Разделы"><div class="group" id="find-list">
 ${items.map((it) => html`<a class="row find-row" href="${it.href}" data-keys="${it.keys} ${it.title} ${it.meta}"><div class="body"><span class="title strong">${it.title}</span><span class="meta">${it.meta}</span></div>${I.chev}</a>`)}
 </div>
@@ -763,7 +777,7 @@ function helper(ctx) {
 ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
 <button type="button" data-q="What should I do before the session?" lang="en">Before the session</button>
 <button type="button" data-q="What classes do I have tomorrow?" lang="en">In English</button>
-<a href="/hard">Мне тяжело</a></div>
+<a href="/hard#psy">Психологическая помощь</a></div>
 <div style="height:170px"></div>
 <div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу" value="${q || ''}">
 <button type="submit" aria-label="Отправить">${I.send}</button></form></div>`,

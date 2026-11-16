@@ -36,7 +36,7 @@ function timeOf(d) { return hhmm(minutesOfDay(d)); }
 function wdShortKey(key) { return WD_SHORT[new Date(key + 'T00:00:00Z').getUTCDay()]; }
 function wdLongKey(key) { return WD_LONG[new Date(key + 'T00:00:00Z').getUTCDay()]; }
 
-// Учебная неделя: неделя, в которую входит 1 сентября, — первая; нечётная = числитель
+// Учебная неделя: неделя, в которую входит 1 сентября, — первая; нечётная = верхняя
 function studyWeek(key = dateKey()) {
   const [y, mo] = key.split('-').map(Number);
   const startYear = mo >= 9 ? y : y - 1;
@@ -46,7 +46,7 @@ function studyWeek(key = dateKey()) {
   return Math.floor(days / 7) + 1;
 }
 function parity(key = dateKey()) { return studyWeek(key) % 2 === 1 ? 'num' : 'den'; }
-function parityLabel(key = dateKey()) { return parity(key) === 'num' ? 'числитель' : 'знаменатель'; }
+function parityLabel(key = dateKey()) { return parity(key) === 'num' ? 'верхняя неделя' : 'нижняя неделя'; }
 
 // Относительная подпись: «сегодня, 15:00», «завтра, 11 ноября», «в четверг, 12 ноября»
 function relDay(d) {

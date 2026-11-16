@@ -307,7 +307,10 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .filepick .fname.has { color: var(--ink); font-weight: 500; }
 
 /* ---------- Поиск разделов (лупа в шапке) ---------- */
-.find-box { padding: 0 20px 8px; }
+.find-intro { padding: 0 20px; }
+.find-intro h1 { font-size: 26px; margin: 0; }
+.find-intro p { margin: 8px 0 0; line-height: 1.45; max-width: 36em; }
+.find-box { padding: 18px 20px 12px; }
 .find-box input { width: 100%; min-height: 48px; border-radius: 16px; border: 1px solid var(--line); padding: 0 16px; font-size: 16px; background: #fff; }
 .find-empty { margin: 12px 20px 0; }
 

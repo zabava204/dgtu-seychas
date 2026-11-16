@@ -86,4 +86,59 @@ function samplePdf(stream) {
   doc.end();
 }
 
-module.exports = { certificate, samplePdf };
+function studentIdPdf({ user, meta }, stream) {
+  const doc = new PDFDocument({ size: 'A4', margins: { top: 56, bottom: 56, left: 56, right: 56 }, info: { Title: `Студенческий билет ${user.record_book} (демо)`, Author: 'ДГТУ.Сейчас — концепт' } });
+  doc.registerFont('R', path.join(FONT, 'Inter_400Regular.ttf'));
+  doc.registerFont('S', path.join(FONT, 'Inter_600SemiBold.ttf'));
+  doc.registerFont('B', path.join(FONT, 'Inter_700Bold.ttf'));
+  doc.pipe(stream);
+  const w = doc.page.width - 112;
+  doc.fillColor('#B42318').font('S').fontSize(9).text('ДЕМОНСТРАЦИОННЫЙ ОБРАЗЕЦ — НЕ ЗАМЕНЯЕТ ОФИЦИАЛЬНЫЙ СТУДЕНЧЕСКИЙ БИЛЕТ', 56, 36, { width: w, align: 'center' });
+  doc.moveDown(2).fillColor('#14213D').font('B').fontSize(18).text('Студенческий билет', { align: 'center' });
+  doc.font('R').fontSize(11).fillColor('#5B6577').text('Концепт «ДГТУ.Сейчас» · демо для конкурса', { align: 'center' });
+  doc.moveDown(1.2).fillColor('#14213D').font('B').fontSize(14).text(user.full_name, { align: 'center' });
+  doc.moveDown(1).font('R').fontSize(11).lineGap(5);
+  const row = (k, v) => { doc.font('S').text(k, { continued: true }).font('R').text('  ' + v); };
+  const level = user.level === 'магистратура' ? 'Высшее — магистратура' : user.level === 'аспирантура' ? 'Высшее — аспирантура' : 'Высшее — бакалавриат';
+  const form = user.form === 'очно-заочная' ? 'Очно-заочная (вечерняя)' : user.form[0].toUpperCase() + user.form.slice(1);
+  row('Номер билета:', user.record_book);
+  row('Приказ о зачислении:', meta.order);
+  row('Дата выдачи:', meta.issued);
+  row('Курс:', String(user.course));
+  row('Уровень образования:', level);
+  row('Форма обучения:', form);
+  row('Направление:', user.program);
+  row('Группа:', user.group_name);
+  row('Факультет:', user.faculty);
+  doc.font('R').fontSize(8.5).fillColor('#5B6577').text(
+    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные вымышленные. Документ не имеет юридической силы.',
+    56, doc.page.height - 72, { width: w, align: 'center' });
+  doc.end();
+}
+
+function recordBookPdf({ user, book }, stream) {
+  const doc = new PDFDocument({ size: 'A4', margins: { top: 56, bottom: 56, left: 56, right: 56 }, info: { Title: `Зачётная книжка ${user.record_book} (демо)`, Author: 'ДГТУ.Сейчас — концепт' } });
+  doc.registerFont('R', path.join(FONT, 'Inter_400Regular.ttf'));
+  doc.registerFont('S', path.join(FONT, 'Inter_600SemiBold.ttf'));
+  doc.registerFont('B', path.join(FONT, 'Inter_700Bold.ttf'));
+  doc.pipe(stream);
+  const w = doc.page.width - 112;
+  doc.fillColor('#B42318').font('S').fontSize(9).text('ДЕМОНСТРАЦИОННЫЙ ОБРАЗЕЦ — НЕ ЗАМЕНЯЕТ ОФИЦИАЛЬНУЮ ЗАЧЁТНУЮ КНИЖКУ', 56, 36, { width: w, align: 'center' });
+  doc.moveDown(2).fillColor('#14213D').font('B').fontSize(18).text('Зачётная книжка', { align: 'center' });
+  doc.font('R').fontSize(11).fillColor('#5B6577').text(`№ ${user.record_book} · ${user.full_name}`, { align: 'center' });
+  doc.moveDown(0.8).fillColor('#14213D').font('R').fontSize(11);
+  doc.text(`Сдано: ${book.total} · академические задолженности: ${book.debts || 'нет'}${book.avg ? ` · средний балл: ${book.avg.toFixed(2).replace('.', ',')}` : ''}`);
+  for (const s of book.sems || []) {
+    doc.moveDown(0.8).font('S').fontSize(12).text(`${s.semester} семестр`);
+    doc.font('R').fontSize(10).fillColor('#14213D');
+    for (const r of s.rows) {
+      doc.text(`${r.subject} — ${r.mark} (${r.control}, ${T.dayMonthKey(r.date_key)} ${r.date_key.slice(0, 4)})`);
+    }
+  }
+  doc.font('R').fontSize(8.5).fillColor('#5B6577').text(
+    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные вымышленные. Документ не имеет юридической силы.',
+    56, doc.page.height - 72, { width: w, align: 'center' });
+  doc.end();
+}
+
+module.exports = { certificate, samplePdf, studentIdPdf, recordBookPdf };
