@@ -1,0 +1,6 @@
+Declaration from npm package README:
+## License
+
+MIT
+
+Package metadata: {'type': 'git', 'url': 'git+ssh://git@github.com/devongovett/dfa.git'}
