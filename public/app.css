@@ -679,3 +679,19 @@ button:disabled, .btn:disabled { opacity: .55; cursor: not-allowed; }
 .hero .small, .hero .where { color: #fff !important; }
 .hero .warn { color: #FFF1C2; }
 .attention-row > .btn { margin-top: 8px; }
+
+/* Демо-переключение видно до личных данных; обычные аккаунты его не получают. */
+.demo-switcher { margin: 20px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+.demo-switch-title { font-size: 18px; font-weight: 700; }
+.demo-switcher p { margin: 4px 0 12px; }
+.demo-accounts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.demo-account { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.demo-account-name { font-size: 15px; font-weight: 600; }
+.demo-account-state { font-size: 14px; color: var(--blue-dark); font-weight: 600; margin-top: auto; padding-top: 6px; }
+.demo-account:hover { border-color: var(--blue); background: var(--blue-soft); }
+.demo-account:disabled { opacity: 1; cursor: default; background: var(--blue-soft); border-color: var(--blue); }
+.demo-account:disabled .demo-account-state { color: var(--ink); }
+.staff-layout .demo-switcher { margin: 0 0 24px; }
+@media (min-width: 840px) { .student-view .demo-switcher { margin-inline: 0; } }
+@media (max-width: 600px) { .demo-accounts { grid-template-columns: 1fr; } .demo-account { gap: 2px; } }
+.lv .demo-account-name { font-size: 18px; }

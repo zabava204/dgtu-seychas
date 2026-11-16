@@ -81,7 +81,7 @@ function createApp(opts = {}) {
   });
   const flash = (req, text, link, linkText) => { req.session.flash = { text, link, linkText }; };
   const ctxOf = (req, extra = {}) => ({
-    user: req.user, flash: res_flash(req), needsAction: req.user && req.user.role === 'student' ? M.needsAction(req.user.id) : false,
+    user: req.user, demoUsers: M.demoUsers(), flash: res_flash(req), needsAction: req.user && req.user.role === 'student' ? M.needsAction(req.user.id) : false,
     unread: req.user ? M.unreadCount(req.user.id) : 0, ...extra,
   });
   const res_flash = (req) => req.res.locals.flash;
@@ -150,7 +150,16 @@ function createApp(opts = {}) {
     req.session.uid = u.id;
     res.redirect(u.role === 'staff' ? '/staff' : '/');
   });
+  // Переключение разрешено только между тремя вымышленными демо-аккаунтами.
+  app.post('/demo/switch', needAuth(), (req, res) => {
+    const demo = M.demoUsers();
+    const target = demo.find((u) => u.login === String(req.body.login || ''));
+    if (!demo.some((u) => u.id === req.user.id) || !target) return fail(req, res, 404, 'Демо-аккаунт не найден', 'Выбери один из аккаунтов в блоке демо-доступа.');
+    req.session = { uid: target.id, flash: { text: `Открыт демо-аккаунт: ${target.short_name}` } };
+    res.redirect(target.role === 'staff' ? '/staff' : '/me');
+  });
   app.post('/login/demo', (req, res) => {
+    if (!M.demoUsers().some((u) => u.login === String(req.body.login || ''))) return res.redirect('/login');
     const u = M.userByLogin(req.body.login);
     if (!u || !u.pass_hash) return res.redirect('/login');
     req.session.uid = u.id;
@@ -393,7 +402,7 @@ function createApp(opts = {}) {
   });
 
   // ---------- деканат ----------
-  const staffCtx = (req, extra) => ({ user: req.user, flash: res_flash(req), counts: M.staffCounts(), ...extra });
+  const staffCtx = (req, extra) => ({ user: req.user, demoUsers: M.demoUsers(), flash: res_flash(req), counts: M.staffCounts(), ...extra });
   app.get('/staff', staff, (req, res) => {
     const filter = ['new', 'work', 'student', 'done'].includes(req.query.f) ? req.query.f : 'new';
     send(res, S.queue(staffCtx(req, { list: M.staffQueue(filter), filter })));

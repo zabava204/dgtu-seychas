@@ -27,7 +27,7 @@ function model(db) {
     db,
     user: (id) => q('SELECT * FROM users WHERE id = ?').get(id),
     userByLogin: (login) => q('SELECT * FROM users WHERE login = ?').get(String(login || '').trim().toLowerCase()),
-    demoUsers: () => q("SELECT id, login, short_name, role, demo_note FROM users WHERE login IS NOT NULL ORDER BY role DESC, id").all(),
+    demoUsers: () => q("SELECT id, login, short_name, role, demo_note FROM users WHERE login IN ('anna', 'ilya', 'dekanat') ORDER BY role DESC, id").all(),
 
     // ---------- Расписание ----------
     dayPairs(group, key) {

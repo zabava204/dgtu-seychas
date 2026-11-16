@@ -1,6 +1,6 @@
 'use strict';
 const { html, raw } = require('./html');
-const { head, I } = require('./layout');
+const { head, demoSwitcher, I } = require('./layout');
 const T = require('../time');
 const { TYPES, purposeOf, formatOf } = require('../catalog');
 const TAX = require('../tax');
@@ -22,6 +22,7 @@ ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-cu
 </aside>
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
 <div class="small muted" style="margin-bottom:12px">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
+${demoSwitcher(ctx)}
 ${body}</main></div><script src="/app.js?v=10" defer></script></body></html>`;
 }
 

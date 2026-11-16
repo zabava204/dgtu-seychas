@@ -1,6 +1,6 @@
 'use strict';
 const { html, raw } = require('./html');
-const { page, backBar, I } = require('./layout');
+const { page, backBar, demoSwitcher, I } = require('./layout');
 const T = require('../time');
 const { TYPES, DOC_HELP, purposeOf, formatOf } = require('../catalog');
 const { NOTIF_CATEGORIES } = require('../model');
@@ -616,6 +616,7 @@ function me(ctx) {
   return page({
     title: 'Профиль', active: 'me', ctx,
     body: html`<div class="page-head" style="padding-top:18px"><h1>Профиль</h1><p class="muted page-description">Данные об обучении, документы и настройки кабинета.</p></div>
+${demoSwitcher(ctx)}
 <div class="profile-grid"><div>
 <section class="section" aria-labelledby="education-h"><h2 class="label" id="education-h">Обучение</h2><div class="card">
 <div class="profile-person"><span class="avatar" aria-hidden="true">${user.full_name.split(' ').slice(0, 2).map((x) => x[0]).reverse().join('')}</span><div><b>${user.full_name}</b><div class="small muted">${user.level} · ${user.course} курс</div></div></div>

@@ -32,7 +32,7 @@ function head(title, cabinet = 'Личный кабинет студента') {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · ${cabinet}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=15">
+<link rel="stylesheet" href="/app.css?v=16">
 </head>`;
 }
 
@@ -62,6 +62,15 @@ ${body}
 </body></html>`;
 }
 
+function demoSwitcher(ctx) {
+  const users = ctx.demoUsers || [];
+  if (!users.some((u) => u.id === ctx.user?.id)) return '';
+  return html`<nav class="demo-switcher" aria-label="Переключение демо-аккаунта">
+<div class="demo-switch-title">Демо-аккаунты</div><p class="small muted">Выбери, чей кабинет посмотреть. Данные и заявки сохранятся.</p>
+<form method="post" action="/demo/switch" class="demo-accounts">${users.map((u) => html`<button class="demo-account" type="submit" name="login" value="${u.login}" ${u.id === ctx.user.id ? raw('disabled aria-current="true"') : ''}>
+<span class="demo-account-name">${u.role === 'staff' ? 'Сотрудник деканата' : u.short_name}</span><span class="small muted">${u.role === 'staff' ? u.short_name : u.demo_note}</span><span class="demo-account-state">${u.id === ctx.user.id ? 'Сейчас открыт' : 'Переключиться'}</span></button>`)}</form></nav>`;
+}
+
 function backBar(href, label) {
   return html`<div class="back"><a href="${href}" aria-label="Назад: ${label}">${I.back}<span>${label}</span></a></div>`;
 }
@@ -80,4 +89,4 @@ function errorPage({ ctx, title, text, links = [] }) {
   });
 }
 
-module.exports = { head, page, tabbar, backBar, errorPage, I, svg };
+module.exports = { head, page, tabbar, backBar, errorPage, demoSwitcher, I, svg };

@@ -598,3 +598,40 @@ test('главная: один следующий шаг, черновик Ил�
     assert.doesNotMatch(p, /action="\/situations\/military"/);
   }
 });
+
+test('переключение демо: Анна → Илья → сотрудник → Анна, без сброса заявок', async () => {
+  const c = await login('anna');
+  await c.post('/requests/1/message', { text: 'Сообщение проверки переключения' });
+  const annaList = [...new Set((await (await c.get('/requests')).text()).match(/href="\/requests\/\d+/g))];
+  const profile = await (await c.get('/me')).text();
+  assert.match(profile, /Переключение демо-аккаунта/);
+  for (const name of ['anna', 'ilya', 'dekanat']) assert.match(profile, new RegExp(`value="${name}"`));
+  let r = await c.post('/demo/switch', { login: 'ilya' });
+  assert.equal(r.status, 302); assert.equal(r.headers.get('location'), '/me');
+  let page = await (await c.get('/me')).text();
+  assert.match(page, /Смирнов Илья Андреевич/); assert.doesNotMatch(page, /Орлова Анна Сергеевна/);
+  assert.match(await (await c.get('/requests')).text(), /налогового вычета/);
+  r = await c.post('/demo/switch', { login: 'dekanat' });
+  assert.equal(r.headers.get('location'), '/staff');
+  assert.match(await (await c.get('/staff')).text(), /Переключение демо-аккаунта/);
+  await c.post('/demo/switch', { login: 'anna' });
+  assert.deepEqual([...new Set((await (await c.get('/requests')).text()).match(/href="\/requests\/\d+/g))], annaList);
+  assert.match(await (await c.get('/requests/1')).text(), /Сообщение проверки переключения/);
+  assert.equal((await c.post('/demo/switch', { login: 'unknown' })).status, 404);
+  assert.match(await (await c.get('/me')).text(), /Орлова Анна Сергеевна/);
+  assert.equal((await client().post('/demo/switch', { login: 'dekanat' })).status, 401);
+});
+
+test('демо-переключение не доступно произвольному аккаунту и не принимает его как цель', async () => {
+  const db = require('../src/db').open(process.env.DB_FILE);
+  db.prepare("INSERT INTO users (login, pass_hash, role, full_name, short_name) SELECT 'ordinary-test', pass_hash, 'student', 'Тестовый пользователь', 'Тестовый' FROM users WHERE login='anna'").run();
+  const ordinary = await login('ordinary-test');
+  assert.doesNotMatch(await (await ordinary.get('/me')).text(), /Переключение демо-аккаунта/);
+  assert.equal((await ordinary.post('/demo/switch', { login: 'dekanat' })).status, 404);
+  const anna = await login('anna');
+  assert.equal((await anna.post('/demo/switch', { login: 'ordinary-test' })).status, 404);
+  const outsider = client();
+  await outsider.post('/login/demo', { login: 'ordinary-test' });
+  assert.equal((await outsider.get('/me')).status, 302);
+  db.prepare("DELETE FROM users WHERE login='ordinary-test'").run(); db.close();
+});
