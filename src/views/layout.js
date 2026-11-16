@@ -32,7 +32,7 @@ function head(title) {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=9">
+<link rel="stylesheet" href="/app.css?v=10">
 </head>`;
 }
 
@@ -50,13 +50,13 @@ function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
 <div class="app ${noNav ? 'no-nav' : ''}">
 ${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>`}
 ${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><span class="demo-badge" title="Концепт для конкурса, не официальный сервис ДГТУ, данные вымышленные">Демо</span>
-<div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}</a><a class="icon-btn" href="/helper" aria-label="Что нужно? Поиск и помощник">${I.search}</a>
+<div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}</a><a class="icon-btn" href="/find" aria-label="Найти раздел в кабинете">${I.search}</a>
 <a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
 </div>
 ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=6" defer></script>${scripts}
+<script src="/app.js?v=7" defer></script>${scripts}
 </body></html>`;
 }
 

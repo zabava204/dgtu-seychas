@@ -502,6 +502,24 @@ test('четыре вопроса помощника: план, письмо, о
   assert.equal((await dean.post('/staff/reset')).status, 302);
 });
 
+test('лупа ищет разделы, помощник — чат по своим данным', async () => {
+  const anna = await login('anna');
+  const home = await (await anna.get('/')).text();
+  assert.match(home, /href="\/find"/); // лупа в шапке
+  assert.match(home, /href="\/helper"/); // строка помощника
+  assert.match(home, /aria-label="Найти раздел в кабинете"/);
+  const find = await (await anna.get('/find')).text();
+  assert.match(find, /Найти раздел/);
+  assert.match(find, /id="find-q"/);
+  assert.match(find, /href="\/study"/);
+  assert.match(find, /href="\/me\/docs"/);
+  assert.match(find, /Спросить помощника/);
+  assert.doesNotMatch(find, /id="ask"|id="chat"/);
+  const help = await (await anna.get('/helper')).text();
+  assert.match(help, /id="ask"/);
+  assert.match(help, /не поиск по сайту|лупой вверху/);
+});
+
 test('студенческий билет и зачётка: экран документов, ситуация и помощник', async () => {
   const anna = await login('anna');
   const ilya = await login('ilya');

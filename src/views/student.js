@@ -156,7 +156,7 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 ${hero}
-<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси о своей учёбе или справках</span></span></a>
+<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси про свои баллы, справки или пары</span></span></a>
 ${nextSlot ? html`<section class="section" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
   : needPlan ? html`<section class="section" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Кабинет поставит задачи из журнала в окна между парами. Баллы отметкой «сделано» не меняются.</span></span>${I.chev}</a></section>` : ''}
 <section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
@@ -701,6 +701,45 @@ function route(ctx) {
   });
 }
 
+// Каталог разделов для лупы в шапке — не чат: «куда перейти», а не «спроси про себя».
+function findItems(user) {
+  const items = [
+    { keys: 'расписание пары неделя учёба', title: 'Расписание', meta: 'Пары на день и на неделю', href: '/study' },
+    { keys: 'оценки баллы допуск сессия зачёт экзамен журнал', title: 'Оценки и допуск', meta: 'Баллы, порог, даты сессии', href: '/study/grades' },
+    { keys: 'план подготовка сессия 7 дней', title: 'План на 7 дней', meta: 'Задачи из журнала между парами', href: '/study/plan' },
+    { keys: 'зачётка зачетка зачётная книжка оценки', title: 'Зачётная книжка', meta: 'Оценки по семестрам', href: '/study/record' },
+    { keys: 'заявки справки статусы', title: 'Мои заявки', meta: 'Статусы справок и обращений', href: '/requests' },
+    { keys: 'ситуации жку субсидия работа вычет помощь', title: 'Жизненные ситуации', meta: 'Пакет справок под задачу', href: '/requests/new' },
+    { keys: 'студенческий билет документы зачётка', title: 'Студенческий билет', meta: 'Электронный образец в кабинете', href: '/me/docs' },
+    { keys: 'профиль я деканат группа', title: 'Профиль и деканат', meta: 'Данные студента и контакты', href: '/me' },
+    { keys: 'уведомления колокольчик', title: 'Уведомления', meta: 'Лента и настройки', href: '/notifications' },
+    { keys: 'вычет налог справка ифнс', title: 'Как получить вычет', meta: 'Пояснение к справке для налоговой', href: '/help/tax' },
+    { keys: 'тяжело психолог поддержка', title: 'Если тяжело', meta: 'Контакты поддержки, без заявки в деканат', href: '/hard' },
+  ];
+  if (user.level === 'магистратура') items.splice(4, 0, { keys: 'нир научная работа этапы', title: 'НИР', meta: 'Этапы и баллы', href: '/study/nir' });
+  if (user.funding === 'контракт') items.splice(-2, 0, { keys: 'налог вычет оплата договор справка', title: 'Справка для налогового вычета', meta: 'Заказ справки об оплате обучения', href: '/requests/new?type=tax' });
+  return items;
+}
+
+function findPage(ctx) {
+  const { user, q = '' } = ctx;
+  const items = findItems(user);
+  return page({
+    title: 'Найти', active: null, ctx,
+    body: html`${backBar('/', 'Найти в кабинете')}
+<div class="page-head" style="padding-top:0"><h1 style="font-size:26px;margin:0">Найти раздел</h1>
+<p class="muted" style="margin:6px 0 0">Лупа ищет страницы кабинета. Вопросы про свои баллы и справки — у <a href="/helper">помощника</a>.</p></div>
+<div class="find-box"><label class="sr-only" for="find-q">Поиск по разделам</label>
+<input id="find-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Например: расписание, вычет, зачётка" value="${q}"></div>
+<section class="section" aria-label="Разделы"><div class="group" id="find-list">
+${items.map((it) => html`<a class="row find-row" href="${it.href}" data-keys="${it.keys} ${it.title} ${it.meta}"><div class="body"><span class="title strong">${it.title}</span><span class="meta">${it.meta}</span></div>${I.chev}</a>`)}
+</div>
+<p class="small muted find-empty" id="find-empty" hidden>Ничего не нашлось. Попробуй другие слова или <a href="/helper">спроси помощника</a>.</p>
+</section>
+<section class="section"><div class="actions"><a class="btn secondary small" href="/helper">Спросить помощника</a></div></section>`,
+  });
+}
+
 function helper(ctx) {
   const { q, user } = ctx;
   const sugg = [
@@ -717,9 +756,9 @@ function helper(ctx) {
   return page({
     title: 'Помощник', active: 'today', ctx,
     body: html`${backBar('/', 'Помощник')}
-<div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по данным твоего кабинета и демо-правилам. Может ошибаться — важное уточняй в деканате. <span lang="en">You can also ask in English.</span></p></div>
+<div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по твоим данным кабинета и демо-правилам — это не поиск по сайту. Раздел найти можно лупой вверху. Может ошибаться — важное уточняй в деканате. <span lang="en">You can also ask in English.</span></p></div>
 <div class="chat" id="chat" aria-live="polite">
-<div class="msg bot">Что нужно? Спроси про справку, баллы до допуска, даты зачётов и экзаменов или пары на завтра.</div></div>
+<div class="msg bot">Спроси про свои справки, баллы до допуска, даты зачётов или пары на завтра.</div></div>
 <div class="suggest" id="suggest" style="margin-top:10px">
 ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
 <button type="button" data-q="What should I do before the session?" lang="en">Before the session</button>
@@ -823,4 +862,4 @@ ${form ? '' : html`<div class="actions"><a class="btn secondary small" href="/st
   });
 }
 
-module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, studentDocs, notifSettings, notifications, hard, route, helper, sessionList, sessionSupport, studyPlan, plural };
+module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, studentDocs, notifSettings, notifications, hard, route, helper, findPage, sessionList, sessionSupport, studyPlan, plural };

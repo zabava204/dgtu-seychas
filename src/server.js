@@ -362,6 +362,7 @@ function createApp(opts = {}) {
   });
   app.get('/hard', student, (req, res) => send(res, V.hard(ctxOf(req))));
   app.get('/route', student, (req, res) => send(res, V.route(ctxOf(req, { room: String(req.query.room || '').slice(0, 20) }))));
+  app.get('/find', student, (req, res) => send(res, V.findPage(ctxOf(req, { q: String(req.query.q || '').slice(0, 80) }))));
   app.get('/helper', student, (req, res) => send(res, V.helper(ctxOf(req, { q: String(req.query.q || '').slice(0, 300) }))));
 
   app.post('/api/assistant', student, async (req, res) => {

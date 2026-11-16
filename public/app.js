@@ -68,6 +68,25 @@
     setTimeout(() => { b.textContent = done; }, 2000);
   }));
 
+  // Лупа: фильтр разделов кабинета (не чат)
+  const findQ = $('#find-q');
+  if (findQ) {
+    const rows = $$('#find-list .find-row');
+    const empty = $('#find-empty');
+    const apply = () => {
+      const q = findQ.value.trim().toLowerCase().replace(/ё/g, 'е');
+      let n = 0;
+      rows.forEach((r) => {
+        const ok = !q || (r.dataset.keys || '').toLowerCase().replace(/ё/g, 'е').includes(q) || q.split(/\s+/).every((w) => (r.dataset.keys || '').toLowerCase().replace(/ё/g, 'е').includes(w));
+        r.hidden = !ok; if (ok) n++;
+      });
+      if (empty) empty.hidden = n > 0;
+    };
+    findQ.addEventListener('input', apply);
+    apply();
+    findQ.focus();
+  }
+
   // Помощник
   const form = $('#ask');
   if (form) {

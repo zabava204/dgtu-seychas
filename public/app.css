@@ -306,6 +306,11 @@ details.card:target { border: 2px solid var(--blue); scroll-margin-top: 16px; }
 .filepick .fname { font-size: 14px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filepick .fname.has { color: var(--ink); font-weight: 500; }
 
+/* ---------- Поиск разделов (лупа в шапке) ---------- */
+.find-box { padding: 0 20px 8px; }
+.find-box input { width: 100%; min-height: 48px; border-radius: 16px; border: 1px solid var(--line); padding: 0 16px; font-size: 16px; background: #fff; }
+.find-empty { margin: 12px 20px 0; }
+
 /* ---------- Строка помощника на «Сегодня» ---------- */
 .ask-bar { display: flex; align-items: center; gap: 10px; margin: 14px 20px 0; padding: 12px 16px; min-height: 48px; background: #fff; border: 1px solid var(--line); border-radius: 24px; color: var(--muted); font-size: 14px; text-decoration: none; }
 .ask-bar svg { flex: none; color: var(--blue); }
