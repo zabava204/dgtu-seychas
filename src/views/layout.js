@@ -32,7 +32,7 @@ function head(title, cabinet = 'Личный кабинет студента') {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · ${cabinet}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=14">
+<link rel="stylesheet" href="/app.css?v=15">
 </head>`;
 }
 

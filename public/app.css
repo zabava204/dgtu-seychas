@@ -678,3 +678,4 @@ button:disabled, .btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .hero .small, .hero .where { color: #fff !important; }
 .hero .warn { color: #FFF1C2; }
+.attention-row > .btn { margin-top: 8px; }

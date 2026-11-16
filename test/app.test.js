@@ -580,3 +580,21 @@ test('версия для слабовидящих: включается и вы
   await anna.get('/a11y');
   assert.doesNotMatch(await (await anna.get('/me')).text(), /class="lv"/);
 });
+
+test('главная: один следующий шаг, черновик Ильи и навигатор обращения', async () => {
+  const anna = await login('anna'), ilya = await login('ilya');
+  const a = await (await anna.get('/')).text(), i = await (await ilya.get('/')).text();
+  for (const page of [a, i]) {
+    assert.match(page, /Следующий шаг/);
+    const visible = page.split('overview-attention')[1].split('<details')[0];
+    assert.equal((visible.match(/class="row attention-row"/g) || []).length, 1);
+    assert.match(page, /Другие задачи/);
+  }
+  assert.match(i.split('overview-attention')[1].split('<details')[0], /Справка для налогового вычета/);
+  for (const c of [anna, ilya]) {
+    const p = await (await c.get('/situations/military')).text();
+    assert.match(p, /Воинский учёт и отсрочка/);
+    assert.match(p, /официальной странице|Официальная страница/);
+    assert.doesNotMatch(p, /action="\/situations\/military"/);
+  }
+});

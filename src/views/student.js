@@ -138,15 +138,18 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
     .slice()
     .sort((a, b) => (b.d.gap || 0) - (a.d.gap || 0) || String(a.date_key).localeCompare(String(b.date_key)));
   const riskItems = risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' }));
-  const attention = [...riskItems, ...todo.filter((t) => t.amber), ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
+  const allAttention = [...riskItems, ...todo.filter((t) => t.amber), ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
+  // Подготовленный черновик завершается одним действием; иначе сначала риск допуска.
+  const primary = todo.find((t) => t.kind === 'draft') || allAttention[0];
+  const attention = primary ? [primary, ...allAttention.filter((t) => t !== primary)] : [];
   const attRow = (t) => html`<div class="row attention-row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
-<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}" aria-label="${t.action}: ${t.title}">${t.action}${I.chev}</a>` : ''}</div>`;
+<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="${t === primary ? 'btn small' : 'act'}" href="${t.href}" aria-label="${t.action}: ${t.title}">${t.action}${I.chev}</a>` : ''}</div>`;
   // Контекстные действия: зависят от ситуации студента. План уже на карточке выше — в чипах не дублируем.
   const overdue = ds.some((d) => d.overdue.length);
   const needPlan = !nextSlot && risks.length > 0;
   const actions = [
     firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', 'Сессия и допуск'] : null,
-    overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
+    overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить больше времени'] : null,
     ['/requests/new', 'Заказать справку'],
     ['/study?view=week', 'Расписание на неделю'],
     ['/study/record', 'Зачётная книжка'],
@@ -156,8 +159,8 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 <div class="overview-grid"><div class="overview-main">${hero}
-<section class="section overview-attention" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
-${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Показать ещё ${attention.length - 2}${I.chev}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>` : html`<div class="note green">Срочных дел нет. Хорошего дня!</div>`}</section>
+<section class="section overview-attention" aria-labelledby="att-h"><h2 class="label" id="att-h">Следующий шаг</h2>
+${attention.length ? html`<div class="group">${attention.slice(0, 1).map(attRow)}${attention.length > 1 ? html`<details class="more-att"><summary>Другие задачи (${attention.length - 1})${I.chev}</summary>${attention.slice(1).map(attRow)}</details>` : ''}</div>` : html`<div class="note green">Срочных дел нет. Хорошего дня!</div>`}</section>
 </div><div class="overview-side"><a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted">Расписание, баллы и справки</span></span></a>
 ${nextSlot ? html`<section class="section overview-plan" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
   : needPlan ? html`<section class="section overview-plan" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Несданные работы — в свободное время между парами.</span></span>${I.chev}</a></section>` : ''}
@@ -378,7 +381,7 @@ ${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class=
 <p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки — в «Заявках».</p>
 ${n ? html`<button class="btn block" type="submit" style="margin-top:14px">Заказать выбранные справки</button>` : ''}
 </form>` : ''}
-${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Подготовь сам' : 'Что сейчас по учёбе'}</h2>
+${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Подготовь сам' : 'Что сделать'}</h2>
 <div class="group">${s.todo.map((t) => html`<div class="row"><span class="body"><span class="title" style="font-size:15px">${t}</span></span></div>`)}</div></section>` : ''}
 ${s.notes.length ? html`<section class="section">${s.notes.map((t) => html`<div class="note" style="margin-top:8px">${t}</div>`)}</section>` : ''}
 ${s.links.length ? html`<section class="section"><div class="actions">${s.links.map((l, i) => html`<a class="btn ${i ? 'secondary' : ''} small" href="${l.href}">${l.label}</a>`)}</div></section>` : ''}`,
@@ -628,7 +631,7 @@ function me(ctx) {
 <section class="section" aria-labelledby="dean-h"><h2 class="label" id="dean-h">Мой деканат</h2><div class="card">
 <div class="req-head"><b>Корпус 1, каб. 210</b><span class="tag ${open ? 'green' : ''}">${open ? 'Открыт' : 'Закрыт'}</span></div>
 <p class="small muted">Пн–пт, 9:00–17:00 · московское время</p><p class="small">${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</p>
-<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/hard#support">Помощь</a></div></div></section>
+<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/hard#support">Вопрос по документам</a></div></div></section>
 <section class="section" aria-labelledby="settings-h"><h2 class="label" id="settings-h">Настройки и помощь</h2><div class="group">
 ${linkRow('/me/notifications', 'Настройки уведомлений', 'Темы и уведомления в браузере')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
@@ -731,6 +734,7 @@ function findItems(user) {
     { keys: 'профиль я деканат группа', title: 'Профиль и деканат', meta: 'Данные студента и контакты', href: '/me' },
     { keys: 'уведомления колокольчик', title: 'Уведомления', meta: 'Лента и настройки', href: '/notifications' },
     { keys: 'психолог помощь тяжело кризис анонимн', title: 'Психологическая помощь', meta: 'Контакты психологической помощи', href: '/hard#psy' },
+    { keys: 'воинский учет военкомат отсрочка мобилизационное', title: 'Воинский учёт и отсрочка', meta: 'Контакты подразделения и маршрут обращения', href: '/situations/military' },
     { keys: 'служба поддержки поддержка кабинет ошибка документ письмо', title: 'Служба поддержки', meta: 'Вопросы по кабинету и документам', href: '/hard#support' },
   ];
   if (user.level === 'магистратура') items.splice(4, 0, { keys: 'нир научная работа этапы', title: 'НИР', meta: 'Этапы и баллы', href: '/study/nir' });
