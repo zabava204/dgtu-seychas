@@ -26,42 +26,44 @@ const I = {
   logo: raw('<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#4A6FA5"/><path d="M7 20h8M25 20h8" stroke="#C9D7EA" stroke-width="2.4" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="#fff"/></svg>'),
 };
 
-function head(title) {
+function head(title, cabinet = 'Личный кабинет студента') {
   return html`<!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F5F7FA">
-<title>${title} · ДГТУ.Сейчас · личный кабинет студента</title>
+<title>${title} · ДГТУ.Сейчас · ${cabinet}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=11">
+<link rel="stylesheet" href="/app.css?v=14">
 </head>`;
 }
 
 function tabbar(active, badge) {
-  const tabs = [['today', '/', 'Сегодня'], ['study', '/study', 'Учёба'], ['requests', '/requests', 'Заявки'], ['me', '/me', 'Я']];
+  const tabs = [['today', '/', 'Сегодня'], ['study', '/study', 'Учёба'], ['requests', '/requests', 'Заявки'], ['me', '/me', 'Профиль']];
   return html`<nav class="tabbar" aria-label="Основное меню"><div class="in">${tabs.map(([k, href, label]) => html`
-<a href="${href}" ${active === k ? raw('aria-current="page"') : ''}><span class="ico">${svg(ICON[k][active === k ? 1 : 0])}${k === 'requests' && badge ? html`<span class="badge"></span><span class="sr-only">(есть действие)</span>` : ''}</span>${label}</a>`)}
+<a href="${href}" ${active === k ? raw('aria-current="page"') : ''}><span class="ico">${svg(ICON[k][active === k ? 1 : 0])}${k === 'requests' && badge ? html`<span class="badge"></span><span class="sr-only">Требуется действие. </span>` : ''}</span>${label}</a>`)}
 </div></nav>`;
 }
 
 // Страница мобильного кабинета студента
 function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
   const flash = ctx && ctx.flash;
-  return html`${head(title)}<body>
-<div class="app ${noNav ? 'no-nav' : ''}">
+  return html`${head(title)}<body class="${noNav ? 'standalone-view' : 'student-view'}">
+<a class="skip-link" href="#main-content">К содержимому</a>
 ${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>`}
 ${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас — на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><span class="demo-badge" title="Концепт для конкурса, не официальный сервис ДГТУ, данные вымышленные">Демо</span>
-<div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}</a><a class="icon-btn" href="/find" aria-label="Найти раздел в кабинете">${I.search}</a>
-<a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
+<div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}<span class="desktop-label">Доступность</span></a><a class="icon-btn" href="/find" aria-label="Найти раздел в кабинете">${I.search}<span class="desktop-label">Поиск</span></a>
+<a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}<span class="desktop-label">Уведомления</span>${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
+<div class="student-workspace">
+${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
+<main id="main-content" class="app ${noNav ? 'no-nav' : ''} route-${active || 'other'}" tabindex="-1">
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
-</div>
-${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
-<script src="/app.js?v=7" defer></script>${scripts}
+</main></div>
+<script src="/app.js?v=10" defer></script>${scripts}
 </body></html>`;
 }
 
 function backBar(href, label) {
-  return html`<div class="back"><a class="icon-btn" href="${href}" aria-label="Назад: ${label}">${I.back}</a><span>${label}</span></div>`;
+  return html`<div class="back"><a href="${href}" aria-label="Назад: ${label}">${I.back}<span>${label}</span></a></div>`;
 }
 
 // Понятная страница ошибки в стиле кабинета: что случилось и куда идти дальше
@@ -73,8 +75,8 @@ function errorPage({ ctx, title, text, links = [] }) {
   const all = [...links, home];
   return page({
     title, active: null, ctx, noNav: !isStudent,
-    body: html`<main class="errpage"><div>${ERR_ICON}</div><h1>${title}</h1><p class="muted">${text}</p>
-<div class="actions" style="justify-content:center">${all.map(([href, label], i) => html`<a class="btn ${i === 0 ? '' : 'secondary'} small" href="${href}">${label}</a>`)}</div></main>`,
+    body: html`<div class="errpage"><div>${ERR_ICON}</div><h1>${title}</h1><p class="muted">${text}</p>
+<div class="actions" style="justify-content:center">${all.map(([href, label], i) => html`<a class="btn ${i === 0 ? '' : 'secondary'} small" href="${href}">${label}</a>`)}</div></div>`,
   });
 }
 

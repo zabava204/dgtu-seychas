@@ -131,7 +131,7 @@ function today(ctx) {
 <div class="where">${whereText(next)} · ${next.kind}</div>${ch ? html`<div class="warn">${ch}</div>` : ''}</div>
 ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComponent(next.room || '')}">Как пройти</a>`}
 ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещё сегодня: ${rest.map((p) => `${p.start} ${p.subject}`).join(' · ')}</div>` : ''}
-<a class="ghost" href="/study?d=${nk}#pair-${next.id}">Всё расписание дня</a></section>`;
+<a class="ghost" href="/study?d=${nk}#pair-${next.id}">Расписание на день</a></section>`;
   }
   // Требует внимания: сначала допуск (сюжет жюри), потом заявки и сроки
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false)
@@ -139,32 +139,30 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
     .sort((a, b) => (b.d.gap || 0) - (a.d.gap || 0) || String(a.date_key).localeCompare(String(b.date_key)));
   const riskItems = risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' }));
   const attention = [...riskItems, ...todo.filter((t) => t.amber), ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
-  const attRow = (t) => html`<div class="row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
-<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}">${t.action}</a>` : ''}</div>`;
+  const attRow = (t) => html`<div class="row attention-row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
+<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="act" href="${t.href}" aria-label="${t.action}: ${t.title}">${t.action}${I.chev}</a>` : ''}</div>`;
   // Контекстные действия: зависят от ситуации студента. План уже на карточке выше — в чипах не дублируем.
   const overdue = ds.some((d) => d.overdue.length);
   const needPlan = !nextSlot && risks.length > 0;
   const actions = [
-    firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', `Сессия через ${daysUntil(firstS.date_key)} ${plural(daysUntil(firstS.date_key), 'день', 'дня', 'дней')}`] : null,
+    firstS && daysUntil(firstS.date_key) <= 60 ? ['/study/grades#session', 'Сессия и допуск'] : null,
     overdue ? ['/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Попросить отсрочку'] : null,
-    ['/requests/new', 'Жизненные ситуации'],
+    ['/requests/new', 'Заказать справку'],
     ['/study?view=week', 'Расписание на неделю'],
-    ['/study/record', 'Зачётка'],
+    ['/study/record', 'Зачётная книжка'],
   ].filter(Boolean);
   return page({
     title: 'Сегодня', active: 'today', ctx,
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
-${hero}
-<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted"> · спроси про свои баллы, справки или пары</span></span></a>
-${nextSlot ? html`<section class="section" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
-  : needPlan ? html`<section class="section" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Кабинет поставит задачи из журнала в окна между парами. Баллы отметкой «сделано» не меняются.</span></span>${I.chev}</a></section>` : ''}
-<section class="section" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
-${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Ещё ${attention.length - 2}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>`
-    : html`<div class="group"><div class="row"><span class="body"><span class="title">Всё в порядке</span><span class="meta">Срочных дел нет. Хорошего дня!</span></span></div></div>`}
-</section>
-<section class="section" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
-<nav class="qa">${actions.map(([h, l]) => html`<a href="${h}">${l}</a>`)}</nav></section>
+<div class="overview-grid"><div class="overview-main">${hero}
+<section class="section overview-attention" aria-labelledby="att-h"><h2 class="label" id="att-h">Требует внимания${attention.length ? html` <span class="cnt amber">${attention.length}</span>` : ''}</h2>
+${attention.length ? html`<div class="group">${attention.slice(0, 2).map(attRow)}${attention.length > 2 ? html`<details class="more-att"><summary>Показать ещё ${attention.length - 2}${I.chev}</summary>${attention.slice(2).map(attRow)}</details>` : ''}</div>` : html`<div class="note green">Срочных дел нет. Хорошего дня!</div>`}</section>
+</div><div class="overview-side"><a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">✦</span><span><b>Помощник</b><span class="muted">Расписание, баллы и справки</span></span></a>
+${nextSlot ? html`<section class="section overview-plan" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Дальше по плану</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
+  : needPlan ? html`<section class="section overview-plan" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Несданные работы — в свободное время между парами.</span></span>${I.chev}</a></section>` : ''}
+<section class="section overview-actions" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
+<nav class="qa" aria-label="Быстрые действия">${actions.map(([h, l]) => html`<a href="${h}">${l}${I.chev}</a>`)}</nav></section></div></div>
 `,
   });
 }
@@ -191,7 +189,7 @@ ${d.pairs.length ? d.pairs.map((p) => html`<a class="wk-row${p.change ? ' ch' : 
     title: 'Расписание', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'schedule')}
-<div class="days" role="list" aria-label="Дни недели">${week.map((d) => html`<a role="listitem" href="${q(d.key, 'day')}" ${d.key === sel && view === 'day' ? raw('aria-current="date"') : ''}>
+<div class="days" role="list" aria-label="Дни недели">${week.map((d) => html`<a role="listitem" aria-label="${T.wdLongKey(d.key)}, ${T.dayMonthKey(d.key)}${d.changed ? ', есть изменения' : ''}${d.session && d.session.length ? ', сессия' : ''}" href="${q(d.key, 'day')}" ${d.key === sel && view === 'day' ? raw('aria-current="date"') : ''}>
 <span>${T.wdShortKey(d.key)}</span><b>${Number(d.key.slice(8))}</b>${d.changed ? html`<span class="ch" title="есть изменения"></span>` : d.session && d.session.length ? html`<span class="ch ex" title="сессия"></span>` : ''}</a>`)}</div>
 <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 0">
 <a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, -7))}" aria-label="Предыдущая неделя">←</a>
@@ -248,11 +246,11 @@ ${risky.map((d) => html`<div class="risk"><span class="rs">${d.subject}</span><s
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
 <div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
 <section class="section" aria-labelledby="pts-h"><h2 class="label" id="pts-h">Текущие баллы</h2>
-${ds.map((d) => html`<details class="card" id="d-${d.id}" style="margin-top:10px">
+${ds.map((d) => html`<details class="card grade-detail" id="d-${d.id}" style="margin-top:10px">
 <summary style="list-style:none;cursor:pointer;display:flex;gap:10px">
 <span class="dotc" style="background:${raw(color[d.light])}"></span>
 <span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:600">${d.subject}</b><span class="muted" style="white-space:nowrap">${d.closed_text ? 'зачтено' : `${d.points} / 100`}</span></span>
-<span class="small muted" style="display:block;margin-top:2px">${word(d)}</span></span></summary>
+<span class="small muted" style="display:block;margin-top:2px">${word(d)}</span><span class="disclosure-hint">Работы и баллы</span></span>${I.chev}</summary>
 <div style="margin-top:10px">${d.works.map((w) => html`<div class="kv"><span>${w.title}${w.due_key && w.score == null ? html` · до ${T.dayMonthKey(w.due_key)}` : ''}</span><span>${w.score == null ? '—' : w.score} / ${w.max}</span></div>`)}
 <div class="small muted" style="margin-top:6px">${d.control} · порог ${d.pass_threshold}${d.auto_threshold ? ` · автомат от ${d.auto_threshold}` : ''} · ${d.teacher}</div>
 <div class="actions"><a class="btn secondary small" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Спросить помощника</a></div></div>
@@ -268,8 +266,8 @@ function recordBook(ctx) {
   return page({
     title: 'Зачётная книжка', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Зачётная книжка</h1>
-<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в «Оценках».</p>
-<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётку (PDF)</a></div></div>
+<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в разделе «Оценки».</p>
+<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётную книжку (PDF)</a></div></div>
 <section class="section"><div class="card"><div class="kv"><span>Сдано</span><span>${book.total} из ${book.total}</span></div>
 <div class="kv"><span>Академические задолженности</span><span>${book.debts ? book.debts : 'нет'}</span></div>
 ${book.avg ? html`<div class="kv"><span>Средний балл по оценкам</span><span>${book.avg.toFixed(2).replace('.', ',')}</span></div>` : ''}</div></section>
@@ -287,8 +285,8 @@ function nir(ctx) {
   return page({
     title: 'НИР', active: 'study', ctx,
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
-${studyTabs(user, 'nir')}
-<section class="hero" style="margin-top:14px"><div class="small" style="color:rgba(255,255,255,.82);font-weight:600">НИР · ${user.course * 2 - 1} СЕМЕСТР · РУКОВОДИТЕЛЬ: ${user.curator}</div>
+${studyTabs(user, 'nir')}<div class="page-head" style="padding-top:20px"><h2>Научно-исследовательская работа</h2></div>
+<section class="hero" style="margin-top:14px"><div class="small" style="color:rgba(255,255,255,.82);font-weight:600">${user.course * 2 - 1}-й семестр · руководитель: ${user.curator}</div>
 <div class="big">${sum} <span style="font-size:18px;font-weight:500">из 100 баллов</span></div>
 <div class="progress" style="background:rgba(255,255,255,.3)"><i style="width:${sum}%"></i></div>
 <div class="small" style="color:rgba(255,255,255,.92)">До «отлично» (от 85 баллов) ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
@@ -296,7 +294,7 @@ ${studyTabs(user, 'nir')}
 <div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '—' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
 ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[s.note, s.due_key ? `до ${T.dayMonthKey(s.due_key)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}</div>`)}
-<p class="small muted">Это обзор этапов: загрузка файлов НИР в первой версии не делается, задачи по ней не попадают в «Нужно сделать».</p>
+<p class="small muted">Здесь видны этапы и баллы научно-исследовательской работы (НИР). Загрузка отчётов пока недоступна.</p>
 </section>`,
   });
 }
@@ -304,7 +302,7 @@ ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[
 // ---------- Заявки ----------
 function reqRowWaiting(r) {
   const cert = TYPES[r.type].producesPdf;
-  const who = r.status === 'in_work' && r.assignee ? `В обработке · ${r.assignee.short_name}` : cert ? 'Заказана · ждёт обработки' : 'Подана · ждёт сотрудника деканата';
+  const who = r.status === 'in_work' ? `${cert ? 'В обработке' : 'На рассмотрении'}${r.assignee ? ` · ${r.assignee.short_name}` : ''}` : cert ? 'Заказана' : 'Подано';
   return html`<a class="row" href="/requests/${r.id}"><div class="body">
 <div class="req-head"><span class="title strong">${r.title}</span><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${who}</div>
@@ -320,21 +318,21 @@ function requestsList(ctx) {
   const docName = (r) => (r.type === 'aid' ? 'Справка о составе семьи' : null);
   return page({
     title: 'Заявки', active: 'requests', ctx,
-    body: html`<div class="top" style="padding-top:18px"><h1>Заявки</h1><a class="pill" href="/requests/new">Новая</a></div>
+    body: html`<div class="top" style="padding-top:18px"><h1>Заявки</h1><a class="pill" href="/requests/new">Новая заявка</a></div>
 ${act.length ? html`<section class="section" style="padding-top:18px"><h2 class="label amber">Нужно твоё действие</h2>
 ${act.map((r) => html`<div class="row" style="align-items:stretch"><span class="bar amber"></span><div class="body">
 <div class="req-head"><a href="/requests/${r.id}" class="title strong" style="color:inherit;text-decoration:none">${r.title}</a><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px;color:var(--amber);font-weight:600">${r.needs_text}</div>
-<div class="meta">Ожидаем документ. После загрузки деканат продолжит рассмотрение.</div>
+<div class="meta">Загрузи документ, чтобы деканат продолжил рассмотрение.</div>
 <div class="actions"><a class="btn small" href="/requests/${r.id}#upload">Загрузить справку</a>${docName(r) ? html`<a class="link" href="/help/doc?name=${encodeURIComponent(docName(r))}&back=/requests">Где взять справку</a>` : ''}</div>
 </div></div>`)}</section>` : ''}
 ${drafts.length ? html`<section class="section"><h2 class="label">Черновики</h2>${drafts.map((r) => html`<a class="row" href="/requests/new?type=${r.type}&draft=1"><div class="body"><span class="title strong">${r.title}</span><span class="meta">${r.type === 'tax' ? 'Заполнен по договору' : 'Заполнен из профиля'} · проверь и отправь</span></div>${I.chev}</a>`)}</section>` : ''}
-<section class="section"><h2 class="label">Ждут деканат</h2>
+<section class="section"><h2 class="label">На рассмотрении</h2>
 ${wait.length ? wait.map(reqRowWaiting) : html`<p class="muted small">Заявок в работе нет.</p>`}</section>
 <section class="section"><h2 class="label">Завершённые</h2>
 ${done.length ? done.map((r) => html`<div class="row"><div class="body">
 <div class="req-head"><a href="/requests/${r.id}" class="title strong" style="color:inherit;text-decoration:none">${r.title}</a><span class="num">№ ${r.number}</span></div>
-<div style="font-size:14px">${r.status === 'ready' ? `Готова · ${T.dayMonth(new Date(r.closed_at))}` : `Отклонена · ${r.reject_reason || ''}`}</div>
+<div style="font-size:14px">${r.status === 'ready' ? `${TYPES[r.type].producesPdf ? 'Готова' : 'Решение принято'} · ${T.dayMonth(new Date(r.closed_at))}` : `Отклонена · ${r.reject_reason || ''}`}</div>
 ${r.status === 'ready' && TYPES[r.type].producesPdf && r.format !== 'paper' ? html`<div class="actions"><a class="btn secondary small" href="/requests/${r.id}/pdf" target="_blank" rel="noopener" style="color:var(--blue)">${I.file}Открыть PDF</a></div>`
     : r.status === 'ready' && r.format === 'paper' ? html`<div class="meta">Забрать в деканате: корпус 1, каб. 210</div>` : ''}
 </div></div>`) : html`<p class="muted small">Завершённых заявок пока нет.</p>`}</section>`,
@@ -374,11 +372,11 @@ function situation(ctx) {
   return page({
     title: s.title, active: 'requests', ctx,
     body: html`${backBar('/requests/new', 'Жизненные ситуации')}<div class="page-head"><div class="sit-ic">${sitIcon(s.icon)}</div><h1 style="font-size:26px">${s.title}</h1><p class="muted" style="margin:6px 0 0">${s.lead}</p></div>
-${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" aria-labelledby="ord-h"><h2 class="label" id="ord-h">Закажем за тебя</h2>
+${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" data-document-order aria-labelledby="ord-h"><h2 class="label" id="ord-h">Выбери справки</h2>
 <div class="group">${s.orders.map((o) => html`<label class="row pick ${o.available ? '' : 'off'}"><input type="checkbox" name="items" value="${o.key}" ${o.available ? raw('checked') : raw('disabled')}>
 <span class="body"><span class="title strong">${o.title}</span><span class="meta">${o.available ? o.hint : o.reason}</span></span></label>`)}</div>
 <p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки — в «Заявках».</p>
-${n ? html`<button class="btn block" type="submit" style="margin-top:14px">${n === 1 ? 'Заказать справку' : `Заказать ${n} ${plural(n, 'справку', 'справки', 'справок')} одной кнопкой`}</button>` : ''}
+${n ? html`<button class="btn block" type="submit" style="margin-top:14px">Заказать выбранные справки</button>` : ''}
 </form>` : ''}
 ${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Подготовь сам' : 'Что сейчас по учёбе'}</h2>
 <div class="group">${s.todo.map((t) => html`<div class="row"><span class="body"><span class="title" style="font-size:15px">${t}</span></span></div>`)}</div></section>` : ''}
@@ -451,7 +449,7 @@ ${closed.length ? html`<div class="card" style="margin-top:16px"><div class="sma
 function dataHelp(ctx) {
   return page({
     title: 'Если данные неверны', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Если данные в профиле неверны</h1></div>
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Если данные в профиле неверны</h1></div>
 <section class="section"><p style="margin:0;line-height:1.5">ФИО, курс, группу, форму и основу обучения студент сам не меняет: это сведения из личного дела. Их исправляет деканат по документу.</p>
 <div class="stages" style="padding:14px 0 0">
 <div class="stage"><div class="st">ФИО или гражданство</div><div class="when">В кабинете ДГТУ для этого есть онлайн-заявка «Изменение персональных данных». В нашей первой версии — обращение в деканат с паспортом.</div></div>
@@ -479,20 +477,21 @@ ${step('todo', 'Проверка и возврат', 'Налоговая про�
 
 function requestSent(ctx) {
   const { r } = ctx;
-  const head = TYPES[r.type].producesPdf ? 'Справка заказана' : 'Заявление подано';
+  const isCert = TYPES[r.type].producesPdf;
+  const head = isCert ? 'Справка заказана' : 'Заявление подано';
   return page({
     title: head, active: 'requests', ctx,
     body: html`<div class="page-head" style="padding-top:40px">${I.check}
 <h1 style="margin-top:14px">${head}</h1>
 <div class="sub">${r.title} · № ${r.number}</div>
-<div class="small muted" style="margin-top:4px;font-size:14px">Ожидаемая готовность — ${T.relDateTime(new Date(r.eta_at))}</div></div>
-<div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Заявка передана в <b>деканат</b>. Тебе ничего делать не нужно.</div>
-${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим, когда справка будет готова.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
+<div class="small muted" style="margin-top:4px;font-size:14px">${isCert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} — ${T.relDateTime(new Date(r.eta_at))}</div></div>
+<div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Заявка передана в <b>деканат</b>. Статус и сообщения сотрудника появятся в заявке.</div>
+${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим об изменении статуса заявки.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
 <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:20px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none">${I.bell}</span>
-<div><div style="font-weight:600">Сообщить, когда справка будет готова?</div><div class="small muted" style="font-size:14px;margin-top:4px">Покажем уведомление «Справка готова» в кабинете, а пока кабинет открыт — и в браузере. Без оценок и содержания заявки.</div></div></div>
+<div><div style="font-weight:600">Сообщать об изменениях по заявке?</div><div class="small muted" style="font-size:14px;margin-top:4px">Уведомления появятся в кабинете. Если разрешишь, браузер тоже покажет их, пока кабинет открыт.</div></div></div>
 <form method="post" action="/requests/${r.id}/notify" data-ask-permission style="margin-top:12px"><button class="btn block" type="submit">Да, сообщить</button></form>
 <div style="text-align:center"><a class="link" style="color:var(--muted);font-weight:500" href="/requests/${r.id}">Не сейчас</a></div></div>`}
-<div style="margin:14px 20px 0;display:flex;gap:8px"><a class="btn secondary small" style="flex:1" href="/requests/${r.id}">Открыть заявку</a><a class="btn secondary small" style="flex:1" href="/">На главную</a></div>`,
+<div style="margin:14px 20px 0;display:flex;gap:8px"><a class="btn small" style="flex:1" href="/requests/${r.id}">Открыть заявку</a><a class="btn secondary small" style="flex:1" href="/">На главную</a></div>`,
   });
 }
 
@@ -505,14 +504,14 @@ function requestDetail(ctx) {
   const stage = (cls, title, when, extra) => html`<div class="stage ${cls}"><div class="st">${title}</div>${when ? html`<div class="when">${when}</div>` : ''}${extra || ''}</div>`;
   const by = (e) => (e ? `${T.stamp(new Date(e.at))} · ${e.actor_role === 'staff' ? `${e.actor_name}, деканат` : 'ты'}` : '');
   const ev = (k) => [...events].reverse().find((e) => e.kind === k);
-  const actor = r.status === 'need_student' ? html`<b>Нужно твоё действие</b>` : r.status === 'ready' ? html`<b>Готова</b>` : r.status === 'rejected' ? html`<b>Отклонена</b>` : r.status === 'in_work' ? html`<b>В работе</b> у сотрудника деканата` : html`<b>Ждёт обработки</b> в деканате`;
+  const actor = r.status === 'need_student' ? html`<b>Нужно твоё действие</b>` : r.status === 'ready' ? html`<b>${isAid ? 'Решение принято' : 'Готова'}</b>` : r.status === 'rejected' ? html`<b>Отклонена</b>` : r.status === 'in_work' ? html`<b>${isAid ? 'На рассмотрении' : 'В обработке'}</b> у сотрудника деканата` : html`<b>${isAid ? 'Подано' : 'Заказана'}</b> · ожидает обработки`;
   const workTitle = isAid ? 'Рассмотрение заявления' : 'Оформление справки';
   const purpose = r.type === 'study' ? purposeOf('study', r.purpose) : null;
   const pdfOk = r.status === 'ready' && t.producesPdf && r.format !== 'paper';
   return page({
     title: `Заявка № ${r.number}`, active: 'requests', ctx,
-    body: html`${backBar('/requests', `Заявка № ${r.number}`)}
-<div class="page-head" style="display:flex;flex-direction:column;gap:6px"><h1>${r.title}</h1><div style="font-size:16px">${actor}</div>
+    body: html`${backBar('/requests', 'Заявки')}
+<div class="page-head" style="display:flex;flex-direction:column;gap:6px"><h1>${r.title}</h1><div class="small muted">Заявка № ${r.number}</div><div style="font-size:16px">${actor}</div>
 ${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">Ожидаемая готовность — ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
 ${pdfOk ? html`<div style="padding:16px 20px 0"><a class="btn block" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div>` : ''}
 <div class="stages">
@@ -525,7 +524,7 @@ ${r.status === 'need_student' ? stage('amber', 'Нужен документ', by
 <form id="upload" method="post" action="/requests/${r.id}/upload" enctype="multipart/form-data" style="margin-top:10px">
 <label class="field" style="margin-top:0">Файл <span class="hint">PDF или фото, до 5 МБ</span><span class="filepick"><input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png"><span class="btn secondary small" aria-hidden="true">Выбрать файл</span><span class="fname" data-fname>Файл не выбран</span></span></label>
 <div class="actions"><button class="btn small" type="submit">Загрузить справку</button>${isAid ? html`<a class="link" href="/help/doc?name=${encodeURIComponent('Справка о составе семьи')}&back=/requests/${r.id}">Где взять справку</a>` : ''}</div>
-<p class="small muted">Ожидаем документ. После загрузки деканат продолжит рассмотрение.</p></form>`) : ''}
+<p class="small muted">Загрузи документ, чтобы деканат продолжил рассмотрение.</p></form>`) : ''}
 ${r.status === 'rejected' ? stage('amber', 'Отклонена', by(ev('rejected')), html`<div class="bubble staff">${r.reject_reason}</div>`)
     : r.status === 'ready' ? html`${isAid ? stage('', workTitle, '') : ''}${stage('', isAid ? 'Решение принято' : 'Готова', by(ev('ready')), isAid ? html`<div class="bubble staff">${ev('ready')?.text || 'Решение отправлено в бухгалтерию.'}</div>` : r.format === 'paper' ? html`<div class="bubble">Забрать: корпус 1, каб. 210, пн–пт 9:00–17:00</div>` : '')}`
       : html`${isAid ? stage(r.status === 'in_work' ? 'current' : 'todo', workTitle, r.status === 'in_work' ? 'сейчас' : '') : ''}
@@ -558,7 +557,7 @@ function docHelp(ctx) {
     title: 'Где взять справку', active: 'requests', ctx,
     body: html`${backBar(back || '/requests', 'Назад')}<div class="page-head"><h1>${name}: где взять</h1></div>
 <section class="section">${h ? html`<ul style="padding-left:20px;margin:0;line-height:1.5">${h.where.map((w) => html`<li style="margin-bottom:8px">${w}</li>`)}</ul>
-<div class="note amber" style="margin-top:12px">${h.note}</div>` : html`<p>Подсказки для этого документа пока нет. Уточните в деканате.</p>`}
+<div class="note amber" style="margin-top:12px">${h.note}</div>` : html`<p>Подсказки для этого документа пока нет. Уточни в деканате.</p>`}
 <div class="actions" style="margin-top:16px"><a class="btn secondary small" href="/helper?q=${encodeURIComponent(`Где взять: ${name}?`)}">Спросить помощника</a></div></section>`,
   });
 }
@@ -577,7 +576,7 @@ function studentDocs(ctx) {
   const field = (label, value, wide) => html`<div class="id-field ${wide ? 'wide' : ''}"><span class="id-label">${label}</span><span class="id-value">${value}</span></div>`;
   return page({
     title: 'Мои документы', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Мои документы</h1>
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Мои документы</h1>
 <p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF — демо-образец.</p></div>
 <section class="section" aria-label="Студенческий билет">
 <article class="id-card">
@@ -601,63 +600,66 @@ ${field('Факультет', user.faculty, true)}
 <a class="card linkcard" href="/study/record"><span style="flex:1"><b>Зачётная книжка</b><span class="small muted" style="display:block;margin-top:2px">№ ${user.record_book}${book && book.avg ? ` · средний балл ${book.avg.toFixed(2).replace('.', ',')}` : ''}${book && book.total ? ` · ${book.sems.length} ${plural(book.sems.length, 'семестр', 'семестра', 'семестров')}` : ''}</span></span>${I.chev}</a>
 ${book && book.avg ? html`<div class="card" style="margin-top:10px"><div class="req-head"><span class="small muted">Успеваемость</span><a class="small" href="/study/record">Подробнее</a></div>
 <div style="margin-top:8px;font-size:28px;font-weight:700;color:var(--green)">${book.avg.toFixed(2).replace('.', ',')}</div>
-<div class="small muted">средний балл по оценкам в зачётке</div></div>` : ''}
-<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётку (PDF)</a></div>
+<div class="small muted">средний балл по оценкам в зачётной книжке</div></div>` : ''}
+<div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётную книжку (PDF)</a></div>
 </section>`,
   });
 }
 
 function me(ctx) {
   const { user } = ctx;
-  const wd = T.weekday(); const min = T.minutesOfDay();
-  const open = wd <= 5 && min >= 540 && min < 1020;
-  const linkRow = (href, title, meta) => html`<a class="row" href="${href}" style="min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">${title}</span>${meta ? html`<span class="meta">${meta}</span>` : ''}</span>${I.chev}</a>`;
+  const open = T.weekday() <= 5 && T.minutesOfDay() >= 540 && T.minutesOfDay() < 1020;
+  const linkRow = (href, title, meta) => html`<a class="row" href="${href}"><span class="body"><span class="title strong">${title}</span>${meta ? html`<span class="meta">${meta}</span>` : ''}</span>${I.chev}</a>`;
   return page({
-    title: 'Я', active: 'me', ctx,
-    body: html`<div class="page-head" style="padding-top:16px"><h1>Я</h1></div>
-<section class="section" style="padding-top:12px"><div class="card">
-<div style="display:flex;gap:12px;align-items:center"><span style="width:52px;height:52px;border-radius:26px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700">${user.full_name.split(' ').slice(0, 2).map((s) => s[0]).reverse().join('')}</span>
-<div><div style="font-weight:600;font-size:17px">${user.full_name}</div><div class="small muted">${user.gender === 'f' ? 'Студентка' : 'Студент'} · ${user.form} форма, ${user.funding}</div></div></div>
-<div style="margin-top:12px"><div class="kv"><span>Факультет</span><span>${user.faculty}</span></div><div class="kv"><span>Направление</span><span>${user.program}</span></div>
-<div class="kv"><span>Курс и группа</span><span>${user.course} курс · ${user.group_name}</span></div><div class="kv"><span>Зачётная книжка</span><span>№ ${user.record_book}</span></div></div>
-<div class="actions" style="margin-top:12px"><a class="btn small" href="/me/docs">Студенческий и зачётка</a></div></div>
-<div class="card"><div class="req-head"><b>Мой деканат</b><span class="small" style="color:${raw(open ? 'var(--green)' : 'var(--muted)')};font-weight:600">${open ? 'сейчас открыт' : 'сейчас закрыт'}</span></div>
-<div class="small muted" style="margin-top:6px;font-size:14px">Корпус 1, каб. 210 · пн–пт 9:00–17:00<br>${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</div>
-<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/helper">Спросить помощника</a></div></div>
-<div class="card" style="padding-top:4px;padding-bottom:4px">
-${linkRow('/me/docs', 'Мои документы', 'Студенческий билет и зачётная книжка')}
+    title: 'Профиль', active: 'me', ctx,
+    body: html`<div class="page-head" style="padding-top:18px"><h1>Профиль</h1><p class="muted page-description">Данные об обучении, документы и настройки кабинета.</p></div>
+<div class="profile-grid"><div>
+<section class="section" aria-labelledby="education-h"><h2 class="label" id="education-h">Обучение</h2><div class="card">
+<div class="profile-person"><span class="avatar" aria-hidden="true">${user.full_name.split(' ').slice(0, 2).map((x) => x[0]).reverse().join('')}</span><div><b>${user.full_name}</b><div class="small muted">${user.level} · ${user.course} курс</div></div></div>
+<div class="kv"><span>Факультет</span><span>${user.faculty}</span></div>
+<div class="kv"><span>Направление</span><span>${user.program}</span></div>
+<div class="kv"><span>Группа</span><span>${user.group_name}</span></div>
+<div class="kv"><span>Форма обучения</span><span>${user.form}</span></div>
+<div class="kv"><span>Основа обучения</span><span>${user.funding}</span></div>
+<div class="kv"><span>Зачётная книжка</span><span>№ ${user.record_book}</span></div>
+<div class="actions"><a class="link" href="/help/data">Как исправить данные</a></div></div></section>
+<section class="section" aria-labelledby="documents-h"><h2 class="label" id="documents-h">Документы</h2><div class="group">${linkRow('/me/docs', 'Мои документы', 'Студенческий билет и зачётная книжка')}${linkRow('/requests', 'Заявки и справки', 'Статусы, документы и переписка с деканатом')}</div></section>
+</div><div>
+<section class="section" aria-labelledby="dean-h"><h2 class="label" id="dean-h">Мой деканат</h2><div class="card">
+<div class="req-head"><b>Корпус 1, каб. 210</b><span class="tag ${open ? 'green' : ''}">${open ? 'Открыт' : 'Закрыт'}</span></div>
+<p class="small muted">Пн–пт, 9:00–17:00 · московское время</p><p class="small">${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</p>
+<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/hard#support">Помощь</a></div></div></section>
+<section class="section" aria-labelledby="settings-h"><h2 class="label" id="settings-h">Настройки и помощь</h2><div class="group">
+${linkRow('/me/notifications', 'Настройки уведомлений', 'Темы и уведомления в браузере')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
-${linkRow('/hard', 'Помощь', 'Психологическая помощь и служба поддержки')}
-${linkRow('/me/notifications', 'Уведомления', 'Какие уведомления получать')}
-${linkRow('/notifications', 'Все уведомления', '')}
-<form method="post" action="/logout"><button class="row" style="width:100%;background:none;border:0;cursor:pointer;text-align:left;min-height:56px"><span class="body"><span class="title strong" style="font-size:15px">Выйти</span></span>${I.chev}</button></form>
-</div>
-<section class="section"><form method="post" action="/demo/reset" class="card" data-confirm="Вернуть заявки, уведомления и сообщения всех демо-аккаунтов к исходному состоянию? Это сбросит данные и для других проверяющих.">
-<b>Демо для жюри</b><div class="small muted" style="margin-top:4px">Данные общие для всех проверяющих и сбрасываются каждую ночь в 3:00 МСК. Если сценарий уже кто-то прошёл — верни его к началу.</div>
-<button class="btn secondary small" type="submit" style="margin-top:10px">Начать сценарий заново</button></form></section>
-<p id="about" class="small muted" style="text-align:center;margin:16px 0">Концепт для конкурса MGIMO AI Challenge. Не официальный сервис ДГТУ. Все данные вымышленные.</p></section>`,
+${linkRow('/hard', 'Помощь и поддержка', 'По вопросам кабинета, документов и учёбы')}
+<form method="post" action="/logout"><button class="row logout-btn" type="submit"><span class="body"><span class="title strong">Выйти из кабинета</span></span>${I.chev}</button></form></div></section>
+</div></div>
+<section class="section demo-settings"><details class="card"><summary>Демонстрационный режим${I.chev}</summary><p class="small muted">Все данные вымышленные и общие для проверяющих. Они возвращаются к началу каждую ночь в 3:00 МСК.</p>
+<form method="post" action="/demo/reset" data-confirm="Вернуть заявки, уведомления и сообщения всех демо-аккаунтов к исходному состоянию? Это сбросит данные и для других проверяющих."><p class="small muted">Сброс затронет заявки и сообщения всех демо-аккаунтов.</p><button class="btn secondary small" type="submit">Начать сценарий заново</button></form></details>
+<p id="about" class="small muted">Концепт для MGIMO AI Challenge. Не официальный сервис ДГТУ.</p></section>`,
   });
 }
 
 function notifSettings(ctx) {
   const { settings } = ctx;
   return page({
-    title: 'Уведомления', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Уведомления</h1><p class="muted" style="margin:4px 0 0;font-size:14px">Выбери, о чём показывать уведомления. В ленте кабинета видно всё.</p></div>
+    title: 'Настройки уведомлений', active: 'me', ctx,
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Настройки уведомлений</h1><p class="muted" style="margin:4px 0 0;font-size:14px">Выбери темы уведомлений в браузере. В <a href="/notifications">ленте кабинета</a> сохраняются все уведомления.</p></div>
 <form method="post" action="/me/notifications" class="section" style="padding-top:12px" data-autosave>
 ${NOTIF_CATEGORIES.map((c) => html`<label class="toggle-row"><span class="body"><span>${c.title}</span><span class="small muted">${c.hint}</span></span>
 <input class="switch" type="checkbox" role="switch" name="notif_${c.key}" value="1" ${settings['notif_' + c.key] !== '0' ? raw('checked') : ''}></label>`)}
 <noscript><button class="btn block" type="submit">Сохранить</button></noscript>
-<p class="small muted" data-saved hidden>Сохранено</p>
+<div class="save-feedback" role="status" aria-live="polite"><span data-saved>Изменения сохраняются автоматически.</span><button type="button" class="link" data-save-retry hidden>Повторить</button></div>
 </form>
-<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>На экране блокировки не показываем баллы, оценки и содержание заявок — только тему: «Есть изменение в заявке».</span></div>
-<p class="small muted" style="margin-top:12px;font-size:14px">Тихие часы: с 22:00 до 8:00</p>
+<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>Уведомления в браузере содержат только тему — без баллов, оценок и текста заявки.</span></div>
+
 <div class="card" style="margin-top:8px"><b>Уведомления в браузере</b><p class="small muted" style="font-size:14px;margin:4px 0 0">Пока кабинет открыт, браузер покажет уведомление о смене статуса заявки.</p>
 <div class="actions"><button class="btn secondary small" type="button" data-ask-permission-btn>Разрешить на этом устройстве</button></div><p class="small muted" data-perm-state></p></div></div>`,
   });
 }
 
-const CAT = { schedule: 'Изменение расписания', requests: 'Заявка', deadlines: 'Дедлайн', announcements: 'Деканат', grades: 'Учёба' };
+const CAT = { schedule: 'Изменение расписания', requests: 'Заявка', deadlines: 'Срок сдачи', announcements: 'Деканат', grades: 'Учёба' };
 function notifications(ctx) {
   const { items, filter } = ctx;
   const f = [['', 'Все'], ['deadlines', 'Сроки'], ['schedule', 'Изменения'], ['requests', 'Заявки'], ['announcements', 'Деканат'], ['grades', 'Учёба']];
@@ -665,7 +667,7 @@ function notifications(ctx) {
   return page({
     title: 'Уведомления', active: 'today', ctx,
     body: html`${backBar('/', 'Сегодня')}<div class="page-head"><h1>Уведомления</h1></div>
-<nav class="chips" style="padding:12px 20px 0" aria-label="Фильтр">${f.map(([k, l]) => html`<a href="/notifications${k ? '?c=' + k : ''}" style="text-decoration:none"><span style="${raw(filter === k ? 'background:var(--blue);color:#fff;border-color:var(--blue);' : '')}display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:${raw(filter === k ? 'var(--blue)' : '#fff')};font-size:14px;color:${raw(filter === k ? '#fff' : 'var(--ink)')}">${l}</span></a>`)}</nav>
+<nav class="chips" style="padding:12px 20px 0" aria-label="Фильтр">${f.map(([k, l]) => html`<a href="/notifications${k ? '?c=' + k : ''}" ${filter === k ? raw('aria-current="page"') : ''} style="text-decoration:none"><span style="${raw(filter === k ? 'background:var(--blue);color:#fff;border-color:var(--blue);' : '')}display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--line);background:${raw(filter === k ? 'var(--blue)' : '#fff')};font-size:14px;color:${raw(filter === k ? '#fff' : 'var(--ink)')}">${l}</span></a>`)}</nav>
 <section class="section" style="padding-top:6px">${shown.length ? shown.map((n) => html`<a class="feed-item ${n.read ? '' : 'unread'}" href="${n.link || '#'}"><div style="flex:1">
 <div class="req-head"><span class="cat">${CAT[n.category] || ''}</span><span class="small muted">${T.relDateTime(new Date(n.at))}</span></div>
 <div style="font-weight:600;margin-top:2px">${n.title}</div>${n.body ? html`<div class="small muted" style="font-size:14px;margin-top:2px">${n.body}</div>` : ''}</div></a>`)
@@ -677,10 +679,10 @@ function hard(ctx) {
   const opt = (href, title, text) => html`<a class="card" href="${href}" style="display:flex;gap:12px;text-decoration:none;color:var(--ink);margin-top:10px"><span style="flex:1"><b>${title}</b><span class="small muted" style="display:block;margin-top:2px;font-size:14px">${text}</span></span>${I.chev}</a>`;
   return page({
     title: 'Помощь', active: 'me', ctx,
-    body: html`${backBar('/me', 'Я')}<div class="page-head"><h1>Помощь</h1><p class="muted" style="margin:6px 0 0">Два канала: психологическая помощь и служба поддержки по кабинету и документам.</p></div>
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Помощь</h1><p class="muted" style="margin:6px 0 0">Два канала: психологическая помощь и служба поддержки по кабинету и документам.</p></div>
 <section class="section" style="padding-top:8px" aria-labelledby="psy-h">
 <h2 class="label" id="psy-h">Психологическая помощь</h2>
-<p class="small muted" style="margin:0 0 8px">Можно ничего не объяснять. Контакты анонимной поддержки.</p>
+<p class="small muted" style="margin:0 0 8px">Можно ничего не объяснять. Контакты психологической помощи.</p>
 ${opt('#psy', 'Поговорить с психологом', 'Психологическая служба вуза')}
 ${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник подготовит просьбу об отсрочке — без объяснения причин')}
 ${opt('/study/grades', 'Не справляюсь с учёбой', 'Разберём по шагам, что можно сделать позже')}
@@ -707,7 +709,7 @@ function route(ctx) {
   const [b, r] = String(room || '').split('-');
   return page({
     title: 'Как пройти', active: 'study', ctx,
-    body: html`${backBar('/', 'Назад')}<div class="page-head"><h1>Как пройти в ${room ? `ауд. ${room}` : 'аудиторию'}</h1></div>
+    body: html`${backBar('/', 'Сегодня')}<div class="page-head"><h1>Как пройти в ${room ? `ауд. ${room}` : 'аудиторию'}</h1></div>
 <section class="section">${r ? html`<div class="stages" style="padding:0">
 <div class="stage"><div class="st">Корпус ${b}</div><div class="when">Вход с главной площади кампуса</div></div>
 <div class="stage"><div class="st">${r[0]} этаж</div><div class="when">Лестница или лифт справа от входа</div></div>
@@ -728,7 +730,7 @@ function findItems(user) {
     { keys: 'студенческий билет документы зачётка скачать', title: 'Студенческий билет', meta: 'Электронный образец · можно скачать PDF', href: '/me/docs' },
     { keys: 'профиль я деканат группа', title: 'Профиль и деканат', meta: 'Данные студента и контакты', href: '/me' },
     { keys: 'уведомления колокольчик', title: 'Уведомления', meta: 'Лента и настройки', href: '/notifications' },
-    { keys: 'психолог помощь тяжело кризис анонимн', title: 'Психологическая помощь', meta: 'Контакты анонимной поддержки', href: '/hard#psy' },
+    { keys: 'психолог помощь тяжело кризис анонимн', title: 'Психологическая помощь', meta: 'Контакты психологической помощи', href: '/hard#psy' },
     { keys: 'служба поддержки поддержка кабинет ошибка документ письмо', title: 'Служба поддержки', meta: 'Вопросы по кабинету и документам', href: '/hard#support' },
   ];
   if (user.level === 'магистратура') items.splice(4, 0, { keys: 'нир научная работа этапы', title: 'НИР', meta: 'Этапы и баллы', href: '/study/nir' });
@@ -740,7 +742,7 @@ function findPage(ctx) {
   const items = findItems(user);
   return page({
     title: 'Найти', active: null, ctx,
-    body: html`${backBar('/', 'Найти в кабинете')}
+    body: html`${backBar('/', 'Сегодня')}
 <div class="find-intro"><h1>Найти раздел</h1>
 <p class="muted">Поиск по разделам кабинета — расписание, заявки, документы. Вопросы про свои баллы и справки — у <a href="/helper">помощника</a>.</p></div>
 <div class="find-box"><label class="sr-only" for="find-q">Поиск по разделам</label>
@@ -769,14 +771,13 @@ function helper(ctx) {
   ];
   return page({
     title: 'Помощник', active: 'today', ctx,
-    body: html`${backBar('/', 'Помощник')}
-<div class="page-head" style="padding-top:0"><p class="small muted" style="margin:0">Отвечает по твоим данным кабинета и демо-правилам — это не поиск по сайту. Раздел найти можно лупой вверху. Может ошибаться — важное уточняй в деканате. <span lang="en">You can also ask in English.</span></p></div>
+    body: html`${backBar('/', 'Сегодня')}
+<div class="page-head"><h1>Помощник</h1><p class="muted page-description">Спроси про расписание, баллы или заявки. Ответы основаны на данных кабинета и демо-правилах. Важное уточняй в деканате.</p></div>
 <div class="chat" id="chat" aria-live="polite">
 <div class="msg bot">Спроси про свои справки, баллы до допуска, даты зачётов или пары на завтра.</div></div>
 <div class="suggest" id="suggest" style="margin-top:10px">
 ${sugg.map(([qq, l]) => html`<button type="button" data-q="${qq}">${l}</button>`)}
-<button type="button" data-q="What should I do before the session?" lang="en">Before the session</button>
-<button type="button" data-q="What classes do I have tomorrow?" lang="en">In English</button>
+<button type="button" data-q="What classes do I have tomorrow?" >Спросить на английском</button>
 <a href="/hard#psy">Психологическая помощь</a></div>
 <div style="height:170px"></div>
 <div class="composer"><form id="ask" autocomplete="off"><label class="sr-only" for="q">Вопрос</label><input id="q" name="q" maxlength="500" placeholder="Спроси про учёбу" value="${q || ''}">
@@ -830,11 +831,11 @@ ${consult ? html`<a class="btn secondary small" href="/study?d=${consult.date_ke
 ${exam ? html`<a class="btn secondary small" href="/study?d=${exam.date_key}#exam-${exam.id}">${exam.kind[0].toUpperCase()}${exam.kind.slice(1)} ${T.dayMonthKey(exam.date_key)}</a>` : ''}
 </div></section>
 ${d.gap > 0 ? html`<section class="section" id="letter" aria-labelledby="let-h"><h2 class="label" id="let-h">Сообщение преподавателю</h2>
-<div class="card"><p class="small muted" style="margin:0 0 8px">Текст собран программой из цифр выше. Кабинет письмо не отправляет: скопируй и отправь сам.</p>
+<div class="card"><p class="small muted" style="margin:0 0 8px">Проверь текст, скопируй и отправь преподавателю. Из кабинета сообщение не отправляется.</p>
 <label class="field" style="margin-top:0">Текст
 <textarea id="letter-text" rows="12">${draft}</textarea></label>
 <button type="button" class="btn secondary small" data-copy="#letter-text" style="margin-top:10px">Скопировать</button>
-<p class="small muted" style="margin:8px 0 0">${user.short_name} · ${user.group_name}. Модель этот текст не переписывает, чтобы не изменить баллы.</p>
+<p class="small muted" style="margin:8px 0 0">${user.short_name} · ${user.group_name}</p>
 </div></section>` : html`<section class="section"><div class="note green">Порог допуска уже набран. Сообщение преподавателю о недоборе не нужно.</div></section>`}`,
   });
 }
@@ -849,7 +850,7 @@ function studyPlan(ctx) {
     title: 'План на 7 дней', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}
 <div class="page-head"><h1>План на 7 дней</h1>
-<p class="muted" style="margin:6px 0 0">Кабинет ставит задачи в свободные окна между парами. Состав берётся из журнала. Отметка «сделано» баллы не меняет.</p></div>
+<p class="muted" style="margin:6px 0 0">Кабинет ставит задачи в свободные окна между парами. В плане — несданные работы из журнала. Отметка «сделано» баллы не меняет.</p></div>
 ${form ? html`<section class="section"><form method="post" action="/study/plan">
 <div class="field">Сколько есть времени<div class="chips">
 ${chip('minutes', 30, '30 мин', plan && plan.minutes === 30)}
@@ -870,7 +871,7 @@ ${plan.slots.length ? plan.slots.map((s) => html`<article class="card" style="ma
 <p class="small muted" style="margin:6px 0 0">${s.detail}</p>
 <form method="post" action="/study/plan/slots/${s.id}/done" style="margin-top:10px"><button class="btn secondary small" type="submit">${s.done ? 'Вернуть в план' : 'Сделано'}</button></form>
 </article>`) : html`<div class="card">В эти 7 дней выбранное окно занято парами. Баллы не изменились.</div>`}
-<p class="small muted" style="margin-top:12px">Задачи собраны из журнала. Модель время не назначает и новые работы не придумывает.</p>
+<p class="small muted" style="margin-top:12px">В плане учтены работы из журнала и расписание пар. Отметка о выполнении не меняет баллы.</p>
 ${form ? '' : html`<div class="actions"><a class="btn secondary small" href="/study/plan?new=1">Изменить время</a></div>`}
 </section>` : ''}`,
   });

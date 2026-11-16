@@ -11,8 +11,12 @@
     b.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
   }));
 
-  // Тост исчезает сам
-  const toast = $('.toast'); if (toast) setTimeout(() => { toast.style.transition = 'opacity .3s'; toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 5000);
+  // Результат действия остаётся доступен, пока студент его не закроет.
+  const toast = $('.toast');
+  if (toast) {
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'toast-close'; close.textContent = 'Закрыть';
+    close.addEventListener('click', () => toast.remove()); toast.appendChild(close);
+  }
 
   // Строки таблицы деканата — целиком кликабельны
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) location.href = tr.dataset.href; }));
@@ -28,10 +32,36 @@
 
   // Настройки уведомлений сохраняются сразу
   const auto = $('form[data-autosave]');
-  if (auto) auto.addEventListener('change', async () => {
-    const body = {}; $$('input[type=checkbox]', auto).forEach((c) => { body[c.name] = c.checked ? '1' : '0'; });
-    const r = await fetch(auto.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const s = $('[data-saved]', auto); if (r.ok && s) { s.hidden = false; setTimeout(() => { s.hidden = true; }, 1500); }
+  if (auto) {
+    const status = $('[data-saved]', auto), retry = $('[data-save-retry]', auto), feedback = $('.save-feedback', auto);
+    let revision = 0, saving = false;
+    const state = (name, text) => { feedback.dataset.state = name; status.textContent = text; retry.hidden = name !== 'error'; };
+    const save = async () => {
+      if (saving) return;
+      saving = true;
+      try {
+        let sent;
+        do {
+          sent = revision;
+          state('saving', 'Сохраняем…');
+          const body = {}; $$('input[type=checkbox]', auto).forEach((c) => { body[c.name] = c.checked ? '1' : '0'; });
+          const r = await fetch(auto.action, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) });
+          if (!r.ok || r.redirected) throw new Error('save');
+        } while (sent !== revision);
+        state('saved', 'Настройки сохранены');
+      } catch { state('error', 'Не удалось сохранить. Проверь подключение и повтори.'); }
+      finally { saving = false; }
+    };
+    auto.addEventListener('change', () => { revision++; save(); });
+    retry.addEventListener('click', save);
+  }
+
+  // Отправляются только выбранные документы; пустую заявку создать нельзя.
+  $$('form[data-document-order]').forEach((f) => {
+    const button = $('button[type=submit]', f);
+    if (!button) return;
+    const update = () => { button.disabled = !$$('input[name=items]:checked:not(:disabled)', f).length; };
+    f.addEventListener('change', update); update();
   });
 
   // Разрешение на уведомления браузера — только в контексте (после отправки заявки или в настройках)
@@ -84,21 +114,22 @@
     };
     findQ.addEventListener('input', apply);
     apply();
-    findQ.focus();
   }
 
   // Помощник
   const form = $('#ask');
   if (form) {
-    const chat = $('#chat'); const input = $('#q'); const history = [];
+    const chat = $('#chat'); const input = $('#q'); const history = []; let pending = false;
     const add = (cls, text) => { const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; chat.appendChild(d); d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return d; };
     const ask = async (q) => {
-      q = q.trim(); if (!q) return;
+      q = q.trim(); if (!q || pending) return;
+      pending = true; const send = $('button[type=submit]', form); send.disabled = true; form.setAttribute('aria-busy', 'true');
       const sg = $('#suggest'); if (sg) sg.hidden = true;
       const me = add('me', q); input.value = '';
       const wait = add('bot', 'Думаю…');
       try {
         const r = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, history }) });
+        if (!r.ok) throw new Error('assistant');
         const j = await r.json();
         wait.textContent = j.text || 'Не получилось ответить.';
         if (j.actions && j.actions.length) {
@@ -110,12 +141,12 @@
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
         wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
       } catch {
-        wait.textContent = 'Нет связи. Вопрос сохранён — проверь интернет и нажми «Повторить».';
+        wait.textContent = 'Не удалось получить ответ. Проверь подключение и нажми «Повторить».';
         const box = document.createElement('div'); box.className = 'actions';
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn small'; btn.textContent = 'Повторить';
-        btn.addEventListener('click', () => { me.remove(); wait.remove(); ask(q); });
+        btn.addEventListener('click', () => { if (pending) return; me.remove(); wait.remove(); ask(q); });
         box.appendChild(btn); wait.appendChild(box);
-      }
+      } finally { pending = false; send.disabled = false; form.removeAttribute('aria-busy'); }
     };
     form.addEventListener('submit', (e) => { e.preventDefault(); ask(input.value); });
     $$('#suggest [data-q]').forEach((b) => b.addEventListener('click', () => ask(b.dataset.q)));

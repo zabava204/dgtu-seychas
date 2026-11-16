@@ -5,7 +5,7 @@ const { TYPES, requestTitle, estimateEta } = require('./catalog');
 const NOTIF_CATEGORIES = [
   { key: 'schedule', title: 'Изменения расписания', hint: 'Перенос, отмена, другая аудитория' },
   { key: 'requests', title: 'Мои заявки', hint: 'Когда нужно твоё действие и когда готово' },
-  { key: 'deadlines', title: 'Дедлайны', hint: 'За 2 дня и в день сдачи, не позже 21:00' },
+  { key: 'deadlines', title: 'Сроки сдачи', hint: 'За 2 дня и в день сдачи, не позже 21:00' },
   { key: 'announcements', title: 'Объявления деканата', hint: 'Важные новости факультета' },
   { key: 'grades', title: 'Новые оценки', hint: 'Только факт: «выставлена оценка по предмету»' },
 ];

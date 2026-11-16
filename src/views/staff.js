@@ -11,7 +11,7 @@ const tag = (s) => html`<span class="tag ${TAG[s][0]}">${TAG[s][1]}</span>`;
 function shell({ title, ctx, cur, body }) {
   const c = ctx.counts;
   const nav = [['new', 'Новые', c.new], ['work', 'В работе', c.work], ['student', 'Ждут студента', c.student], ['done', 'Завершённые', c.done]];
-  return html`${head(title)}<body><div class="staff-layout">
+  return html`${head(title, 'Кабинет деканата')}<body><div class="staff-layout">
 <aside aria-label="Разделы деканата">
 <div class="brand" style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${I.logo}<div class="brand-t"><div style="font-weight:700">ДГТУ.Сейчас</div><div class="small" style="color:rgba(255,255,255,.82)">Кабинет деканата</div></div></div>
 ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-current="page"') : ''}><span>${l}</span><span class="cnt">${n}</span></a>`)}
@@ -22,7 +22,7 @@ ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-cu
 </aside>
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
 <div class="small muted" style="margin-bottom:12px">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
-${body}</main></div><script src="/app.js?v=5" defer></script></body></html>`;
+${body}</main></div><script src="/app.js?v=10" defer></script></body></html>`;
 }
 
 function queue(ctx) {
@@ -34,10 +34,10 @@ function queue(ctx) {
 <span class="muted small">Сейчас ${T.timeOf(T.now())}, ${T.dayMonthKey(T.dateKey())}</span></div>
 <table class="table" style="margin-top:16px"><thead><tr><th>№</th><th>Заявка</th><th>Студент</th><th>Подана</th><th>Срок</th><th>Статус</th></tr></thead><tbody>
 ${list.length ? list.map((r) => html`<tr class="clickable" data-href="/staff/requests/${r.id}">
-<td><a href="/staff/requests/${r.id}">${r.number}</a></td><td><b style="font-weight:600">${r.title}</b>${r.type === 'study' && r.format === 'paper' ? html`<div class="small muted">бумажная</div>` : ''}</td>
-<td>${r.student_name}<div class="small muted">${r.group_name}</div></td><td>${T.relDateTime(new Date(r.submitted_at || r.created_at))}</td>
-<td>${r.eta_at && !['ready', 'rejected'].includes(r.status) ? T.relDateTime(new Date(r.eta_at)) : '—'}</td><td>${tag(r.status)}${r.assignee ? html`<div class="small muted" style="margin-top:4px">${r.assignee.short_name}</div>` : ''}</td></tr>`)
-    : html`<tr><td colspan="6" class="muted">Пусто.</td></tr>`}
+<td data-label="Номер"><a aria-label="Заявка № ${r.number}: ${r.title}" href="/staff/requests/${r.id}">${r.number}</a></td><td data-label="Заявка"><b style="font-weight:600">${r.title}</b>${r.type === 'study' && r.format === 'paper' ? html`<div class="small muted">бумажная</div>` : ''}</td>
+<td data-label="Студент">${r.student_name}<div class="small muted">${r.group_name}</div></td><td data-label="Подана">${T.relDateTime(new Date(r.submitted_at || r.created_at))}</td>
+<td data-label="Срок">${r.eta_at && !['ready', 'rejected'].includes(r.status) ? T.relDateTime(new Date(r.eta_at)) : '—'}</td><td data-label="Статус">${tag(r.status)}${r.assignee ? html`<div class="small muted" style="margin-top:4px">${r.assignee.short_name}</div>` : ''}</td></tr>`)
+    : html`<tr><td colspan="6" class="muted">В этом разделе заявок пока нет. Новые появятся после отправки студентами.</td></tr>`}
 </tbody></table>
 <form method="post" action="/staff/reset" style="margin-top:28px" data-confirm="Вернуть все демо-данные к исходному состоянию? Новые заявки и сообщения удалятся.">
 <button class="btn danger small" type="submit">Сбросить демо-данные</button> <span class="small muted">Возвращает заявки, уведомления и сообщения к исходному состоянию.</span></form>`,

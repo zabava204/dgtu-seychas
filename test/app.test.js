@@ -263,7 +263,7 @@ test('жизненная ситуация: пакет справок по дан
   const p = await (await anna.get('/situations/housing')).text();
   assert.match(p, /Справка об обучении в органы социальной защиты/);
   assert.match(p, /Справка о размере стипендии/);
-  assert.match(p, /Заказать 2 справки одной кнопкой/);
+  assert.match(p, /Заказать выбранные справки/);
   const ip = await (await ilya.get('/situations/housing')).text();
   assert.match(ip, /на договоре академическая стипендия не назначается/); // контракт — без справки о стипендии
   const r = await anna.post('/situations/housing', new URLSearchParams([['items', 'study'], ['items', 'stipend']]));
@@ -371,7 +371,7 @@ test('план на 7 дней не пересекает пары, не став
   assert.match(page, /Подготовиться самой/);
   assert.match(page, /Уточнить у преподавателя: Бизнес-планирование/);
   assert.match(page, /баллы не меняет/);
-  assert.match(page, /Модель время не назначает/);
+  assert.match(page, /В плане учтены работы из журнала и расписание пар/);
   const slots = [...page.matchAll(/data-date="(\d{4}-\d{2}-\d{2})" data-start="(\d+)" data-end="(\d+)"/g)];
   assert.ok(slots.length >= 1 && slots.length <= 7);
   const today = Tm.dateKey();
@@ -435,7 +435,7 @@ test('разбор допуска: свои баллы, чужая дисцип�
   assert.match(page, /12 из 50/);
   assert.match(page, /admit-prog|progress gap/);
   assert.match(page, /допуска к экзамену/);
-  assert.match(page, /Кабинет письмо не отправляет/);
+  assert.match(page, /Из кабинета сообщение не отправляется/);
   assert.doesNotMatch(page, /type="submit"|письмо отправлено/);
   assert.equal((await ilya.get(m[1])).status, 404);
   assert.doesNotMatch(await (await ilya.get(m[1])).text(), /Бизнес-планирование|Не хватает 38/);
@@ -520,7 +520,7 @@ test('лупа ищет разделы, помощник — чат по сво�
   assert.doesNotMatch(find, /id="ask"|id="chat"/);
   const help = await (await anna.get('/helper')).text();
   assert.match(help, /id="ask"/);
-  assert.match(help, /не поиск по сайту|лупой вверху/);
+  assert.match(help, /Ответы основаны на данных кабинета/);
   const hard = await (await anna.get('/hard')).text();
   assert.match(hard, /Психологическая помощь/);
   assert.match(hard, /Служба поддержки/);
@@ -549,7 +549,7 @@ test('студенческий билет и зачётка: экран доку
   assert.match(await (await ilya.get('/me/docs')).text(), /Смирнов Илья Андреевич/);
   assert.doesNotMatch(await (await ilya.get('/me/docs')).text(), /Орлова Анна/);
   const sit = await (await anna.get('/situations/idcard')).text();
-  assert.match(sit, /Нужен студенческий или зачётка/);
+  assert.match(sit, /Нужен студенческий билет или зачётная книжка/);
   assert.match(sit, /href="\/me\/docs"/);
   const ask = await (await anna.post('/api/assistant', { message: 'Где мой студенческий билет?' }, true)).json();
   assert.equal(ask.source, 'calc');
@@ -558,7 +558,7 @@ test('студенческий билет и зачётка: экран доку
   assert.ok(ask.actions.some((a) => a.href === '/me/docs'));
   assert.match(docs, /Скачать билет \(PDF\)/);
   assert.match(docs, /href="\/me\/docs\/id\.pdf"/);
-  assert.match(docs, /Скачать зачётку \(PDF\)/);
+  assert.match(docs, /Скачать зачётную книжку \(PDF\)/);
   const idPdf = await anna.get('/me/docs/id.pdf');
   assert.equal(idPdf.status, 200);
   assert.match(idPdf.headers.get('content-type') || '', /pdf/);

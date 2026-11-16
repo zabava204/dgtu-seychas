@@ -64,7 +64,7 @@ function intents(question, data) {
     out.exact = true;
     const u = data.user;
     const b = data.book;
-    return set('idcard', `Студенческий билет и зачётка: ${u.full_name}, ${u.faculty}, ${u.course} курс, группа ${u.group_name}, № ${u.record_book}.${b && b.avg ? ` Средний балл по зачётке — ${b.avg.toFixed(2).replace('.', ',')}.` : ''} Открыть можно в «Мои документы».`, [{ label: 'Студенческий билет', href: '/me/docs' }, { label: 'Зачётная книжка', href: '/study/record' }]);
+    return set('idcard', `Студенческий билет и зачётная книжка: ${u.full_name}, ${u.faculty}, ${u.course} курс, группа ${u.group_name}, № ${u.record_book}.${b && b.avg ? ` Средний балл по зачётной книжке — ${b.avg.toFixed(2).replace('.', ',')}.` : ''} Открыть можно в «Мои документы».`, [{ label: 'Студенческий билет', href: '/me/docs' }, { label: 'Зачётная книжка', href: '/study/record' }]);
   }
   // Средний балл — по зачётной книжке
   if (has(q, ['средн'])) {
