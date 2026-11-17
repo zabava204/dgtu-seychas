@@ -49,10 +49,10 @@ function riskText(d) {
     const names = d.overdue.map((w) => w.title.toLowerCase()).join(' и ');
     const cap = names[0].toUpperCase() + names.slice(1);
     const verb = d.overdue.length > 1 ? 'дают' : 'даёт';
-    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} – после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} – этого хватит, чтобы набрать минимум для допуска`;
+    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')}, после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')}, этого хватит, чтобы набрать минимум для допуска`;
   }
   const nx = d.upcoming[0];
-  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `: ближайшее – ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
+  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `. Ближайшая работа: ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
 }
 const KIND_CAP = { зачёт: 'Зачёт', экзамен: 'Экзамен', консультация: 'Консультация' };
 function admitTag(s) {
@@ -63,7 +63,7 @@ function sessionRow(s) {
   const [, mo, da] = s.date_key.split('-').map(Number);
   const cons = s.kind === 'консультация';
   return html`<div class="sess${cons ? ' cons' : ''}"><div class="sd"><b>${da}</b><span>${MON_SHORT[mo - 1]}, ${T.wdShortKey(s.date_key).toLowerCase()}</span></div>
-<div class="body"><div class="title">${s.subject}</div><div class="meta">${KIND_CAP[s.kind]} · ${s.start} · ауд. ${s.room}${cons ? '' : ` · ${s.teacher}`}</div>${s.consult ? html`<div class="meta">Консультация – ${T.dayMonthKey(s.consult.date_key)}, ${s.consult.start}</div>` : ''}${admitTag(s) ? html`<div style="margin-top:6px">${admitTag(s)}</div>` : ''}</div></div>`;
+<div class="body"><div class="title">${s.subject}</div><div class="meta">${KIND_CAP[s.kind]} · ${s.start} · ауд. ${s.room}${cons ? '' : ` · ${s.teacher}`}</div>${s.consult ? html`<div class="meta">Консультация ${T.dayMonthKey(s.consult.date_key)}, ${s.consult.start}</div>` : ''}${admitTag(s) ? html`<div style="margin-top:6px">${admitTag(s)}</div>` : ''}</div></div>`;
 }
 const lbl = (pos) => (pos < 12 ? 'transform:none' : pos > 88 ? 'transform:translateX(-100%)' : '');
 
@@ -126,7 +126,7 @@ function today(ctx) {
     const rest = isToday ? left.filter((p) => p.id !== next.id) : [];
     const ch = changeText(next);
     hero = html`<section class="hero" aria-label="Ближайшее учебное занятие">
-<div class="small" style="color:rgba(255,255,255,.85);font-weight:600">${going ? 'Учебное занятие идёт сейчас' : isToday ? 'Следующее учебное занятие' : `${live.length ? 'На сегодня учебные занятия закончились' : 'Сегодня учебных занятий нет'} · ближайшее – ${T.wdLongKey(nk)}, ${T.dayMonthKey(nk)}`}</div>
+<div class="small" style="color:rgba(255,255,255,.85);font-weight:600">${going ? 'Учебное занятие идёт сейчас' : isToday ? 'Следующее учебное занятие' : `${live.length ? 'На сегодня учебные занятия закончились' : 'Сегодня учебных занятий нет'} · ближайшее: ${T.wdLongKey(nk)}, ${T.dayMonthKey(nk)}`}</div>
 <div class="big">${cd.big ? cd.big[0].toUpperCase() + cd.big.slice(1) : ''}</div>
 <div style="display:flex;flex-direction:column;gap:4px"><div class="subj">${next.subject}</div>
 <div class="where">${whereText(next)} · ${next.kind}</div>${ch ? html`<div class="warn">${ch}</div>` : ''}</div>
@@ -185,7 +185,7 @@ function schedule(ctx) {
   const q = (d, v = view) => `/study?d=${d}${v === 'week' ? '&view=week' : ''}`;
   const todayKey = T.dateKey();
   const weekBody = () => html`<section class="section" style="padding-top:4px" aria-label="Учебные занятия на неделю">
-<h2 class="label">Неделя ${T.dayMonthKey(week[0].key)} – ${T.dayMonthKey(week[week.length - 1].key)} · ${T.parityLabel(week[0].key)}</h2>
+<h2 class="label">Неделя с ${T.dayMonthKey(week[0].key)} по ${T.dayMonthKey(week[week.length - 1].key)} · ${T.parityLabel(week[0].key)}</h2>
 ${week.map((d) => html`<div class="wk-day${d.key === todayKey ? ' is-today' : ''}"><a class="wk-h" href="${q(d.key, 'day')}">${T.wdLongKey(d.key)[0].toUpperCase() + T.wdLongKey(d.key).slice(1)}, ${T.dayMonthKey(d.key)}${d.key === todayKey ? ' · сегодня' : ''}</a>
 ${d.session.map((e) => html`<a class="wk-row exam" href="${q(d.key, 'day')}#exam-${e.id}"><span class="t">${e.start}</span><span class="b"><b>${e.subject}</b><span class="m">${e.kind} · ауд. ${e.room}</span></span></a>`)}
 ${d.pairs.length ? d.pairs.map((p) => html`<a class="wk-row${p.change ? ' ch' : ''}${p.cancelled ? ' off' : ''}" href="${q(d.key, 'day')}#pair-${p.id}"><span class="t">${p.start}<br>${p.end}</span><span class="b"><b>${p.subject}</b><span class="m">${p.cancelled ? 'отменена' : `${p.kind} · ${roomText(p)}`}</span>${changeText(p) ? html`<span class="m chg">${changeText(p)}</span>` : ''}</span></a>`)
@@ -213,7 +213,7 @@ ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="nm">${p.subject}</div>
 <div class="small muted" style="margin-top:2px">${p.teacher} · ${placeText(p)}</div>
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
-</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>В этот день учебных занятий нет</b>${nextDay ? html`<div class="small muted" style="margin-top:4px">Следующее учебное занятие – ${T.wdLongKey(nextDay.key)}, ${T.dayMonthKey(nextDay.key)}, ${nextDay.pair.start}: ${nextDay.pair.subject}, ${placeText(nextDay.pair)}</div><div class="actions"><a class="btn secondary small" href="/study?d=${nextDay.key}#pair-${nextDay.pair.id}">Открыть этот день</a></div>` : html`<div class="small muted">Выбери другой день или неделю.</div>`}</div>`}
+</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>В этот день учебных занятий нет</b>${nextDay ? html`<div class="small muted" style="margin-top:4px">Следующее учебное занятие: ${T.wdLongKey(nextDay.key)}, ${T.dayMonthKey(nextDay.key)}, ${nextDay.pair.start}: ${nextDay.pair.subject}, ${placeText(nextDay.pair)}</div><div class="actions"><a class="btn secondary small" href="/study?d=${nextDay.key}#pair-${nextDay.pair.id}">Открыть этот день</a></div>` : html`<div class="small muted">Выбери другой день или неделю.</div>`}</div>`}
 </section>`}`,
   });
 }
@@ -243,11 +243,11 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="section" aria-label="Готовность к сессии"><div class="card readiness">
-<div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} – ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
+<div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
 <div style="font-size:20px;font-weight:700;margin-top:4px">${risky.length ? `Допуск есть по ${ds.length - risky.length} из ${ds.length} дисциплин` : 'Допуск есть по всем дисциплинам'}</div>
 ${risky.map((d) => html`<div class="risk"><span class="rs">${d.subject}</span><span class="small muted" style="grid-column:1 / -1">${riskText(d)}</span>
 <a class="link" style="padding:0" href="/study/session-support/${d.id}">Как получить допуск →</a></div>`)}
-<div class="small muted" style="margin-top:10px">Допуск определяется текущими баллами (демо-правило). Итоги сданных дисциплин – в зачётной книжке. Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
+<div class="small muted" style="margin-top:10px">Допуск определяется текущими баллами (демо-правило). Итоги сданных дисциплин смотри в зачётной книжке. Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
 </div></section>
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
 <div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
@@ -257,7 +257,7 @@ ${ds.map((d) => html`<details class="card grade-detail" id="d-${d.id}" style="ma
 <span class="dotc" style="background:${raw(color[d.light])}"></span>
 <span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:600">${d.subject}</b><span class="muted" style="white-space:nowrap">${d.closed_text ? 'зачтено' : `${d.points} / 100`}</span></span>
 <span class="small muted" style="display:block;margin-top:2px">${word(d)}</span><span class="disclosure-hint">Работы и баллы</span></span>${I.chev}</summary>
-<div style="margin-top:10px">${d.works.map((w) => html`<div class="kv"><span>${w.title}${w.due_key && w.score == null ? html` · до ${T.dayMonthKey(w.due_key)}` : ''}</span><span>${w.score == null ? '–' : w.score} / ${w.max}</span></div>`)}
+<div style="margin-top:10px">${d.works.map((w) => html`<div class="kv"><span>${w.title}${w.due_key && w.score == null ? html` · до ${T.dayMonthKey(w.due_key)}` : ''}</span><span>${w.score == null ? 'нет' : w.score} / ${w.max}</span></div>`)}
 <div class="small muted" style="margin-top:6px">${d.control} · порог ${d.pass_threshold}${d.auto_threshold ? ` · автомат от ${d.auto_threshold}` : ''} · ${d.teacher}</div>
 <div class="actions"><a class="btn secondary small" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Спросить помощника</a></div></div>
 </details>`)}
@@ -272,7 +272,7 @@ function recordBook(ctx) {
   return page({
     title: 'Зачётная книжка', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Зачётная книжка</h1>
-<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр – в разделе «Оценки».</p>
+<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр смотри в разделе «Оценки».</p>
 <div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётную книжку (PDF)</a></div></div>
 <section class="section"><div class="card"><div class="kv"><span>Сдано</span><span>${book.total} из ${book.total}</span></div>
 <div class="kv"><span>Академические задолженности</span><span>${book.debts ? book.debts : 'нет'}</span></div>
@@ -297,7 +297,7 @@ ${studyTabs(user, 'nir')}<div class="page-head" style="padding-top:20px"><h2>Н�
 <div class="progress" style="background:rgba(255,255,255,.3)"><i style="width:${sum}%"></i></div>
 <div class="small" style="color:rgba(255,255,255,.92)">До «отлично» (от 85 баллов) ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
 <section class="section">${stages.map((s) => html`<div class="card" style="margin-top:10px">
-<div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '–' : s.score} / ${s.max}</span></div>
+<div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? 'нет' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
 ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[s.note, s.due_key ? `до ${T.dayMonthKey(s.due_key)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}</div>`)}
 <p class="small muted">Здесь видны этапы и баллы научно-исследовательской работы (НИР). Загрузка отчётов пока недоступна.</p>
@@ -312,7 +312,7 @@ function reqRowWaiting(r) {
   return html`<a class="row" href="/requests/${r.id}"><div class="body">
 <div class="req-head"><span class="title strong">${r.title}</span><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${who}</div>
-<div class="meta">${r.eta_at ? `${cert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} – ${T.relDateTime(new Date(r.eta_at))}` : ''}</div></div>${I.chev}</a>`;
+<div class="meta">${r.eta_at ? `${cert ? 'Ожидаемая готовность' : 'Срок рассмотрения'}: ${T.relDateTime(new Date(r.eta_at))}` : ''}</div></div>${I.chev}</a>`;
 }
 
 function requestsList(ctx) {
@@ -381,7 +381,7 @@ function situation(ctx) {
 ${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" data-document-order aria-labelledby="ord-h"><h2 class="label" id="ord-h">Выбери справки</h2>
 <div class="group">${s.orders.map((o) => html`<label class="row pick ${o.available ? '' : 'off'}"><input type="checkbox" name="items" value="${o.key}" ${o.available ? raw('checked') : raw('disabled')}>
 <span class="body"><span class="title strong">${o.title}</span><span class="meta">${o.available ? o.hint : o.reason}</span></span></label>`)}</div>
-<p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки – в «Заявках».</p>
+<p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки появится в «Заявках».</p>
 ${n ? html`<button class="btn block" type="submit" style="margin-top:14px">Заказать выбранные справки</button>` : ''}
 </form>` : ''}
 ${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Что подготовить самостоятельно' : 'Что сделать'}</h2>
@@ -435,14 +435,14 @@ function taxFields(payments, years, v, user) {
   const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Договор и оплаты найдены в кабинете</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
-${self ? ok('Заказчик по договору – ты') : ''}
+${self ? ok('Ты заказчик по договору') : ''}
 ${ok('Справка об оплате нужна для оформления вычета')}</div></div>
 <fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">Отчётный год <span class="hint">год, в котором оплачено обучение; справку выдают после его окончания</span></legend>
 <div class="options" style="grid-template-columns:1fr">${(closed.length ? closed : years).map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
-<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Возможный возврат – до ${TAX.rub(y.refund)}*</small></span></label>`
-    : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} – это лимит года.` : ''}</small></div>`)}</div></fieldset>
+<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Можно вернуть до ${TAX.rub(y.refund)}*</small></span></label>`
+    : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет посчитают с ${TAX.rub(TAX.OWN_LIMIT)}, это лимит года.` : ''}</small></div>`)}</div></fieldset>
 ${closed.length ? html`<button class="btn block" type="submit" style="margin-top:18px">Заказать справку</button>
-${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} – это лимит года.` : ''}</p>`)}
+${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет посчитают с ${TAX.rub(TAX.OWN_LIMIT)}, это лимит года.` : ''}</p>`)}
 <details class="card tax-more" style="margin-top:16px" ${/^\d{12}$/.test(v.details) ? '' : raw('open')}><summary><b>Данные для справки и ИНН</b><span class="small muted" style="display:block;font-weight:400">Заполнено из договора и профиля${/^\d{12}$/.test(v.details) ? ' · можно проверить' : ' · нужен ИНН'}</span></summary>
 <div style="margin-top:10px"><div class="small muted">Из договора</div>
 <div class="kv"><span>ФИО обучающегося</span><span>${user.full_name}</span></div>
@@ -454,9 +454,9 @@ ${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="m
 <input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" required value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
 <label class="field">Примечание <span class="hint">необязательно</span><textarea name="note" maxlength="500" style="min-height:72px">${v.note || ''}</textarea></label>
 </details>
-<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) – если доход облагается по ставке 13%.</p>` : ''}
+<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт), если доход облагается по ставке 13%.</p>` : ''}
 <a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
-<p class="small muted" style="margin:6px 0 0">Если заказчик по договору – родители или супруг(а), справку оформляют на их имя – в прототипе такая заявка недоступна.</p>`;
+<p class="small muted" style="margin:6px 0 0">Если заказчиком по договору выступают родители или супруг(а), справку оформляют на их имя. В прототипе такая заявка недоступна.</p>`;
 }
 
 function dataHelp(ctx) {
@@ -466,7 +466,7 @@ function dataHelp(ctx) {
 <section class="section"><p style="margin:0;line-height:1.5">ФИО, курс, группу, форму и основу обучения студент сам не меняет: это сведения из личного дела. Их исправляет деканат по документу.</p>
 <div class="stages" style="padding:14px 0 0">
 <div class="stage"><div class="st">ФИО или гражданство</div><div class="when">Для исправления обратись в деканат с паспортом. В демо-версии эти сведения не редактируются.</div></div>
-<div class="stage"><div class="st">Курс, группа, форма или основа обучения</div><div class="when">Меняются приказом; если в кабинете ошибка – напиши в деканат, укажи, какое поле неверно.</div></div>
+<div class="stage"><div class="st">Курс, группа, форма или основа обучения</div><div class="when">Меняются приказом; если в кабинете ошибка, напиши в деканат, укажи, какое поле неверно.</div></div>
 <div class="stage todo"><div class="st">Деканат</div><div class="when">Корпус 1, каб. 210 · пн–пт 9:00–17:00</div></div></div>
 <div class="actions"><a class="btn secondary small" href="/me">Мой профиль</a></div></section>`,
   });
@@ -483,7 +483,7 @@ function taxHelp(ctx) {
 ${step('', 'Справка из вуза за закончившийся год', `Закажи справку в «Заявках». Готовый PDF появится в карточке заявки. Сейчас доступны годы до ${y - 1} включительно, справку за ${y} год можно заказать с января ${y + 1}.`)}
 ${step('', 'Декларация 3-НДФЛ', 'В личном кабинете налогоплательщика выбери вычет на обучение за нужный год и приложи справку.')}
 ${step('todo', 'Проверка и возврат', 'Налоговая проверит декларацию и вернёт налог на указанный счёт. Вернуть налог можно за три последних года.')}</div></section>
-<section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую – тогда они появятся в личном кабинете.</div>
+<section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую, тогда они появятся в личном кабинете.</div>
 <div class="actions" style="margin-top:12px"><a class="btn small" href="/requests/new?type=tax">Заказать справку</a><a class="btn secondary small" href="/helper?q=${encodeURIComponent('Как получить налоговый вычет за обучение?')}">Спросить помощника</a></div></section>`,
   });
 }
@@ -497,7 +497,7 @@ function requestSent(ctx) {
     body: html`<div class="page-head" style="padding-top:40px">${I.check}
 <h1 style="margin-top:14px">${head}</h1>
 <div class="sub">${r.title} · № ${r.number}</div>
-<div class="small muted" style="margin-top:4px;font-size:14px">${isCert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} – ${T.relDateTime(new Date(r.eta_at))}</div></div>
+<div class="small muted" style="margin-top:4px;font-size:14px">${isCert ? 'Ожидаемая готовность' : 'Срок рассмотрения'}: ${T.relDateTime(new Date(r.eta_at))}</div></div>
 <div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Заявка передана в <b>деканат</b>. Статус и сообщения сотрудника появятся в заявке.</div>
 ${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим об изменении статуса заявки.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
 <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:20px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none">${I.bell}</span>
@@ -525,7 +525,7 @@ function requestDetail(ctx) {
     title: `Заявка № ${r.number}`, active: 'requests', ctx,
     body: html`${backBar('/requests', 'Заявки')}
 <div class="page-head" style="display:flex;flex-direction:column;gap:6px"><h1>${r.title}</h1><div class="small muted">Заявка № ${r.number}</div><div style="font-size:16px">${actor}</div>
-${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">${isAid ? 'Срок рассмотрения' : 'Ожидаемая готовность'} – ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
+${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">${isAid ? 'Срок рассмотрения' : 'Ожидаемая готовность'}: ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
 ${pdfOk ? html`<div style="padding:16px 20px 0"><a class="btn block" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div>` : ''}
 ${validity(r) ? html`<div class="note ${validity(r).kind === 'days' && !validity(r).fresh ? 'amber' : 'green'} valid-note" style="margin:12px 20px 0"><b>${validity(r).kind === 'year' ? 'Срок не ограничен' : validity(r).fresh ? `Подойдёт до ${T.dayMonthKey(validity(r).until)}` : 'Возможно, уже устарела'}</b><div class="small" style="margin-top:4px">${validity(r).text}</div>${validity(r).kind === 'days' && !validity(r).fresh ? html`<div class="actions"><a class="btn small" href="/requests/new?type=${r.type}${r.type === 'study' && r.purpose ? `&purpose=${r.purpose}` : ''}">Заказать новую</a></div>` : ''}</div>` : ''}
 <div class="stages">
@@ -585,13 +585,13 @@ const CARD_META = {
 function studentDocs(ctx) {
   const { user, book } = ctx;
   const meta = CARD_META[user.login] || { issued: '01.09.2024', order: '1000-ЛС' };
-  const level = user.level === 'магистратура' ? 'Высшее – магистратура' : user.level === 'аспирантура' ? 'Высшее – аспирантура' : 'Высшее – бакалавриат';
+  const level = user.level === 'магистратура' ? 'Высшее, магистратура' : user.level === 'аспирантура' ? 'Высшее, аспирантура' : 'Высшее, бакалавриат';
   const form = user.form === 'очно-заочная' ? 'Очно-заочная (вечерняя)' : user.form[0].toUpperCase() + user.form.slice(1);
   const field = (label, value, wide) => html`<div class="id-field ${wide ? 'wide' : ''}"><span class="id-label">${label}</span><span class="id-value">${value}</span></div>`;
   return page({
     title: 'Мои документы', active: 'me', ctx,
     body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Мои документы</h1>
-<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF – демо-образец.</p></div>
+<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF является демо-образцом.</p></div>
 <section class="section" aria-label="Студенческий билет">
 <article class="id-card">
 <div class="id-card-head">Студенческий билет</div>
@@ -667,7 +667,7 @@ ${NOTIF_CATEGORIES.map((c) => html`<label class="toggle-row"><span class="body">
 <noscript><button class="btn block" type="submit">Сохранить</button></noscript>
 <div class="save-feedback" role="status" aria-live="polite"><span data-saved>Изменения сохраняются автоматически.</span><button type="button" class="link" data-save-retry hidden>Повторить</button></div>
 </form>
-<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>Уведомления в браузере содержат только тему – без баллов, оценок и текста заявки.</span></div>
+<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>Уведомления в браузере содержат только тему, без баллов, оценок и текста заявки.</span></div>
 
 <div class="card" style="margin-top:8px"><b>Уведомления в браузере</b><p class="small muted" style="font-size:14px;margin:4px 0 0">Пока кабинет открыт, браузер покажет уведомление о смене статуса заявки.</p>
 <div class="actions"><button class="btn secondary small" type="button" data-ask-permission-btn>Разрешить на этом устройстве</button></div><p class="small muted" data-perm-state></p></div></div>`,
@@ -702,7 +702,7 @@ function support(ctx) {
 <div class="kv"><span>Деканат (демо)</span><span>корпус 1, каб. 210 · пн–пт 9:00–17:00</span></div>
 <div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/help/data">Как исправить данные</a><a class="btn secondary small" href="/requests">Мои заявки</a></div>
 </div></section>
-<section class="section"><p class="small muted">Если тяжело и нужна поддержка – <a href="/hard">психологическая помощь</a>.</p></section>`,
+<section class="section"><p class="small muted">Если тяжело и нужна поддержка, открой раздел <a href="/hard">«Психологическая помощь»</a>.</p></section>`,
   });
 }
 
@@ -710,14 +710,14 @@ function hard(ctx) {
   const opt = (href, title, text) => html`<a class="card" href="${href}" style="display:flex;gap:12px;text-decoration:none;color:var(--ink);margin-top:10px"><span style="flex:1"><b>${title}</b><span class="small muted" style="display:block;margin-top:2px;font-size:14px">${text}</span></span>${I.chev}</a>`;
   return page({
     title: 'Психологическая помощь', active: 'me', ctx,
-    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Психологическая помощь</h1><p class="muted" style="margin:6px 0 0">Контакты психологической службы и помощь с учебной нагрузкой. Вопросы по кабинету – в <a href="/support">службе поддержки</a>.</p></div>
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Психологическая помощь</h1><p class="muted" style="margin:6px 0 0">Контакты психологической службы и помощь с учебной нагрузкой. С вопросами по кабинету обращайся в <a href="/support">службу поддержки</a>.</p></div>
 <section class="section" style="padding-top:8px" aria-label="Психологическая помощь">
 ${opt('#psy', 'Контакты психологической службы', 'Где найти помощь и к кому обратиться')}
 ${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник поможет составить просьбу о переносе срока сдачи')}
 ${opt('/study/grades', 'Трудности с учёбой', 'Баллы, несданные работы и допуск к сессии')}
 <div class="card" id="psy" style="margin-top:16px"><b>Если нужна помощь прямо сейчас</b>
-<div class="actions"><a class="btn small" href="tel:112">112 – экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
-<p class="small muted" style="margin:8px 0 0">+7 495 989-50-50 – телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
+<div class="actions"><a class="btn small" href="tel:112">112, экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
+<p class="small muted" style="margin:8px 0 0">+7 495 989-50-50: телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
 <p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00.</p></div>
 <div class="note" style="margin-top:12px">${I.lock}<span>Открытие этого раздела не создаёт обращение в деканат и не отправляет уведомлений куратору.</span></div>
 </section>
@@ -734,7 +734,7 @@ function route(ctx) {
 <section class="section">${r ? html`<div class="stages" style="padding:0">
 <div class="stage"><div class="st">Корпус ${b}</div><div class="when">Вход с главной площади кампуса</div></div>
 <div class="stage"><div class="st">${r[0]} этаж</div><div class="when">Лестница или лифт справа от входа</div></div>
-<div class="stage current"><div class="st">Аудитория ${room}</div><div class="when">Номера по возрастанию – от лестницы налево</div></div></div>` : html`<p>Аудитория не указана.</p>`}
+<div class="stage current"><div class="st">Аудитория ${room}</div><div class="when">Номера идут по возрастанию от лестницы налево</div></div></div>` : html`<p>Аудитория не указана.</p>`}
 <div class="note" style="margin-top:8px">Пример маршрута. Расположение входов и аудиторий вымышлено.</div></section>`,
   });
 }

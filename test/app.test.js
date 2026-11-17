@@ -217,7 +217,7 @@ test('уведомление об изменении аудитории ведё
 test('сессия: даты, допуск, зачётная книжка, вопрос помощнику', async () => {
   const anna = await login('anna'); const ilya = await login('ilya');
   const g = await (await anna.get('/study/grades')).text();
-  assert.match(g, /первый зачёт – \d+ декабря/);
+  assert.match(g, /первый зачёт \d+ декабря/);
   assert.match(g, /Как получить допуск/);
   assert.match(g, /Бизнес-планирование[\s\S]*до допуска 38 баллов/);
   assert.match(g, /Маркетинг[\s\S]*допуск есть/);
@@ -243,7 +243,7 @@ test('напоминания о сроках в ленте и фильтр «С�
   const anna = await login('anna');
   const f = await (await anna.get('/notifications?c=deadlines')).text();
   assert.match(f, /Через 2 дня: реферат по маркетингу/);
-  assert.doesNotMatch(f, /Экономика организации – ауд/); // другие категории скрыты фильтром
+  assert.doesNotMatch(f, /Экономика организации: ауд/); // другие категории скрыты фильтром
 });
 
 test('повторный проход сценария: ИНН подставлен без черновика, сброс демо возвращает черновик', async () => {
@@ -561,7 +561,7 @@ test('студенческий билет и зачётка: экран доку
   assert.match(docs, /Приказ о зачислении/);
   assert.match(docs, /Дата выдачи/);
   assert.match(docs, /Уровень образования/);
-  assert.match(docs, /Высшее – бакалавриат/);
+  assert.match(docs, /Высшее, бакалавриат/);
   assert.match(docs, /href="\/study\/record"/);
   assert.doesNotMatch(docs, /не заменяет оригинал|военкомат|ОБРАЗЕЦ/);
   assert.equal((await ilya.get('/me/docs')).status, 200);
@@ -679,4 +679,20 @@ test('готовая справка: срок, когда её обычно пр
   assert.match(job, /Уже выдана: № \d{4}-007, подойдёт до/);
   const tax = await login('ilya');
   assert.doesNotMatch(await (await tax.get('/requests')).text(), /возможно, устарела/);
+});
+
+test('в текстах кабинета нет тире между словами', async () => {
+  const anna = await login('anna'); const ilya = await login('ilya'); const dk = await login('dekanat');
+  const text = (h) => h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ');
+  const pages = [[anna, ['/', '/study', '/study?view=week', '/study/grades', '/study/record', '/study/session-support', '/study/plan', '/requests', '/requests/new', '/situations/housing', '/situations/job', '/situations/behind', '/me', '/me/docs', '/notifications', '/support', '/hard', '/helper', '/find?q=справка']],
+    [ilya, ['/', '/requests/new?type=tax&draft=1', '/study/nir', '/situations/tax', '/situations/military']], [dk, ['/staff', '/staff?f=work', '/staff?f=done']]];
+  for (const [c, urls] of pages) for (const u of urls) {
+    const t = text(await (await c.get(u)).text());
+    const m = t.match(/.{0,30}\s[–—]\s.{0,30}/);
+    assert.equal(m, null, `${u}: ${m && m[0]}`);
+  }
+  for (const q of ['Какие пары завтра?', 'Когда сессия?', 'Какой средний балл?', 'Что такое академическая разница?', 'Статус заявки', 'Нужна справка о стипендии']) {
+    const a = await (await anna.post('/api/assistant', { message: q }, true)).json();
+    assert.doesNotMatch(a.text, /\s[–—]\s/, q);
+  }
 });

@@ -71,7 +71,7 @@ function createApp(opts = {}) {
     const origin = req.get('origin') || req.get('referer');
     if (!origin) return next();
     try { if (new URL(origin).host === req.get('host')) return next(); } catch { /* ignore */ }
-    fail(req, res, 403, 'Запрос отклонён', 'Форма была отправлена с другого сайта. Для защиты кабинета такие запросы не принимаются – открой страницу заново и повтори действие.');
+    fail(req, res, 403, 'Запрос отклонён', 'Форма была отправлена с другого сайта. Для защиты кабинета такие запросы не принимаются: открой страницу заново и повтори действие.');
   });
   app.use((req, res, next) => {
     req.user = req.session.uid ? M.user(req.session.uid) : null;
@@ -91,7 +91,7 @@ function createApp(opts = {}) {
     try { ctx = { user: req.user, needsAction: false, unread: 0 }; } catch { /* ignore */ }
     return res.status(code).type('html').send(String(errorPage({ ctx, title, text, links })));
   };
-  const NOT_YOURS = 'Такой заявки нет среди твоих. Если ссылку прислали – проверь, что вошёл(а) под своим логином.';
+  const NOT_YOURS = 'Такой заявки нет среди твоих. Если ссылку прислали, проверь, что вошёл(а) под своим логином.';
 
   const needAuth = (role) => (req, res, next) => {
     if (!req.user) return req.accepts('html') && req.method === 'GET' ? res.redirect('/login') : res.status(401).json({ error: 'Нужно войти' });
@@ -211,7 +211,7 @@ function createApp(opts = {}) {
   });
   app.get('/study/session-support/:id', student, (req, res) => {
     const d = ownDiscipline(req);
-    if (!d || d.closed_text) return fail(req, res, 404, 'Дисциплина не найдена', 'Такой дисциплины нет среди твоих. Если ссылку прислали – проверь, что вошёл(а) под своим логином.', [['/study/session-support', 'Допуск к сессии']]);
+    if (!d || d.closed_text) return fail(req, res, 404, 'Дисциплина не найдена', 'Такой дисциплины нет среди твоих. Если ссылку прислали, проверь, что вошёл(а) под своим логином.', [['/study/session-support', 'Допуск к сессии']]);
     const session = M.session(req.user.id);
     send(res, V.sessionSupport(ctxOf(req, {
       d, exam: AD.examOf(session, d.id), consult: AD.consultOf(session, d.id), math: AD.arithmetic(d), draft: AD.letter({ user: req.user, d, exam: AD.examOf(session, d.id) }),
@@ -247,7 +247,7 @@ function createApp(opts = {}) {
     res.redirect('/study/plan');
   });
   app.post('/study/plan/slots/:id/done', student, (req, res) => {
-    if (!M.toggleStudySlot(req.user.id, req.params.id)) return fail(req, res, 404, 'Задача не найдена', 'Такой задачи нет в твоём плане. Если ссылку прислали – проверь, что вошёл(а) под своим логином.', [['/study/plan', 'Мой план']]);
+    if (!M.toggleStudySlot(req.user.id, req.params.id)) return fail(req, res, 404, 'Задача не найдена', 'Такой задачи нет в твоём плане. Если ссылку прислали, проверь, что вошёл(а) под своим логином.', [['/study/plan', 'Мой план']]);
     res.redirect('/study/plan');
   });
   app.get('/study/record', student, (req, res) => send(res, V.recordBook(ctxOf(req, { book: M.recordBook(req.user.id) }))));
@@ -286,10 +286,10 @@ function createApp(opts = {}) {
       const y = TAX.yearsFromPayments(payments).find((x) => x.eligibleForm && String(x.year) === String(purpose));
       if (!y) return fail('Выбери год, за который есть оплата по договору');
       if (!y.closed) return fail(`Справку за ${y.year} год можно заказать с января ${y.year + 1}, когда год закончится`);
-      if (!details) return fail('Укажи ИНН – 12 цифр. Он обязателен в справке для налоговой.');
-      if (!TAX.innOk(details)) return fail('ИНН не прошёл проверку: должно быть 12 цифр, две последние – контрольные. Проверь, нет ли опечатки.');
+      if (!details) return fail('Укажи ИНН из 12 цифр. Он обязателен в справке для налоговой.');
+      if (!TAX.innOk(details)) return fail('ИНН не прошёл проверку: должно быть 12 цифр, две последние из них контрольные. Проверь, нет ли опечатки.');
       const dup = M.requestsOf(req.user.id).find((x) => x.type === 'tax' && String(x.purpose) === String(y.year) && ['submitted', 'in_work', 'need_student', 'ready'].includes(x.status));
-      if (dup) return fail(`Справка за ${y.year} год уже ${dup.status === 'ready' ? 'выдана' : 'заказана'}: № ${dup.number}. Сумма за закончившийся год не меняется – повторно заказывать не нужно.`);
+      if (dup) return fail(`Справка за ${y.year} год уже ${dup.status === 'ready' ? 'выдана' : 'заказана'}: № ${dup.number}. Сумма за закончившийся год не меняется: повторно заказывать не нужно.`);
     }
     const note = type === 'tax' ? String(req.body.note || '').trim().slice(0, 500) : '';
     const id = M.submitRequest(req.user, { type, purpose, format, details, note });
@@ -344,7 +344,7 @@ function createApp(opts = {}) {
   });
   app.get('/requests/:id/pdf', needAuth(), loadRequest, (req, res) => {
     const r = req.r;
-    if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return fail(req, res, 404, 'PDF пока нет', 'Справка ещё не готова или выдаётся на бумаге в деканате. Статус – в карточке заявки.', [[`/requests/${r.id}`, 'Открыть заявку']]);
+    if (r.status !== 'ready' || !TYPES[r.type].producesPdf || r.format === 'paper') return fail(req, res, 404, 'PDF пока нет', 'Справка ещё не готова или выдаётся на бумаге в деканате. Статус смотри в карточке заявки.', [[`/requests/${r.id}`, 'Открыть заявку']]);
     res.type('pdf').set('Content-Disposition', `inline; filename="spravka-${r.number}.pdf"`);
     pdf.certificate({ r, student: M.user(r.student_id), staff: r.assignee_id ? M.user(r.assignee_id) : null, payments: M.payments(r.student_id), stipends: M.stipends(r.student_id) }, res);
   });
@@ -427,7 +427,7 @@ function createApp(opts = {}) {
     if (r.status !== 'submitted') return 'Заявка уже в работе';
     M.db.prepare("UPDATE requests SET status = 'in_work', assignee_id = ?, taken_at = ? WHERE id = ?").run(req.user.id, new Date().toISOString(), r.id);
     M.addEvent(r.id, req.user.id, 'taken');
-    notifyStudent(r, `${r.title} взята в работу`, `Заявка № ${r.number}. Оформляет ${req.user.short_name.replace(/\.$/, '')}. Ожидаемый срок – ${T.relDateTime(new Date(r.eta_at))}.`);
+    notifyStudent(r, `${r.title} взята в работу`, `Заявка № ${r.number}. Оформляет ${req.user.short_name.replace(/\.$/, '')}. Ожидаемый срок: ${T.relDateTime(new Date(r.eta_at))}.`);
     return 'Заявка взята в работу. Студент видит ваше имя и срок.';
   }));
   app.post('/staff/requests/:id/need', ...act((r, text, req) => {
@@ -470,7 +470,7 @@ function createApp(opts = {}) {
   app.post('/staff/reset', staff, (req, res) => { resetDemo(M.db); flash(req, 'Демо-данные возвращены к исходному состоянию'); res.redirect('/staff'); });
 
   app.use((req, res) => fail(req, res, 404, 'Страница не найдена', 'Возможно, ссылка устарела. Нужное можно найти через меню или спросить помощника.', req.user && req.user.role === 'student' ? [['/helper', 'Спросить помощника']] : []));
-  app.use((err, req, res, next) => { console.error(err); fail(req, res, 500, 'Что-то пошло не так', 'Обнови страницу через минуту. Если ошибка повторится – напиши в деканат: корпус 1, каб. 210.'); });
+  app.use((err, req, res, next) => { console.error(err); fail(req, res, 500, 'Что-то пошло не так', 'Обнови страницу через минуту. Если ошибка повторится, напиши в деканат: корпус 1, каб. 210.'); });
 
   app.locals.M = M;
   return app;

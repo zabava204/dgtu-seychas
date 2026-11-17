@@ -14,7 +14,7 @@ const SITUATIONS = [
   { id: 'behind', title: 'Готовлюсь к сессии', lead: 'Что ещё сдать, сколько баллов нужно до допуска, даты зачётов и экзаменов.', icon: 'clock' },
   { id: 'money', title: 'Оформляю материальную помощь', lead: 'Заявление и документы, которые понадобятся.', icon: 'aid' },
   { id: 'military', title: 'Воинский учёт и отсрочка', lead: 'Куда обратиться в ДГТУ и как уточнить порядок получения документов.', icon: 'id' },
-  { id: 'idcard', title: 'Нужен студенческий билет или зачётная книжка', lead: 'Билет и зачётная книжка в кабинете – когда просят подтвердить, что ты учишься.', icon: 'id' },
+  { id: 'idcard', title: 'Нужен студенческий билет или зачётная книжка', lead: 'Билет и зачётная книжка в кабинете: когда просят подтвердить, что ты учишься.', icon: 'id' },
 ];
 
 // data: { user, payments, stipends, disciplines, session, requests }
@@ -26,7 +26,7 @@ function build(id, data) {
   const busy = (type, purpose) => requests.find((r) => r.type === type && (purpose == null || r.purpose === purpose) && (['submitted', 'in_work', 'need_student'].includes(r.status) || (r.status === 'ready' && (type === 'tax' || (validity(r) || {}).fresh))));
   const order = (key, type, purpose, title, hint, extra = {}) => {
     const b = busy(type, purpose);
-    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? (b.status === 'ready' ? `Уже выдана: № ${b.number}${validity(b)?.until ? `, подойдёт до ${T.dayMonthKey(validity(b).until)}` : ''} – PDF в «Заявках»` : `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}`) : extra.reason, ...extra };
+    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? (b.status === 'ready' ? `Уже выдана: № ${b.number}${validity(b)?.until ? `, подойдёт до ${T.dayMonthKey(validity(b).until)}` : ''}: PDF в «Заявках»` : `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}`) : extra.reason, ...extra };
   };
   const out = { ...s, orders: [], todo: [], notes: [], links: [] };
 
@@ -46,15 +46,15 @@ function build(id, data) {
     } else {
       out.notes.push(user.funding === 'контракт' ? 'Справка о стипендии не нужна: на договоре академическая стипендия не назначается.' : 'Справка о стипендии не нужна: в кабинете нет выплат стипендии.');
     }
-    out.todo.push('Документы о доходах родителей и составе семьи семья получает сама – точный перечень назовут в органе соцзащиты или МФЦ.');
-    out.notes.push('Срок действия справок обычно ограничен – заказывай, когда семья готова подать документы (демо-правило).');
+    out.todo.push('Документы о доходах родителей и составе семьи семья получает сама: точный перечень назовут в органе соцзащиты или МФЦ.');
+    out.notes.push('Срок действия справок обычно ограничен. Заказывай, когда семья готова подать документы (демо-правило).');
   }
 
   if (id === 'job') {
     out.orders.push(order('study', 'study', 'employer', 'Справка об обучении по месту работы', 'Для отдела кадров · PDF, обычно в тот же день'));
     if (user.form !== 'очная') {
       const first = session.find((x) => x.kind !== 'консультация');
-      out.notes.push(`Ты учишься ${user.form === 'очно-заочная' ? 'очно-заочно' : 'заочно'}: на время сессии работодатель может предоставить учебный отпуск по справке-вызову. В этой версии кабинета её оформляют в деканате${first ? `; твой первый ${first.kind} в сессию – ${T.dayMonthKey(first.date_key)}` : ''}.`);
+      out.notes.push(`Ты учишься ${user.form === 'очно-заочная' ? 'очно-заочно' : 'заочно'}: на время сессии работодатель может предоставить учебный отпуск по справке-вызову. В этой версии кабинета её оформляют в деканате${first ? `; твой первый ${first.kind} в сессию: ${T.dayMonthKey(first.date_key)}` : ''}.`);
       out.links.push({ href: '/study/grades#session', label: 'Даты сессии' });
     }
   }
@@ -70,7 +70,7 @@ function build(id, data) {
       if (cur) out.notes.push(`Справку за ${cur.year} год можно заказать с января ${cur.year + 1}.`);
       out.links.push({ href: '/help/tax', label: 'Как получить вычет' });
     } else {
-      out.notes.push('В кабинете нет оплат по договору: вычет положен только за платное обучение. Если ты платишь за учёбу – напиши в деканат, проверим договор.');
+      out.notes.push('В кабинете нет оплат по договору: вычет положен только за платное обучение. Если ты платишь за учёбу, напиши в деканат, проверим договор.');
     }
   }
 
@@ -79,7 +79,7 @@ function build(id, data) {
     if (!risky.length) out.notes.push('По всем дисциплинам порог набран и просрочек нет.');
     for (const d of risky) {
       const ex = session.find((x) => x.discipline_id === d.id && x.kind !== 'консультация');
-      out.todo.push(`${d.subject}: ${d.gap ? `до допуска не хватает ${d.gap} ${pl(d.gap)}` : 'порог набран'}${d.overdue.length ? `; просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max} ${pl(w.max)})`).join(', ')}` : ''}${ex ? `; ${ex.kind} ${T.dayMonthKey(ex.date_key)}` : ''}. Преподаватель – ${d.teacher}`);
+      out.todo.push(`${d.subject}: ${d.gap ? `до допуска не хватает ${d.gap} ${pl(d.gap)}` : 'порог набран'}${d.overdue.length ? `; просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max} ${pl(w.max)})`).join(', ')}` : ''}${ex ? `; ${ex.kind} ${T.dayMonthKey(ex.date_key)}` : ''}. Преподаватель: ${d.teacher}`);
     }
     const topGap = [...risky].filter((d) => d.gap > 0).sort((a, b) => b.gap - a.gap)[0];
     if (topGap) out.links.push({ href: `/study/session-support/${topGap.id}`, label: 'Разобрать допуск' });
@@ -94,14 +94,14 @@ function build(id, data) {
     const aid = requests.find((r) => r.type === 'aid' && ['submitted', 'in_work', 'need_student'].includes(r.status));
     if (aid) out.notes.push(`Заявление уже подано: № ${aid.number}, ${aid.statusText.toLowerCase()}.`);
     else out.links.push({ href: '/requests/new?type=aid', label: 'Подать заявление' });
-    out.todo.push('Справка о составе семьи – в МФЦ или управляющей компании по месту регистрации; можно загрузить скан или фото.');
-    out.notes.push('Основания и размер помощи определяет комиссия – это демо-правило концепта.');
+    out.todo.push('Справка о составе семьи: в МФЦ или управляющей компании по месту регистрации; можно загрузить скан или фото.');
+    out.notes.push('Основания и размер помощи определяет комиссия. Это демо-правило концепта.');
     if (aid) out.links.push({ href: `/requests/${aid.id}`, label: 'Открыть заявление' });
   }
 
   if (id === 'idcard') {
     out.todo.push(`Студенческий билет: ${user.full_name}, ${user.faculty}, ${user.course} курс, группа ${user.group_name}, № ${user.record_book}.`);
-    out.todo.push('Зачётная книжка – итоги прошлых сессий и средний балл; текущий семестр – в «Оценках».');
+    out.todo.push('Зачётная книжка: итоги прошлых сессий и средний балл; текущий семестр смотри в «Оценках».');
     out.links.push({ href: '/me/docs', label: 'Открыть студенческий билет' });
     out.links.push({ href: '/study/record', label: 'Зачётная книжка' });
     out.links.push({ href: '/requests/new?type=study', label: 'Справка об обучении' });
