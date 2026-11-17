@@ -588,17 +588,26 @@ test('версия для слабовидящих: включается и вы
   assert.doesNotMatch(await (await anna.get('/me')).text(), /class="lv"/);
 });
 
-test('главная: сворачиваемые задачи, черновик Ильи и навигатор обращения', async () => {
+test('главная: первая задача видна, вычет и допуск сверху, один вход в помощь', async () => {
   const anna = await login('anna'), ilya = await login('ilya');
   const a = await (await anna.get('/')).text(), i = await (await ilya.get('/')).text();
   for (const page of [a, i]) {
     assert.match(page, /Задачи и заявки/);
-    assert.match(page, /<details class="attention-panel" open data-disclosure="today-tasks-\d+"/);
-    const visible = page.split('attention-content')[1].split('<details')[0];
+    assert.match(page, /class="group attention-primary"/);
+    const visible = page.split('attention-primary')[1].split('<details')[0];
     assert.equal((visible.match(/class="row attention-row"/g) || []).length, 1);
-    assert.match(page, /Другие задачи/);
+    assert.match(page, /Ещё \d+ задач/);
+    const attAt = page.indexOf('overview-attention');
+    const actAt = page.indexOf('overview-actions');
+    assert.ok(attAt > -1 && actAt > attAt, 'задачи выше быстрых действий в разметке');
   }
-  assert.match(i.split('attention-content')[1].split('<details')[0], /Справка для налогового вычета/);
+  assert.match(i.split('attention-primary')[1].split('<details')[0], /Справка для налогового вычета/);
+  assert.match(a.split('attention-primary')[1].split('<details')[0], /Допуск к сессии: Бизнес-планирование/);
+  assert.doesNotMatch(a.split('attention-primary')[1].split('<details')[0], /соцзащит/);
+  const me = await (await anna.get('/me')).text();
+  assert.match(me, /Помощь и поддержка/);
+  assert.equal((me.match(/href="\/hard"/g) || []).length, 1);
+  assert.doesNotMatch(me, /Куда обратиться/);
   for (const c of [anna, ilya]) {
     const p = await (await c.get('/situations/military')).text();
     assert.match(p, /Воинский учёт и отсрочка/);

@@ -175,7 +175,7 @@ function createApp(opts = {}) {
     const reqs = M.requestsOf(u.id);
     const todo = [];
     for (const r of reqs.filter((x) => x.status === 'need_student')) todo.push({ amber: true, title: `${r.title}: нужен документ`, meta: `Заявка № ${r.number} ждёт документ`, href: `/requests/${r.id}#upload`, action: 'Загрузить' });
-    for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ kind: 'draft', title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
+    for (const r of reqs.filter((x) => x.status === 'draft')) todo.push({ kind: 'draft', type: r.type, title: r.title, meta: r.type === 'tax' ? 'Черновик заполнен по договору · проверь и отправь' : 'Черновик заполнен из профиля', href: `/requests/new?type=${r.type}&draft=1`, action: 'Проверить' });
     const ds = M.disciplines(u.id);
     // Работы «на балл» (допуск уже есть) — ниже срочного и с пометкой
     const later = [];

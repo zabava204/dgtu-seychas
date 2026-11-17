@@ -134,18 +134,17 @@ ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComp
 ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещё сегодня: ${rest.map((p) => `${p.start} ${p.subject}`).join(' · ')}</div>` : ''}
 <a class="ghost" href="/study?d=${nk}#pair-${next.id}">Расписание на день</a></section>`;
   }
-  // Требует внимания: сначала допуск (сюжет жюри), потом заявки и сроки
+  // Задачи: вычет и допуск — сверху (сценарии жюри), остальное под «Ещё».
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false)
     .slice()
     .sort((a, b) => (b.d.gap || 0) - (a.d.gap || 0) || String(a.date_key).localeCompare(String(b.date_key)));
-  const riskItems = risks.map((x) => ({ amber: true, title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' }));
+  const riskItems = risks.map((x) => ({ amber: true, kind: 'admission', title: `Допуск к сессии: ${x.subject}`, meta: `${riskText(x.d)} · ${x.kind} ${T.dayMonthKey(x.date_key)}`, href: `/study/session-support/${x.d.id}`, action: 'Разобраться' }));
   const allAttention = [...riskItems, ...todo.filter((t) => t.amber), ...todo.filter((t) => !t.amber && !t.low), ...todo.filter((t) => t.low)];
-  // Подготовленный черновик завершается одним действием; иначе сначала риск допуска.
-  const primary = todo.find((t) => t.kind === 'draft') || allAttention[0];
+  const taxDraft = todo.find((t) => t.kind === 'draft' && t.type === 'tax');
+  const primary = taxDraft || riskItems[0] || todo.find((t) => t.amber) || todo.find((t) => t.kind === 'draft') || allAttention[0];
   const attention = primary ? [primary, ...allAttention.filter((t) => t !== primary)] : [];
-  const attRow = (t) => html`<div class="row attention-row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
-<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="${t === primary ? 'btn secondary small' : 'act'}" href="${t.href}" aria-label="${t.kind === 'draft' ? 'Продолжить заявку' : t.action}: ${t.title}">${t.kind === 'draft' ? 'Продолжить заявку' : t.action}${I.chev}</a>` : ''}</div>`;
-  // Контекстные действия: зависят от ситуации студента. План уже на карточке выше — в чипах не дублируем.
+  const attRow = (t, isPrimary = false) => html`<div class="row attention-row">${t.amber ? html`<span class="bar amber"></span>` : html`<span class="bar"></span>`}
+<div class="body"><div class="title">${t.title}</div><div class="meta">${t.meta}</div></div>${t.href ? html`<a class="${isPrimary ? 'btn secondary small' : 'act'}" href="${t.href}" aria-label="${t.kind === 'draft' ? 'Продолжить заявку' : t.action}: ${t.title}">${t.kind === 'draft' ? 'Продолжить заявку' : t.action}${I.chev}</a>` : ''}</div>`;
   const overdue = ds.some((d) => d.overdue.length);
   const needPlan = !nextSlot && risks.length > 0;
   const actions = [
@@ -160,11 +159,12 @@ ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещ
     body: html`
 <div class="greet"><h1>${greeting()}, ${user.first_name}!</h1><div class="muted">${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)} · ${T.parityLabel(key)}</div></div>
 <div class="overview-grid">${hero}
+<section class="section overview-attention" aria-labelledby="att-h">
+<div class="attention-head"><h2 class="label" id="att-h">Задачи и заявки</h2>${attention.length ? html`<span class="task-count">${attention.length}<span class="sr-only"> ${plural(attention.length, 'задача', 'задачи', 'задач')}</span></span>` : ''}</div>
+${attention.length ? html`<div class="group attention-primary">${attRow(attention[0], true)}${attention.length > 1 ? html`<details class="more-att" data-disclosure="today-more-${user.id}"><summary>Ещё ${attention.length - 1} ${plural(attention.length - 1, 'задача', 'задачи', 'задач')}${I.chev}</summary>${attention.slice(1).map((t) => attRow(t))}</details>` : ''}</div>`
+  : html`<p class="small muted attention-empty">Новых задач и заявок нет.</p>`}</section>
 <section class="section overview-actions" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
 <nav class="qa" aria-label="Быстрые действия">${actions.map(([h, l, icon]) => html`<a href="${h}"><span class="qa-icon qa-${icon}" aria-hidden="true">${raw(`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${TILE_ICON[icon]}</svg>`)}</span><span>${l}</span>${I.chev}</a>`)}</nav></section>
-<section class="section overview-attention" aria-labelledby="att-h">
-<details class="attention-panel" open data-disclosure="today-tasks-${user.id}"><summary><h2 id="att-h">Задачи и заявки</h2><span class="task-count">${attention.length}<span class="sr-only"> ${plural(attention.length, 'задача', 'задачи', 'задач')}</span></span>${I.chev}</summary>
-${attention.length ? html`<div class="attention-content">${attention.slice(0, 1).map(attRow)}${attention.length > 1 ? html`<details class="more-att"><summary>Другие задачи (${attention.length - 1})${I.chev}</summary>${attention.slice(1).map(attRow)}</details>` : ''}</div>` : html`<p class="small muted attention-empty">Новых задач и заявок нет.</p>`}</details></section>
 <a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">${I.helper}</span><span><b>Помощник по учёбе</b><span class="muted">Объяснит баллы, найдёт пару или справку</span></span>${I.chev}</a>
 ${nextSlot ? html`<section class="section overview-plan" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Ближайшая задача плана</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
   : needPlan ? html`<section class="section overview-plan" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Распределить несданные работы по времени без пар</span></span>${I.chev}</a></section>` : ''}
@@ -634,11 +634,11 @@ ${demoSwitcher(ctx)}
 <section class="section" aria-labelledby="dean-h"><h2 class="label" id="dean-h">Мой деканат</h2><div class="card">
 <div class="req-head"><b>Корпус 1, каб. 210</b><span class="tag">Демо-контакты</span></div>
 <p class="small muted">Пн–пт, 9:00–17:00 · московское время</p><p class="small">${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</p>
-<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a><a class="btn secondary small" href="/hard#support">Куда обратиться</a></div></div></section>
+<div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a></div></div></section>
 <section class="section" aria-labelledby="settings-h"><h2 class="label" id="settings-h">Настройки и помощь</h2><div class="group">
 ${linkRow('/me/notifications', 'Настройки уведомлений', 'Темы и уведомления в браузере')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
-${linkRow('/hard', 'Помощь и поддержка', 'По вопросам кабинета, документов и учёбы')}
+${linkRow('/hard', 'Помощь и поддержка', 'Психологическая помощь и вопросы по кабинету')}
 <form method="post" action="/logout"><button class="row logout-btn" type="submit"><span class="body"><span class="title strong">Выйти из кабинета</span></span>${I.chev}</button></form></div></section>
 </div></div>
 <section class="section demo-settings"><details class="card"><summary>Демонстрационный режим${I.chev}</summary><p class="small muted">Все данные вымышленные и общие для проверяющих. Они возвращаются к началу каждую ночь в 3:00 МСК.</p>
