@@ -1,5 +1,5 @@
 'use strict';
-// Время кабинета — московское (UTC+3, без перехода на летнее время).
+// Время кабинета – московское (UTC+3, без перехода на летнее время).
 const MSK_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -36,7 +36,7 @@ function timeOf(d) { return hhmm(minutesOfDay(d)); }
 function wdShortKey(key) { return WD_SHORT[new Date(key + 'T00:00:00Z').getUTCDay()]; }
 function wdLongKey(key) { return WD_LONG[new Date(key + 'T00:00:00Z').getUTCDay()]; }
 
-// Учебная неделя: неделя, в которую входит 1 сентября, — первая; нечётная = верхняя
+// Учебная неделя: неделя, в которую входит 1 сентября, – первая; нечётная = верхняя
 function studyWeek(key = dateKey()) {
   const [y, mo] = key.split('-').map(Number);
   const startYear = mo >= 9 ? y : y - 1;

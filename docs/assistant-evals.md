@@ -33,7 +33,7 @@
 | ilya-tax-unfinished-year | ilya | calc | Пройден | Незакончившийся год не приводит к кнопке заказа справки. |
 | anna-retrieval-sentinels | anna | retrieval | Пройден | Специальные значения баллов, платежа и заявки не попадают в автоматически собранные справочные блоки. |
 
-Распределение проверок: calc — 11; decision — 1; fallback — 1; retrieval — 1.
+Распределение проверок: calc – 11; decision – 1; fallback – 1; retrieval – 1.
 
 ## Что означают ветки
 

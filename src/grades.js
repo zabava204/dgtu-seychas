@@ -27,17 +27,17 @@ function findWorks(question, works) {
 const control = (d) => (d.control === 'экзамен' ? 'экзамен' : 'зачёт');
 
 function workLine(w, today) {
-  if (!w.due_key) return `${w.title} — до ${balls(w.max)}`;
+  if (!w.due_key) return `${w.title} – до ${balls(w.max)}`;
   const past = w.due_key < today;
-  return `${w.title} — до ${balls(w.max)}, ${past ? 'срок прошёл' : 'срок'} ${T.dayMonthKey(w.due_key)}`;
+  return `${w.title} – до ${balls(w.max)}, ${past ? 'срок прошёл' : 'срок'} ${T.dayMonthKey(w.due_key)}`;
 }
 
-// Подробный разбор одной дисциплины; asked — работы, о которых спросили
+// Подробный разбор одной дисциплины; asked – работы, о которых спросили
 function explain(d, asked = []) {
   const today = T.dateKey();
   if (d.closed_text) return `${d.subject}: ${d.closed_text.toLowerCase()}.`;
   const open = d.works.filter((w) => w.score == null);
-  const parts = [`${d.subject} (${control(d)}, преподаватель ${d.teacher}): сейчас ${balls(d.points)}, порог допуска — ${d.pass_threshold}.`];
+  const parts = [`${d.subject} (${control(d)}, преподаватель ${d.teacher}): сейчас ${balls(d.points)}, порог допуска – ${d.pass_threshold}.`];
   parts.push(d.gap > 0 ? `До порога не хватает ${balls(d.gap)}.` : 'Порог уже набран.');
   if (asked.length) {
     const add = asked.reduce((s, w) => s + (w.score == null ? w.max : 0), 0);
@@ -45,8 +45,8 @@ function explain(d, asked = []) {
     const names = asked.map((w) => w.title).join(' и ');
     const sum = [d.points, ...asked.filter((w) => w.score == null).map((w) => w.max)].join(' + ');
     parts.push(total >= d.pass_threshold
-      ? `Если сдать ${names} на максимум: ${sum} = ${total} — порог будет набран.`
-      : `Если сдать ${names} на максимум: ${sum} = ${total} — до порога останется ${balls(d.pass_threshold - total)}.`);
+      ? `Если сдать ${names} на максимум: ${sum} = ${total} – порог будет набран.`
+      : `Если сдать ${names} на максимум: ${sum} = ${total} – до порога останется ${balls(d.pass_threshold - total)}.`);
     const rest = open.filter((w) => !asked.includes(w));
     if (rest.length && total < d.pass_threshold) parts.push(`Ещё впереди: ${rest.map((w) => workLine(w, today)).join('; ')}.`);
   } else if (open.length) {
@@ -54,10 +54,10 @@ function explain(d, asked = []) {
     const overdue = open.filter((w) => w.due_key && w.due_key < today);
     if (overdue.length && d.gap > 0) {
       const t = d.points + overdue.reduce((s, w) => s + w.max, 0);
-      parts.push(t >= d.pass_threshold ? `Если сдать просроченные работы на максимум, будет ${t} — порог набран.` : `Даже за просроченные работы на максимум будет ${t} — до порога останется ${balls(d.pass_threshold - t)}.`);
+      parts.push(t >= d.pass_threshold ? `Если сдать просроченные работы на максимум, будет ${t} – порог набран.` : `Даже за просроченные работы на максимум будет ${t} – до порога останется ${balls(d.pass_threshold - t)}.`);
     }
   }
-  if (d.auto_threshold && d.points < d.auto_threshold) parts.push(`До автомата (${d.auto_threshold}) — ${balls(d.auto_threshold - d.points)}.`);
+  if (d.auto_threshold && d.points < d.auto_threshold) parts.push(`До автомата (${d.auto_threshold}) – ${balls(d.auto_threshold - d.points)}.`);
   parts.push(`Итог по дисциплине ещё не выставлен.`);
   return parts.join(' ');
 }
@@ -66,7 +66,7 @@ function summary(ds) {
   const bad = ds.filter((d) => !d.closed_text && d.gap > 0);
   if (!bad.length) return 'По всем дисциплинам порог допуска уже набран. Итоговые оценки ещё не выставлены.';
   return `Порог допуска не набран по ${bad.length} ${pl(bad.length, 'дисциплине', 'дисциплинам', 'дисциплинам')}: ` +
-    bad.map((d) => `${d.subject} — ${balls(d.points)}, не хватает ${d.gap}${d.overdue.length ? `, просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max})`).join(', ')}` : ''}`).join('; ') + '. Спроси про конкретную дисциплину — посчитаю, что даст каждая работа.';
+    bad.map((d) => `${d.subject} – ${balls(d.points)}, не хватает ${d.gap}${d.overdue.length ? `, просрочены: ${d.overdue.map((w) => `${w.title} (до ${w.max})`).join(', ')}` : ''}`).join('; ') + '. Спроси про конкретную дисциплину – посчитаю, что даст каждая работа.';
 }
 
 function answer(question, ds) {

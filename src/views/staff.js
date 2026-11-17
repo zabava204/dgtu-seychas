@@ -26,7 +26,7 @@ ${demoSwitcher(ctx)}
 ${body}</main></div><script src="/app.js?v=20" defer></script></body></html>`;
 }
 
-// Пакет из жизненной ситуации: справки, заказанные одной кнопкой, — одной строкой очереди
+// Пакет из жизненной ситуации: справки, заказанные одной кнопкой, – одной строкой очереди
 function groupBundles(list) {
   const out = []; const seen = new Map();
   for (const r of list) {
@@ -44,7 +44,7 @@ function bundleRow(g) {
 <td data-label="Номер">${g.map((x) => html`<a style="display:block" aria-label="Заявка № ${x.number}: ${x.title}" href="/staff/requests/${x.id}">${x.number}</a>`)}</td>
 <td data-label="Заявка"><span class="tag blue" style="margin-bottom:4px">Пакет · ${g.length} ${g.length < 5 ? 'справки' : 'справок'}</span><div style="font-weight:600">${bundleName(r)}</div>${g.map((x) => html`<div class="small muted">${x.title}</div>`)}</td>
 <td data-label="Студент">${r.student_name}<div class="small muted">${r.group_name}</div></td><td data-label="Подана">${T.relDateTime(new Date(r.submitted_at || r.created_at))}</td>
-<td data-label="Срок">${eta && g.some((x) => !['ready', 'rejected'].includes(x.status)) ? T.relDateTime(new Date(eta)) : '—'}</td><td data-label="Статус">${g.map((x) => html`<div style="margin-bottom:4px">${tag(x.status, TYPES[x.type].producesPdf)}</div>`)}</td></tr>`;
+<td data-label="Срок">${eta && g.some((x) => !['ready', 'rejected'].includes(x.status)) ? T.relDateTime(new Date(eta)) : '–'}</td><td data-label="Статус">${g.map((x) => html`<div style="margin-bottom:4px">${tag(x.status, TYPES[x.type].producesPdf)}</div>`)}</td></tr>`;
 }
 
 function queue(ctx) {
@@ -58,7 +58,7 @@ function queue(ctx) {
 ${list.length ? groupBundles(list).map((g) => g.length > 1 ? bundleRow(g) : html`<tr class="clickable" data-href="/staff/requests/${g[0].id}">
 <td data-label="Номер"><a aria-label="Заявка № ${g[0].number}: ${g[0].title}" href="/staff/requests/${g[0].id}">${g[0].number}</a></td><td data-label="Заявка"><b style="font-weight:600">${g[0].title}</b>${g[0].type === 'study' && g[0].format === 'paper' ? html`<div class="small muted">бумажная</div>` : ''}</td>
 <td data-label="Студент">${g[0].student_name}<div class="small muted">${g[0].group_name}</div></td><td data-label="Подана">${T.relDateTime(new Date(g[0].submitted_at || g[0].created_at))}</td>
-<td data-label="Срок">${g[0].eta_at && !['ready', 'rejected'].includes(g[0].status) ? T.relDateTime(new Date(g[0].eta_at)) : '—'}</td><td data-label="Статус">${tag(g[0].status, TYPES[g[0].type].producesPdf)}${g[0].assignee ? html`<div class="small muted" style="margin-top:4px">${g[0].assignee.short_name}</div>` : ''}</td></tr>`)
+<td data-label="Срок">${g[0].eta_at && !['ready', 'rejected'].includes(g[0].status) ? T.relDateTime(new Date(g[0].eta_at)) : '–'}</td><td data-label="Статус">${tag(g[0].status, TYPES[g[0].type].producesPdf)}${g[0].assignee ? html`<div class="small muted" style="margin-top:4px">${g[0].assignee.short_name}</div>` : ''}</td></tr>`)
     : html`<tr><td colspan="6" class="muted">В этом разделе заявок пока нет. Новые появятся после отправки студентами.</td></tr>`}
 </tbody></table>
 <form method="post" action="/staff/reset" style="margin-top:28px" data-confirm="Вернуть все демо-данные к исходному состоянию? Новые заявки и сообщения удалятся.">
@@ -88,7 +88,7 @@ function detail(ctx) {
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
 ${r.type === 'aid' ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
 ${r.note ? html`<div class="kv"><span>Примечание студента</span><span>${r.note}</span></div>` : ''}
-${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан'}</span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Отчётный год</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан'}</span></div>` : ''}
 ${r.details && r.type !== 'tax' ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label}</span></div>` : ''}
 ${files.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a> · ${T.stamp(new Date(f.uploaded_at))}</span></div>`)}
@@ -97,7 +97,7 @@ ${r.type === 'aid' && !files.length ? html`<div class="kv"><span>Докумен�
 ${r.type === 'stipend' ? html`<div class="card"><b>Выплаты стипендии</b>${(ctx.stipends || []).map((x) => html`<div class="kv"><span>${x.month.split('-').reverse().join('.')}</span><span>${x.amount.toLocaleString('ru-RU').replace(/\u00a0/g, ' ')} ₽</span></div>`)}<div class="kv"><b>Итого</b><b>${(ctx.stipends || []).reduce((a, x) => a + x.amount, 0).toLocaleString('ru-RU').replace(/\u00a0/g, ' ')} ₽</b></div></div>` : ''}
 ${r.type === 'tax' ? html`<div class="card"><b>Оплаты по договору</b><table class="table" style="margin-top:8px"><thead><tr><th>Дата</th><th>Договор</th><th>Заказчик</th><th>Сумма</th></tr></thead><tbody>
 ${ctx.payments.map((p) => html`<tr><td>${p.paid_on.split('-').reverse().join('.')}</td><td>${p.contract}</td><td>${p.payer}</td><td>${TAX.rub(p.amount)}</td></tr>`)}</tbody></table>
-<div class="small muted" style="margin-top:6px">За ${r.purpose} год: ${TAX.rub(ctx.payments.filter((p) => p.paid_on.startsWith(r.purpose)).reduce((s, p) => s + p.amount, 0))} — эта сумма попадёт в справку.</div></div>` : ''}
+<div class="small muted" style="margin-top:6px">За ${r.purpose} год: ${TAX.rub(ctx.payments.filter((p) => p.paid_on.startsWith(r.purpose)).reduce((s, p) => s + p.amount, 0))} – эта сумма попадёт в справку.</div></div>` : ''}
 ${(ctx.siblings || []).length ? html`<div class="card"><b>Пакет «${bundleName(r)}»</b><p class="small muted" style="font-size:14px;margin:6px 0 4px">Студент заказал справки одной кнопкой. Остальные справки пакета:</p>
 ${ctx.siblings.map((x) => html`<div class="kv"><span><a href="/staff/requests/${x.id}">№ ${x.number}</a> · ${x.title}</span><span>${tag(x.status, TYPES[x.type].producesPdf)}</span></div>`)}</div>` : ''}
 <div class="card"><b>История</b>${events.map((e) => html`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="small muted">${T.stamp(new Date(e.at))} · ${e.actor_role === 'staff' ? e.actor_name : 'студент'}</div>
@@ -117,7 +117,7 @@ ${r.status === 'submitted' ? html`<p class="small muted" style="margin:4px 4px 0
 ${r.status === 'in_work' ? html`<div class="card"><b>Запросить документ у студента</b>
 <form method="post" action="/staff/requests/${r.id}/need"><label class="field" style="margin-top:6px">Что нужно<input type="text" name="text" required maxlength="200" value="${r.type === 'aid' ? 'Загрузи справку о составе семьи (не старше 30 дней)' : ''}"></label>
 <button class="btn secondary block" style="margin-top:10px">Запросить</button></form></div>
-<div class="card"><b>Отклонить</b><form method="post" action="/staff/requests/${r.id}/reject"><label class="field" style="margin-top:6px">Причина — её увидит студент<input type="text" name="text" required maxlength="200"></label>
+<div class="card"><b>Отклонить</b><form method="post" action="/staff/requests/${r.id}/reject"><label class="field" style="margin-top:6px">Причина – её увидит студент<input type="text" name="text" required maxlength="200"></label>
 <button class="btn danger block" style="margin-top:10px">Отклонить заявку</button></form></div>` : ''}
 ${r.status === 'ready' && t.producesPdf && r.format !== 'paper' ? html`<div class="card"><b>Готово</b><div class="actions"><a class="btn secondary small" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div></div>` : ''}
 <div class="card"><b>Написать студенту</b><form method="post" action="/staff/requests/${r.id}/message"><label class="field" style="margin-top:6px"><span class="sr-only">Сообщение</span><textarea name="text" required maxlength="1000"></textarea></label>

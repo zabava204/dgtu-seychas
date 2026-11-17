@@ -49,10 +49,10 @@ function riskText(d) {
     const names = d.overdue.map((w) => w.title.toLowerCase()).join(' и ');
     const cap = names[0].toUpperCase() + names.slice(1);
     const verb = d.overdue.length > 1 ? 'дают' : 'даёт';
-    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} — после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} — этого хватит на порог`;
+    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} – после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')} – этого хватит, чтобы набрать минимум для допуска`;
   }
   const nx = d.upcoming[0];
-  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `: ближайшее — ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
+  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `: ближайшее – ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
 }
 const KIND_CAP = { зачёт: 'Зачёт', экзамен: 'Экзамен', консультация: 'Консультация' };
 function admitTag(s) {
@@ -63,7 +63,7 @@ function sessionRow(s) {
   const [, mo, da] = s.date_key.split('-').map(Number);
   const cons = s.kind === 'консультация';
   return html`<div class="sess${cons ? ' cons' : ''}"><div class="sd"><b>${da}</b><span>${MON_SHORT[mo - 1]}, ${T.wdShortKey(s.date_key).toLowerCase()}</span></div>
-<div class="body"><div class="title">${s.subject}</div><div class="meta">${KIND_CAP[s.kind]} · ${s.start} · ауд. ${s.room}${cons ? '' : ` · ${s.teacher}`}</div>${s.consult ? html`<div class="meta">Консультация — ${T.dayMonthKey(s.consult.date_key)}, ${s.consult.start}</div>` : ''}${admitTag(s) ? html`<div style="margin-top:6px">${admitTag(s)}</div>` : ''}</div></div>`;
+<div class="body"><div class="title">${s.subject}</div><div class="meta">${KIND_CAP[s.kind]} · ${s.start} · ауд. ${s.room}${cons ? '' : ` · ${s.teacher}`}</div>${s.consult ? html`<div class="meta">Консультация – ${T.dayMonthKey(s.consult.date_key)}, ${s.consult.start}</div>` : ''}${admitTag(s) ? html`<div style="margin-top:6px">${admitTag(s)}</div>` : ''}</div></div>`;
 }
 const lbl = (pos) => (pos < 12 ? 'transform:none' : pos > 88 ? 'transform:translateX(-100%)' : '');
 
@@ -116,8 +116,8 @@ function today(ctx) {
   const live = todayPairs.filter((p) => !p.cancelled);
   const left = live.filter((p) => T.parseHHMM(p.end) > nowMin);
   const nextToday = left[0];
-  // Карточка «Сейчас»: текущая или ближайшая пара — время, место, корпус и этаж, «Как пройти»
-  let hero = html`<section class="hero" aria-label="Ближайшая пара"><div class="small" style="color:rgba(255,255,255,.85)">Пар в ближайшие две недели нет</div></section>`;
+  // Карточка «Сейчас»: текущая или ближайшая пара – время, место, корпус и этаж, «Как пройти»
+  let hero = html`<section class="hero" aria-label="Ближайшее учебное занятие"><div class="small" style="color:rgba(255,255,255,.85)">Учебных занятий в ближайшие две недели нет</div></section>`;
   if (next) {
     const cd = countdown(next.startsAt, next.endsAt);
     const isToday = T.dateKey(next.startsAt) === key;
@@ -125,16 +125,16 @@ function today(ctx) {
     const nk = T.dateKey(next.startsAt);
     const rest = isToday ? left.filter((p) => p.id !== next.id) : [];
     const ch = changeText(next);
-    hero = html`<section class="hero" aria-label="Ближайшая пара">
-<div class="small" style="color:rgba(255,255,255,.85);font-weight:600">${going ? 'Пара идёт сейчас' : isToday ? 'Следующая пара' : `${live.length ? 'На сегодня пары закончились' : 'Сегодня пар нет'} · ближайшая — ${T.wdLongKey(nk)}, ${T.dayMonthKey(nk)}`}</div>
-<div class="big">${cd.big}</div>
+    hero = html`<section class="hero" aria-label="Ближайшее учебное занятие">
+<div class="small" style="color:rgba(255,255,255,.85);font-weight:600">${going ? 'Учебное занятие идёт сейчас' : isToday ? 'Следующее учебное занятие' : `${live.length ? 'На сегодня учебные занятия закончились' : 'Сегодня учебных занятий нет'} · ближайшее – ${T.wdLongKey(nk)}, ${T.dayMonthKey(nk)}`}</div>
+<div class="big">${cd.big ? cd.big[0].toUpperCase() + cd.big.slice(1) : ''}</div>
 <div style="display:flex;flex-direction:column;gap:4px"><div class="subj">${next.subject}</div>
 <div class="where">${whereText(next)} · ${next.kind}</div>${ch ? html`<div class="warn">${ch}</div>` : ''}</div>
 ${next.online ? '' : html`<a class="btn-white" href="/route?room=${encodeURIComponent(next.room || '')}">Как пройти</a>`}
 ${rest.length ? html`<div class="small" style="color:rgba(255,255,255,.85)">Ещё сегодня: ${rest.map((p) => `${p.start} ${p.subject}`).join(' · ')}</div>` : ''}
 <a class="ghost" href="/study?d=${nk}#pair-${next.id}">Расписание на день</a></section>`;
   }
-  // Задачи: вычет и допуск — сверху (сценарии жюри), остальное под «Ещё».
+  // Задачи: вычет и допуск – сверху (сценарии жюри), остальное под «Ещё».
   const risks = session.filter((x) => x.kind !== 'консультация' && x.admitted === false)
     .slice()
     .sort((a, b) => (b.d.gap || 0) - (a.d.gap || 0) || String(a.date_key).localeCompare(String(b.date_key)));
@@ -165,9 +165,9 @@ ${attention.length ? html`<div class="group attention-primary">${attRow(attentio
   : html`<p class="small muted attention-empty">Новых задач и заявок нет.</p>`}</section>
 <section class="section overview-actions" aria-labelledby="qa-h"><h2 class="label" id="qa-h">Быстрые действия</h2>
 <nav class="qa" aria-label="Быстрые действия">${actions.map(([h, l, icon]) => html`<a href="${h}"><span class="qa-icon qa-${icon}" aria-hidden="true">${raw(`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${TILE_ICON[icon]}</svg>`)}</span><span>${l}</span>${I.chev}</a>`)}</nav></section>
-<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">${I.helper}</span><span><b>Помощник по учёбе</b><span class="muted">Объяснит баллы, найдёт пару или справку</span></span>${I.chev}</a>
+<a class="ask-bar ai" href="/helper"><span class="spark" aria-hidden="true">${I.helper}</span><span><b>Помощник по учёбе</b><span class="muted">Объяснит баллы, найдёт учебное занятие или справку</span></span>${I.chev}</a>
 ${nextSlot ? html`<section class="section overview-plan" aria-label="Ближайшая задача плана"><a class="card linkcard" href="/study/plan"><span style="flex:1"><b>Ближайшая задача плана</b><span class="small muted" style="display:block;margin-top:2px">${nextSlot.date_key === key ? 'Сегодня' : `${T.wdLongKey(nextSlot.date_key)}, ${T.dayMonthKey(nextSlot.date_key)}`}, ${T.hhmm(nextSlot.start_min)}–${T.hhmm(nextSlot.end_min)} · ${nextSlot.title}</span></span>${I.chev}</a></section>`
-  : needPlan ? html`<section class="section overview-plan" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Распределить несданные работы по времени без пар</span></span>${I.chev}</a></section>` : ''}
+  : needPlan ? html`<section class="section overview-plan" aria-label="План к сессии"><a class="card linkcard" href="/study/plan?new=1"><span style="flex:1"><b>Составить план на 7 дней</b><span class="small muted" style="display:block;margin-top:2px">Распределить несданные работы по времени без учебных занятий</span></span>${I.chev}</a></section>` : ''}
 </div>
 `,
   });
@@ -184,12 +184,12 @@ function schedule(ctx) {
   const { user, sel, week, pairs, exams = [], view = 'day', nextDay } = ctx;
   const q = (d, v = view) => `/study?d=${d}${v === 'week' ? '&view=week' : ''}`;
   const todayKey = T.dateKey();
-  const weekBody = () => html`<section class="section" style="padding-top:4px" aria-label="Пары на неделю">
+  const weekBody = () => html`<section class="section" style="padding-top:4px" aria-label="Учебные занятия на неделю">
 <h2 class="label">Неделя ${T.dayMonthKey(week[0].key)} – ${T.dayMonthKey(week[week.length - 1].key)} · ${T.parityLabel(week[0].key)}</h2>
 ${week.map((d) => html`<div class="wk-day${d.key === todayKey ? ' is-today' : ''}"><a class="wk-h" href="${q(d.key, 'day')}">${T.wdLongKey(d.key)[0].toUpperCase() + T.wdLongKey(d.key).slice(1)}, ${T.dayMonthKey(d.key)}${d.key === todayKey ? ' · сегодня' : ''}</a>
 ${d.session.map((e) => html`<a class="wk-row exam" href="${q(d.key, 'day')}#exam-${e.id}"><span class="t">${e.start}</span><span class="b"><b>${e.subject}</b><span class="m">${e.kind} · ауд. ${e.room}</span></span></a>`)}
 ${d.pairs.length ? d.pairs.map((p) => html`<a class="wk-row${p.change ? ' ch' : ''}${p.cancelled ? ' off' : ''}" href="${q(d.key, 'day')}#pair-${p.id}"><span class="t">${p.start}<br>${p.end}</span><span class="b"><b>${p.subject}</b><span class="m">${p.cancelled ? 'отменена' : `${p.kind} · ${roomText(p)}`}</span>${changeText(p) ? html`<span class="m chg">${changeText(p)}</span>` : ''}</span></a>`)
-    : d.session.length ? '' : html`<div class="wk-none">Пар нет</div>`}</div>`)}
+    : d.session.length ? '' : html`<div class="wk-none">Занятий нет</div>`}</div>`)}
 </section>`;
   return page({
     title: 'Расписание', active: 'study', ctx,
@@ -201,7 +201,7 @@ ${studyTabs(user, 'schedule')}
 <a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, -7))}" aria-label="Предыдущая неделя">←</a>
 <nav class="mini-seg" aria-label="Вид расписания"><a href="${q(sel, 'day')}" ${view === 'day' ? raw('aria-current="page"') : ''}>День</a><a href="${q(sel, 'week')}" ${view === 'week' ? raw('aria-current="page"') : ''}>Неделя</a></nav>
 <a class="icon-btn wk-nav" href="${q(T.addDays(week[0].key, 7))}" aria-label="Следующая неделя">→</a></div>
-${view === 'week' ? weekBody() : html`<section class="section" style="padding-top:4px" aria-label="Пары">
+${view === 'week' ? weekBody() : html`<section class="section" style="padding-top:4px" aria-label="Учебные занятия">
 <h2 class="label">${T.wdLongKey(sel)[0].toUpperCase() + T.wdLongKey(sel).slice(1)}, ${T.dayMonthKey(sel)} · ${T.parityLabel(sel)}</h2>
 ${exams.map((e) => html`<article class="pair exam" id="exam-${e.id}">
 <div class="tm"><span>${e.start}</span><span class="tag ${e.kind === 'консультация' ? 'blue' : 'amber'}">${e.kind}</span></div>
@@ -213,7 +213,7 @@ ${pairs.length ? pairs.map((p) => html`<article class="pair" id="pair-${p.id}">
 <div class="nm">${p.subject}</div>
 <div class="small muted" style="margin-top:2px">${p.teacher} · ${placeText(p)}</div>
 ${changeText(p) ? html`<div class="changed">${changeText(p)}. Обновлено ${T.relDateTime(new Date(p.change.created_at))}</div>` : ''}
-</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>В этот день пар нет</b>${nextDay ? html`<div class="small muted" style="margin-top:4px">Следующая пара — ${T.wdLongKey(nextDay.key)}, ${T.dayMonthKey(nextDay.key)}, ${nextDay.pair.start}: ${nextDay.pair.subject}, ${placeText(nextDay.pair)}</div><div class="actions"><a class="btn secondary small" href="/study?d=${nextDay.key}#pair-${nextDay.pair.id}">Открыть этот день</a></div>` : html`<div class="small muted">Выбери другой день или неделю.</div>`}</div>`}
+</article>`) : exams.length ? '' : html`<div class="card" style="margin-top:10px"><b>В этот день учебных занятий нет</b>${nextDay ? html`<div class="small muted" style="margin-top:4px">Следующее учебное занятие – ${T.wdLongKey(nextDay.key)}, ${T.dayMonthKey(nextDay.key)}, ${nextDay.pair.start}: ${nextDay.pair.subject}, ${placeText(nextDay.pair)}</div><div class="actions"><a class="btn secondary small" href="/study?d=${nextDay.key}#pair-${nextDay.pair.id}">Открыть этот день</a></div>` : html`<div class="small muted">Выбери другой день или неделю.</div>`}</div>`}
 </section>`}`,
   });
 }
@@ -243,11 +243,11 @@ function grades(ctx) {
     body: html`<div class="page-head" style="padding-top:16px"><h1>Учёба</h1></div>
 ${studyTabs(user, 'grades')}
 <section class="section" aria-label="Готовность к сессии"><div class="card readiness">
-<div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} — ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
+<div class="small muted" style="font-weight:600">${firstS ? `Сессия: первый ${firstS.kind} – ${T.dayMonthKey(firstS.date_key)}, ${inDays(daysUntil(firstS.date_key))}` : 'Текущие баллы'}</div>
 <div style="font-size:20px;font-weight:700;margin-top:4px">${risky.length ? `Допуск есть по ${ds.length - risky.length} из ${ds.length} дисциплин` : 'Допуск есть по всем дисциплинам'}</div>
 ${risky.map((d) => html`<div class="risk"><span class="rs">${d.subject}</span><span class="small muted" style="grid-column:1 / -1">${riskText(d)}</span>
-<a class="link" style="padding:0" href="/study/session-support/${d.id}">Что можно сделать →</a></div>`)}
-<div class="small muted" style="margin-top:10px">Допуск определяется текущими баллами (демо-правило). Итоги сданных дисциплин — в зачётной книжке. Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
+<a class="link" style="padding:0" href="/study/session-support/${d.id}">Как получить допуск →</a></div>`)}
+<div class="small muted" style="margin-top:10px">Допуск определяется текущими баллами (демо-правило). Итоги сданных дисциплин – в зачётной книжке. Баллы обновлены ${T.relDateTime(new Date(ds[0] ? ds[0].updated_at : T.now()))}.</div>
 </div></section>
 ${session.length ? html`<section class="section" id="session" aria-labelledby="sess-h"><h2 class="label" id="sess-h">Сессия · ${exCount} ${plural(exCount, 'зачёт или экзамен', 'зачёта или экзамена', 'зачётов и экзаменов')}</h2>
 <div class="card" style="padding:4px 16px">${sessList.map(sessionRow)}${early.map((d) => html`<div class="sess"><div class="sd done"><b>✓</b><span>сдан</span></div><div class="body"><div class="title">${d.subject}</div><div class="meta">${cap(d.control)} · ${d.closed_text.toLowerCase()}</div></div></div>`)}</div></section>` : ''}
@@ -257,7 +257,7 @@ ${ds.map((d) => html`<details class="card grade-detail" id="d-${d.id}" style="ma
 <span class="dotc" style="background:${raw(color[d.light])}"></span>
 <span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px"><b style="font-weight:600">${d.subject}</b><span class="muted" style="white-space:nowrap">${d.closed_text ? 'зачтено' : `${d.points} / 100`}</span></span>
 <span class="small muted" style="display:block;margin-top:2px">${word(d)}</span><span class="disclosure-hint">Работы и баллы</span></span>${I.chev}</summary>
-<div style="margin-top:10px">${d.works.map((w) => html`<div class="kv"><span>${w.title}${w.due_key && w.score == null ? html` · до ${T.dayMonthKey(w.due_key)}` : ''}</span><span>${w.score == null ? '—' : w.score} / ${w.max}</span></div>`)}
+<div style="margin-top:10px">${d.works.map((w) => html`<div class="kv"><span>${w.title}${w.due_key && w.score == null ? html` · до ${T.dayMonthKey(w.due_key)}` : ''}</span><span>${w.score == null ? '–' : w.score} / ${w.max}</span></div>`)}
 <div class="small muted" style="margin-top:6px">${d.control} · порог ${d.pass_threshold}${d.auto_threshold ? ` · автомат от ${d.auto_threshold}` : ''} · ${d.teacher}</div>
 <div class="actions"><a class="btn secondary small" href="/helper?q=${encodeURIComponent(`Что мне сделать по дисциплине «${d.subject}»?`)}">Спросить помощника</a></div></div>
 </details>`)}
@@ -272,7 +272,7 @@ function recordBook(ctx) {
   return page({
     title: 'Зачётная книжка', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Зачётная книжка</h1>
-<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр — в разделе «Оценки».</p>
+<p class="muted" style="margin:6px 0 0">Итоги прошлых сессий. Текущий семестр – в разделе «Оценки».</p>
 <div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/study/record/pdf" target="_blank" rel="noopener">${I.file}Скачать зачётную книжку (PDF)</a></div></div>
 <section class="section"><div class="card"><div class="kv"><span>Сдано</span><span>${book.total} из ${book.total}</span></div>
 <div class="kv"><span>Академические задолженности</span><span>${book.debts ? book.debts : 'нет'}</span></div>
@@ -297,7 +297,7 @@ ${studyTabs(user, 'nir')}<div class="page-head" style="padding-top:20px"><h2>Н�
 <div class="progress" style="background:rgba(255,255,255,.3)"><i style="width:${sum}%"></i></div>
 <div class="small" style="color:rgba(255,255,255,.92)">До «отлично» (от 85 баллов) ещё ${Math.max(0, 85 - sum)} ${plural(Math.max(0, 85 - sum), 'балл', 'балла', 'баллов')}</div></section>
 <section class="section">${stages.map((s) => html`<div class="card" style="margin-top:10px">
-<div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '—' : s.score} / ${s.max}</span></div>
+<div class="req-head"><b>${s.title}</b><span class="muted">${s.score == null ? '–' : s.score} / ${s.max}</span></div>
 <div style="margin-top:6px">${stateTag[s.state]}</div>
 ${s.note || s.due_key ? html`<div class="small muted" style="margin-top:6px">${[s.note, s.due_key ? `до ${T.dayMonthKey(s.due_key)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}</div>`)}
 <p class="small muted">Здесь видны этапы и баллы научно-исследовательской работы (НИР). Загрузка отчётов пока недоступна.</p>
@@ -312,7 +312,7 @@ function reqRowWaiting(r) {
   return html`<a class="row" href="/requests/${r.id}"><div class="body">
 <div class="req-head"><span class="title strong">${r.title}</span><span class="num">№ ${r.number}</span></div>
 <div style="font-size:14px">${who}</div>
-<div class="meta">${r.eta_at ? `${cert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} — ${T.relDateTime(new Date(r.eta_at))}` : ''}</div></div>${I.chev}</a>`;
+<div class="meta">${r.eta_at ? `${cert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} – ${T.relDateTime(new Date(r.eta_at))}` : ''}</div></div>${I.chev}</a>`;
 }
 
 function requestsList(ctx) {
@@ -381,7 +381,7 @@ function situation(ctx) {
 ${s.orders.length ? html`<form method="post" action="/situations/${s.id}" class="section" data-document-order aria-labelledby="ord-h"><h2 class="label" id="ord-h">Выбери справки</h2>
 <div class="group">${s.orders.map((o) => html`<label class="row pick ${o.available ? '' : 'off'}"><input type="checkbox" name="items" value="${o.key}" ${o.available ? raw('checked') : raw('disabled')}>
 <span class="body"><span class="title strong">${o.title}</span><span class="meta">${o.available ? o.hint : o.reason}</span></span></label>`)}</div>
-<p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки — в «Заявках».</p>
+<p class="small muted" style="margin:10px 2px 0">Данные возьмём из профиля${s.orders.some((o) => o.type === 'tax') ? ' и договора' : ''}. Статус каждой справки – в «Заявках».</p>
 ${n ? html`<button class="btn block" type="submit" style="margin-top:14px">Заказать выбранные справки</button>` : ''}
 </form>` : ''}
 ${s.todo.length ? html`<section class="section" aria-labelledby="todo-h"><h2 class="label" id="todo-h">${s.orders.length ? 'Что подготовить самостоятельно' : 'Что сделать'}</h2>
@@ -424,7 +424,7 @@ ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="h
 }
 
 // Справка для вычета: сначала проверяем условия по данным кабинета, потом спрашиваем только год.
-// Справку выдают за закончившийся календарный год — текущий год показываем, но выбрать его нельзя.
+// Справку выдают за закончившийся календарный год – текущий год показываем, но выбрать его нельзя.
 function taxFields(payments, years, v, user) {
   const contract = payments[0]?.contract;
   const self = payments.length && payments.every((p) => p.payer === user.full_name);
@@ -435,14 +435,14 @@ function taxFields(payments, years, v, user) {
   const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Договор и оплаты найдены в кабинете</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
-${self ? ok('Заказчик по договору — ты') : ''}
+${self ? ok('Заказчик по договору – ты') : ''}
 ${ok('Справка об оплате нужна для оформления вычета')}</div></div>
-<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты <span class="hint">справку выдают за закончившийся год</span></legend>
+<fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">Отчётный год <span class="hint">год, в котором оплачено обучение; справку выдают после его окончания</span></legend>
 <div class="options" style="grid-template-columns:1fr">${(closed.length ? closed : years).map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
-<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Возможный возврат — до ${TAX.rub(y.refund)}*</small></span></label>`
-    : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года.` : ''}</small></div>`)}</div></fieldset>
+<span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Возможный возврат – до ${TAX.rub(y.refund)}*</small></span></label>`
+    : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} – это лимит года.` : ''}</small></div>`)}</div></fieldset>
 ${closed.length ? html`<button class="btn block" type="submit" style="margin-top:18px">Заказать справку</button>
-${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года.` : ''}</p>`)}
+${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} – это лимит года.` : ''}</p>`)}
 <details class="card tax-more" style="margin-top:16px" ${/^\d{12}$/.test(v.details) ? '' : raw('open')}><summary><b>Данные для справки и ИНН</b><span class="small muted" style="display:block;font-weight:400">Заполнено из договора и профиля${/^\d{12}$/.test(v.details) ? ' · можно проверить' : ' · нужен ИНН'}</span></summary>
 <div style="margin-top:10px"><div class="small muted">Из договора</div>
 <div class="kv"><span>ФИО обучающегося</span><span>${user.full_name}</span></div>
@@ -454,9 +454,9 @@ ${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="m
 <input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" required value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
 <label class="field">Примечание <span class="hint">необязательно</span><textarea name="note" maxlength="500" style="min-height:72px">${v.note || ''}</textarea></label>
 </details>
-<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если доход облагается по ставке 13%.</p>` : ''}
+<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) – если доход облагается по ставке 13%.</p>` : ''}
 <a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
-<p class="small muted" style="margin:6px 0 0">Если заказчик по договору — родители или супруг(а), справку оформляют на их имя — в прототипе такая заявка недоступна.</p>`;
+<p class="small muted" style="margin:6px 0 0">Если заказчик по договору – родители или супруг(а), справку оформляют на их имя – в прототипе такая заявка недоступна.</p>`;
 }
 
 function dataHelp(ctx) {
@@ -466,7 +466,7 @@ function dataHelp(ctx) {
 <section class="section"><p style="margin:0;line-height:1.5">ФИО, курс, группу, форму и основу обучения студент сам не меняет: это сведения из личного дела. Их исправляет деканат по документу.</p>
 <div class="stages" style="padding:14px 0 0">
 <div class="stage"><div class="st">ФИО или гражданство</div><div class="when">Для исправления обратись в деканат с паспортом. В демо-версии эти сведения не редактируются.</div></div>
-<div class="stage"><div class="st">Курс, группа, форма или основа обучения</div><div class="when">Меняются приказом; если в кабинете ошибка — напиши в деканат, укажи, какое поле неверно.</div></div>
+<div class="stage"><div class="st">Курс, группа, форма или основа обучения</div><div class="when">Меняются приказом; если в кабинете ошибка – напиши в деканат, укажи, какое поле неверно.</div></div>
 <div class="stage todo"><div class="st">Деканат</div><div class="when">Корпус 1, каб. 210 · пн–пт 9:00–17:00</div></div></div>
 <div class="actions"><a class="btn secondary small" href="/me">Мой профиль</a></div></section>`,
   });
@@ -483,7 +483,7 @@ function taxHelp(ctx) {
 ${step('', 'Справка из вуза за закончившийся год', `Закажи справку в «Заявках». Готовый PDF появится в карточке заявки. Сейчас доступны годы до ${y - 1} включительно, справку за ${y} год можно заказать с января ${y + 1}.`)}
 ${step('', 'Декларация 3-НДФЛ', 'В личном кабинете налогоплательщика выбери вычет на обучение за нужный год и приложи справку.')}
 ${step('todo', 'Проверка и возврат', 'Налоговая проверит декларацию и вернёт налог на указанный счёт. Вернуть налог можно за три последних года.')}</div></section>
-<section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую — тогда они появятся в личном кабинете.</div>
+<section class="section"><div class="note">Подсказка концепта, не налоговая консультация. Сверено с материалами ФНС: с расходов 2024 года вместо договора и платёжек достаточно справки об оплате образовательных услуг (приказ ФНС от 18.10.2023 № ЕД-7-11/755@); вуз может и сам передать сведения в налоговую – тогда они появятся в личном кабинете.</div>
 <div class="actions" style="margin-top:12px"><a class="btn small" href="/requests/new?type=tax">Заказать справку</a><a class="btn secondary small" href="/helper?q=${encodeURIComponent('Как получить налоговый вычет за обучение?')}">Спросить помощника</a></div></section>`,
   });
 }
@@ -497,7 +497,7 @@ function requestSent(ctx) {
     body: html`<div class="page-head" style="padding-top:40px">${I.check}
 <h1 style="margin-top:14px">${head}</h1>
 <div class="sub">${r.title} · № ${r.number}</div>
-<div class="small muted" style="margin-top:4px;font-size:14px">${isCert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} — ${T.relDateTime(new Date(r.eta_at))}</div></div>
+<div class="small muted" style="margin-top:4px;font-size:14px">${isCert ? 'Ожидаемая готовность' : 'Срок рассмотрения'} – ${T.relDateTime(new Date(r.eta_at))}</div></div>
 <div style="margin:18px 20px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">Заявка передана в <b>деканат</b>. Статус и сообщения сотрудника появятся в заявке.</div>
 ${r.notify_ready ? html`<div class="note green" style="margin:16px 20px 0">Сообщим об изменении статуса заявки.</div>` : html`<div class="card" style="margin:18px 12px 0" id="notify-card">
 <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:20px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none">${I.bell}</span>
@@ -525,7 +525,7 @@ function requestDetail(ctx) {
     title: `Заявка № ${r.number}`, active: 'requests', ctx,
     body: html`${backBar('/requests', 'Заявки')}
 <div class="page-head" style="display:flex;flex-direction:column;gap:6px"><h1>${r.title}</h1><div class="small muted">Заявка № ${r.number}</div><div style="font-size:16px">${actor}</div>
-${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">${isAid ? 'Срок рассмотрения' : 'Ожидаемая готовность'} — ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
+${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">${isAid ? 'Срок рассмотрения' : 'Ожидаемая готовность'} – ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
 ${pdfOk ? html`<div style="padding:16px 20px 0"><a class="btn block" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div>` : ''}
 ${validity(r) ? html`<div class="note ${validity(r).kind === 'days' && !validity(r).fresh ? 'amber' : 'green'} valid-note" style="margin:12px 20px 0"><b>${validity(r).kind === 'year' ? 'Срок не ограничен' : validity(r).fresh ? `Подойдёт до ${T.dayMonthKey(validity(r).until)}` : 'Возможно, уже устарела'}</b><div class="small" style="margin-top:4px">${validity(r).text}</div>${validity(r).kind === 'days' && !validity(r).fresh ? html`<div class="actions"><a class="btn small" href="/requests/new?type=${r.type}${r.type === 'study' && r.purpose ? `&purpose=${r.purpose}` : ''}">Заказать новую</a></div>` : ''}</div>` : ''}
 <div class="stages">
@@ -547,7 +547,7 @@ ${stage('todo', isAid ? 'Решение' : 'Готова', isAid ? 'решени
 <div style="margin:4px 20px 0;padding-top:12px;border-top:1px solid var(--line)">
 ${!isAid ? html`<div class="kv"><span>Дата заказа</span><span>${T.stamp(new Date(r.submitted_at || r.created_at))}</span></div>` : ''}
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
-${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">декларация 3-НДФЛ</a></span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Отчётный год</span><span>${r.purpose}</span></div><div class="kv"><span>Как получить вычет</span><span><a href="/help/tax?back=/requests/${r.id}">декларация 3-НДФЛ</a></span></div>` : ''}
 ${isAid ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
 ${r.details ? html`<div class="kv"><span>${t.detailsLabel || (r.type === 'tax' ? 'ИНН' : 'Уточнение')}</span><span>${r.details}</span></div>` : ''}
 ${r.note ? html`<div class="kv"><span>Примечание</span><span>${r.note}</span></div>` : ''}
@@ -585,13 +585,13 @@ const CARD_META = {
 function studentDocs(ctx) {
   const { user, book } = ctx;
   const meta = CARD_META[user.login] || { issued: '01.09.2024', order: '1000-ЛС' };
-  const level = user.level === 'магистратура' ? 'Высшее — магистратура' : user.level === 'аспирантура' ? 'Высшее — аспирантура' : 'Высшее — бакалавриат';
+  const level = user.level === 'магистратура' ? 'Высшее – магистратура' : user.level === 'аспирантура' ? 'Высшее – аспирантура' : 'Высшее – бакалавриат';
   const form = user.form === 'очно-заочная' ? 'Очно-заочная (вечерняя)' : user.form[0].toUpperCase() + user.form.slice(1);
   const field = (label, value, wide) => html`<div class="id-field ${wide ? 'wide' : ''}"><span class="id-label">${label}</span><span class="id-value">${value}</span></div>`;
   return page({
     title: 'Мои документы', active: 'me', ctx,
     body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Мои документы</h1>
-<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF — демо-образец.</p></div>
+<p class="muted" style="margin:6px 0 0">Студенческий билет и зачётная книжка. PDF – демо-образец.</p></div>
 <section class="section" aria-label="Студенческий билет">
 <article class="id-card">
 <div class="id-card-head">Студенческий билет</div>
@@ -646,7 +646,8 @@ ${demoSwitcher(ctx)}
 <section class="section" aria-labelledby="settings-h"><h2 class="label" id="settings-h">Настройки и помощь</h2><div class="group">
 ${linkRow('/me/notifications', 'Настройки уведомлений', 'Темы и уведомления в браузере')}
 ${linkRow('/a11y', 'Версия для слабовидящих', html`Крупный шрифт и высокий контраст · <span class="lv-off">выключена</span><span class="lv-on">включена</span>`)}
-${linkRow('/hard', 'Помощь и поддержка', 'Психологическая помощь и вопросы по кабинету')}
+${linkRow('/support', 'Служба поддержки', 'Вопросы по кабинету, данным и документам')}
+${linkRow('/hard', 'Психологическая помощь', 'Контакты психологической службы и телефон помощи')}
 <form method="post" action="/logout"><button class="row logout-btn" type="submit"><span class="body"><span class="title strong">Выйти из кабинета</span></span>${I.chev}</button></form></div></section>
 </div></div>
 <section class="section demo-settings"><details class="card"><summary>Демонстрационный режим${I.chev}</summary><p class="small muted">Все данные вымышленные и общие для проверяющих. Они возвращаются к началу каждую ночь в 3:00 МСК.</p>
@@ -666,7 +667,7 @@ ${NOTIF_CATEGORIES.map((c) => html`<label class="toggle-row"><span class="body">
 <noscript><button class="btn block" type="submit">Сохранить</button></noscript>
 <div class="save-feedback" role="status" aria-live="polite"><span data-saved>Изменения сохраняются автоматически.</span><button type="button" class="link" data-save-retry hidden>Повторить</button></div>
 </form>
-<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>Уведомления в браузере содержат только тему — без баллов, оценок и текста заявки.</span></div>
+<div class="section" style="padding-top:8px"><div class="note">${I.lock}<span>Уведомления в браузере содержат только тему – без баллов, оценок и текста заявки.</span></div>
 
 <div class="card" style="margin-top:8px"><b>Уведомления в браузере</b><p class="small muted" style="font-size:14px;margin:4px 0 0">Пока кабинет открыт, браузер покажет уведомление о смене статуса заявки.</p>
 <div class="actions"><button class="btn secondary small" type="button" data-ask-permission-btn>Разрешить на этом устройстве</button></div><p class="small muted" data-perm-state></p></div></div>`,
@@ -689,32 +690,38 @@ function notifications(ctx) {
   });
 }
 
-function hard(ctx) {
-  const opt = (href, title, text) => html`<a class="card" href="${href}" style="display:flex;gap:12px;text-decoration:none;color:var(--ink);margin-top:10px"><span style="flex:1"><b>${title}</b><span class="small muted" style="display:block;margin-top:2px;font-size:14px">${text}</span></span>${I.chev}</a>`;
+function support(ctx) {
   return page({
-    title: 'Помощь', active: 'me', ctx,
-    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Помощь</h1><p class="muted" style="margin:6px 0 0">Выбери, какая помощь нужна.</p></div>
-<section class="section" style="padding-top:8px" aria-labelledby="psy-h">
-<h2 class="label" id="psy-h">Психологическая помощь</h2>
-<p class="small muted" style="margin:0 0 8px">Контакты службы и помощь с учебной нагрузкой.</p>
-${opt('#psy', 'Контакты психологической службы', 'Где найти помощь и к кому обратиться')}
-${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник поможет составить просьбу о переносе срока сдачи')}
-${opt('/study/grades', 'Трудности с учёбой', 'Баллы, несданные работы и допуск к сессии')}
-<div class="card" id="psy" style="margin-top:16px"><b>Если нужна помощь прямо сейчас</b>
-<div class="actions"><a class="btn small" href="tel:112">112 — экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
-<p class="small muted" style="margin:8px 0 0">+7 495 989-50-50 — телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
-<p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00.</p></div>
-<div class="note" style="margin-top:12px">${I.lock}<span>Открытие этого раздела не создаёт обращение в деканат и не отправляет уведомлений куратору.</span></div>
-</section>
-<section class="section" aria-labelledby="sup-h">
-<h2 class="label" id="sup-h">Служба поддержки</h2>
+    title: 'Служба поддержки', active: 'me', ctx,
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Служба поддержки</h1><p class="muted" style="margin:6px 0 0">Вопросы по кабинету, данным профиля и документам.</p></div>
+<section class="section" style="padding-top:8px" aria-label="Служба поддержки">
 <div class="card" id="support"><b>Кабинет и документы</b>
 <p class="small muted" style="margin:6px 0 0;line-height:1.45">По документам и данным профиля обращайся в деканат. Об ошибке сайта обычно пишут в техническую поддержку. В прототипе её контакты показаны как пример; обращения не отправляются.</p>
 <div class="kv" style="margin-top:10px"><span>Куда писать</span><span>support@example.com (пример)</span></div>
 <div class="kv"><span>Пример часов работы</span><span>пн–пт 9:00–18:00 (демо)</span></div>
 <div class="kv"><span>Деканат (демо)</span><span>корпус 1, каб. 210 · пн–пт 9:00–17:00</span></div>
 <div class="actions" style="margin-top:12px"><a class="btn secondary small" href="/help/data">Как исправить данные</a><a class="btn secondary small" href="/requests">Мои заявки</a></div>
-</div></section>`,
+</div></section>
+<section class="section"><p class="small muted">Если тяжело и нужна поддержка – <a href="/hard">психологическая помощь</a>.</p></section>`,
+  });
+}
+
+function hard(ctx) {
+  const opt = (href, title, text) => html`<a class="card" href="${href}" style="display:flex;gap:12px;text-decoration:none;color:var(--ink);margin-top:10px"><span style="flex:1"><b>${title}</b><span class="small muted" style="display:block;margin-top:2px;font-size:14px">${text}</span></span>${I.chev}</a>`;
+  return page({
+    title: 'Психологическая помощь', active: 'me', ctx,
+    body: html`${backBar('/me', 'Профиль')}<div class="page-head"><h1>Психологическая помощь</h1><p class="muted" style="margin:6px 0 0">Контакты психологической службы и помощь с учебной нагрузкой. Вопросы по кабинету – в <a href="/support">службе поддержки</a>.</p></div>
+<section class="section" style="padding-top:8px" aria-label="Психологическая помощь">
+${opt('#psy', 'Контакты психологической службы', 'Где найти помощь и к кому обратиться')}
+${opt('/helper?q=' + encodeURIComponent('Мне нужно больше времени на работы. Как попросить отсрочку?'), 'Мне нужно больше времени', 'Помощник поможет составить просьбу о переносе срока сдачи')}
+${opt('/study/grades', 'Трудности с учёбой', 'Баллы, несданные работы и допуск к сессии')}
+<div class="card" id="psy" style="margin-top:16px"><b>Если нужна помощь прямо сейчас</b>
+<div class="actions"><a class="btn small" href="tel:112">112 – экстренные службы</a><a class="btn secondary small" href="tel:+74959895050">+7 495 989-50-50</a></div>
+<p class="small muted" style="margin:8px 0 0">+7 495 989-50-50 – телефон экстренной психологической помощи МЧС России, круглосуточно, для взрослых из любого региона.</p>
+<p class="small muted" style="margin:8px 0 0">Психологическая служба вуза (демо-контакт): корпус 1, каб. 115, пн–пт 10:00–18:00.</p></div>
+<div class="note" style="margin-top:12px">${I.lock}<span>Открытие этого раздела не создаёт обращение в деканат и не отправляет уведомлений куратору.</span></div>
+</section>
+`,
   });
 }
 
@@ -727,17 +734,17 @@ function route(ctx) {
 <section class="section">${r ? html`<div class="stages" style="padding:0">
 <div class="stage"><div class="st">Корпус ${b}</div><div class="when">Вход с главной площади кампуса</div></div>
 <div class="stage"><div class="st">${r[0]} этаж</div><div class="when">Лестница или лифт справа от входа</div></div>
-<div class="stage current"><div class="st">Аудитория ${room}</div><div class="when">Номера по возрастанию — от лестницы налево</div></div></div>` : html`<p>Аудитория не указана.</p>`}
+<div class="stage current"><div class="st">Аудитория ${room}</div><div class="when">Номера по возрастанию – от лестницы налево</div></div></div>` : html`<p>Аудитория не указана.</p>`}
 <div class="note" style="margin-top:8px">Пример маршрута. Расположение входов и аудиторий вымышлено.</div></section>`,
   });
 }
 
-// Каталог разделов для лупы в шапке — не чат: «куда перейти», а не «спроси про себя».
+// Каталог разделов для лупы в шапке – не чат: «куда перейти», а не «спроси про себя».
 function findItems(user) {
   const items = [
-    { keys: 'расписание пары неделя учёба верхняя нижняя', title: 'Расписание', meta: 'Пары на день и на неделю', href: '/study' },
+    { keys: 'расписание пары занятия неделя учёба верхняя нижняя', title: 'Расписание', meta: 'Учебные занятия на день и на неделю', href: '/study' },
     { keys: 'оценки баллы допуск сессия зачёт экзамен журнал', title: 'Оценки и допуск', meta: 'Баллы, порог, даты сессии', href: '/study/grades' },
-    { keys: 'план подготовка сессия 7 дней', title: 'План на 7 дней', meta: 'Задачи из журнала между парами', href: '/study/plan' },
+    { keys: 'план подготовка сессия 7 дней', title: 'План на 7 дней', meta: 'Задачи из журнала в свободное от занятий время', href: '/study/plan' },
     { keys: 'зачётка зачетка зачётная книжка оценки скачать', title: 'Зачётная книжка', meta: 'Оценки по семестрам · можно скачать PDF', href: '/study/record' },
     { keys: 'заявки справки статусы', title: 'Мои заявки', meta: 'Статусы справок и обращений', href: '/requests' },
     { keys: 'ситуации жку субсидия работа вычет налог ифнс помощь справка', title: 'Жизненные ситуации', meta: 'Пакет справок: ЖКУ, работа, вычет и др.', href: '/requests/new' },
@@ -746,7 +753,7 @@ function findItems(user) {
     { keys: 'уведомления колокольчик', title: 'Уведомления', meta: 'Лента и настройки', href: '/notifications' },
     { keys: 'психолог помощь тяжело кризис анонимн', title: 'Психологическая помощь', meta: 'Контакты психологической помощи', href: '/hard#psy' },
     { keys: 'воинский учет военкомат отсрочка мобилизационное', title: 'Воинский учёт и отсрочка', meta: 'Контакты подразделения и маршрут обращения', href: '/situations/military' },
-    { keys: 'служба поддержки поддержка кабинет ошибка документ письмо', title: 'Служба поддержки', meta: 'Кабинет и документы', href: '/hard#support' },
+    { keys: 'служба поддержки поддержка кабинет ошибка документ письмо', title: 'Служба поддержки', meta: 'Кабинет и документы', href: '/support' },
   ];
   if (user.level === 'магистратура') items.splice(4, 0, { keys: 'нир научная работа этапы', title: 'НИР', meta: 'Этапы и баллы', href: '/study/nir' });
   return items;
@@ -777,12 +784,12 @@ function helper(ctx) {
     ['Что сделать до сессии?', 'До сессии'],
     ['Как написать преподавателю о допуске?', 'Письмо преподавателю'],
     ['Как попросить отсрочку по работе?', 'Перенос срока сдачи'],
-    ['Пары вечером, когда готовиться?', 'Если пары вечером'],
+    ['Занятия вечером, когда готовиться?', 'Если занятия вечером'],
     ['Где мой студенческий билет?', 'Студенческий билет'],
     ['Когда у меня зачёты и экзамены?', 'Когда сессия'],
     ['Сколько баллов мне не хватает до допуска?', 'Баллы до допуска'],
     user.funding === 'контракт' ? ['Нужна справка для налогового вычета за обучение', 'Налоговый вычет'] : ['Нужна справка об обучении для субсидии на ЖКУ', 'Справка в соцзащиту'],
-    ['Где завтра пары?', 'Пары на завтра'],
+    ['Какие завтра учебные занятия?', 'Занятия на завтра'],
   ];
   return page({
     title: 'Помощник', active: 'today', ctx,
@@ -835,10 +842,10 @@ function sessionSupport(ctx) {
 </div></section>
 <section class="section" aria-labelledby="works-h"><h2 class="label" id="works-h">Что есть в журнале</h2>
 <div class="card">${open.length ? open.map((w) => html`<div style="padding:6px 0"><b style="font-weight:600">${w.title}</b><div class="small muted">до ${w.max} ${plural(w.max, 'балла', 'баллов', 'баллов')} · ${when(w)}</div></div>`) : html`<div class="small">Несданных работ в журнале нет.</div>`}
-${d.overdue.length ? html`<div class="small" style="margin-top:8px">Если просроченные работы примут на максимум: ${d.points} + ${math.overdueSum} = ${math.ifOverdueMax}. ${math.covers ? 'Этого хватит на порог.' : `До порога останется ${math.leftAfter}.`}</div>` : ''}
+${d.overdue.length ? html`<div class="small" style="margin-top:8px">Если просроченные работы примут на максимум: ${d.points} + ${math.overdueSum} = ${math.ifOverdueMax}. ${math.covers ? 'Этого хватит, чтобы набрать минимум для допуска.' : `До порога останется ${math.leftAfter}.`}</div>` : ''}
 <div class="note" style="margin-top:10px">Уточни у преподавателя, можно ли сдать работы после срока и получить дополнительные задания.</div>
 </div></section>
-<section class="section" aria-labelledby="do-h"><h2 class="label" id="do-h">Что можно сделать</h2>
+<section class="section" aria-labelledby="do-h"><h2 class="label" id="do-h">Следующие шаги</h2>
 <div class="actions">
 <a class="btn small" href="/study/plan">План на 7 дней</a>
 <a class="btn secondary small" href="/study/grades#d-${d.id}">Открыть оценки</a>
@@ -865,7 +872,7 @@ function studyPlan(ctx) {
     title: 'План на 7 дней', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}
 <div class="page-head"><h1>План на 7 дней</h1>
-<p class="muted" style="margin:6px 0 0">План распределит несданные работы из журнала по времени без пар. Отметка «Сделано» не меняет баллы.</p></div>
+<p class="muted" style="margin:6px 0 0">План распределит несданные работы из журнала по времени без учебных занятий. Отметка «Сделано» не меняет баллы.</p></div>
 ${form ? html`<section class="section"><form method="post" action="/study/plan">
 <fieldset class="field choice-field"><legend>Времени на подготовку в день</legend><div class="chips">
 ${chip('minutes', 30, '30 мин', plan && plan.minutes === 30)}
@@ -886,10 +893,10 @@ ${plan.slots.length ? plan.slots.map((s) => html`<article class="card" style="ma
 <p class="small muted" style="margin:6px 0 0">${s.detail}</p>
 <form method="post" action="/study/plan/slots/${s.id}/done" style="margin-top:10px"><button class="btn secondary small" type="submit">${s.done ? 'Вернуть в план' : 'Сделано'}</button></form>
 </article>`) : html`<div class="card">На выбранное время задач не запланировано. Попробуй изменить время подготовки.</div>`}
-<p class="small muted" style="margin-top:12px">В плане учтены работы из журнала и расписание пар. Отметка о выполнении не меняет баллы.</p>
+<p class="small muted" style="margin-top:12px">В плане учтены работы из журнала и расписание учебных занятий. Отметка о выполнении не меняет баллы.</p>
 ${form ? '' : html`<div class="actions"><a class="btn secondary small" href="/study/plan?new=1">Изменить время</a></div>`}
 </section>` : ''}`,
   });
 }
 
-module.exports = { situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, studentDocs, notifSettings, notifications, hard, route, helper, findPage, sessionList, sessionSupport, studyPlan, plural };
+module.exports = { support, situation, situationList, recordBook, dataHelp, taxHelp, today, schedule, grades, nir, requestsList, newRequestChoose, newRequestForm, requestSent, requestDetail, docHelp, me, studentDocs, notifSettings, notifications, hard, route, helper, findPage, sessionList, sessionSupport, studyPlan, plural };

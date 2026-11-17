@@ -1,7 +1,7 @@
 'use strict';
-// Помощник на английском для иностранных студентов — первая небольшая часть английской версии.
+// Помощник на английском для иностранных студентов – первая небольшая часть английской версии.
 // Факты (расписание, заявки, баллы, сессия, вычет, стипендия) считает программа, как и в русской версии.
-// Названия дисциплин остаются как в учебном плане — на русском.
+// Названия дисциплин остаются как в учебном плане – на русском.
 const T = require('./time');
 const TAX = require('./tax');
 const PREP = require('./prep');
@@ -14,7 +14,7 @@ const wd = (key) => WD[new Date(key + 'T00:00:00Z').getUTCDay()];
 const rub = (n) => TAX.rub(n).replace(/\s?₽/, '') + ' RUB';
 const KIND = { зачёт: 'credit test', 'зачёт с оценкой': 'graded credit test', экзамен: 'exam', консультация: 'consultation' };
 const kind = (k) => KIND[k] || k;
-const STATUS = { draft: 'draft', submitted: 'waiting for the dean’s office', in_work: 'in progress', need_student: 'your action is needed', ready: 'ready — the PDF is in “Requests”', rejected: 'rejected' };
+const STATUS = { draft: 'draft', submitted: 'waiting for the dean’s office', in_work: 'in progress', need_student: 'your action is needed', ready: 'ready – the PDF is in “Requests”', rejected: 'rejected' };
 const PURPOSE = { other: 'for any organisation', social: 'for social security', employer: 'for your employer' };
 function title(r) {
   if (r.type === 'study') return `Certificate of enrollment (Form 2)${PURPOSE[r.purpose] ? ', ' + PURPOSE[r.purpose] : ''}`;
@@ -51,20 +51,20 @@ function intents(question, data) {
   if (has(q, ['status', 'my request', 'my application', 'is it ready', 'ready yet', 'when will', 'my certificate'])) {
     const open = data.requests.filter((r) => ['submitted', 'in_work', 'need_student'].includes(r.status));
     const ready = data.requests.filter((r) => r.status === 'ready').slice(0, 2);
-    const line = (r) => `No. ${r.number} “${title(r)}” — ${STATUS[r.status]}${r.status !== 'need_student' && r.eta_at ? `, expected ${dm(T.dateKey(new Date(r.eta_at)))}` : ''}`;
+    const line = (r) => `No. ${r.number} “${title(r)}” – ${STATUS[r.status]}${r.status !== 'need_student' && r.eta_at ? `, expected ${dm(T.dateKey(new Date(r.eta_at)))}` : ''}`;
     const text = open.length || ready.length ? [open.length ? `Open requests:\n${open.map(line).join('\n')}` : 'No open requests.', ready.length ? `Ready: ${ready.map((r) => `No. ${r.number} “${title(r)}”`).join(', ')}.` : ''].filter(Boolean).join('\n') : 'You have no requests yet.';
     return set('status', text, open.length === 1 ? [{ label: `Open request No. ${open[0].number}`, href: `/requests/${open[0].id}` }] : [{ label: 'My requests', href: '/requests' }], true);
   }
   // Сессия: зачёты и экзамены
   if (has(q, ['exam', 'credit test', 'session', 'finals']) && (data.session || []).length) {
     const items = data.session.filter((s) => s.kind !== 'консультация');
-    const text = 'Exam session in your cabinet:\n' + items.map((s) => `${dm(s.date_key)} (${wd(s.date_key)}), ${s.start}, room ${s.room} — ${kind(s.kind)}: ${s.subject}${s.admitted ? ' · admitted' : ` · ${s.gap} more points needed for admission`}`).join('\n');
+    const text = 'Exam session in your cabinet:\n' + items.map((s) => `${dm(s.date_key)} (${wd(s.date_key)}), ${s.start}, room ${s.room} – ${kind(s.kind)}: ${s.subject}${s.admitted ? ' · admitted' : ` · ${s.gap} more points needed for admission`}`).join('\n');
     return set('session', text, [{ label: 'Session and admission', href: '/study/grades#session' }], true);
   }
   // Баллы
   if (has(q, ['point', 'score', 'grade', 'mark', 'admission', 'admitted', 'threshold'])) {
     const ds = data.disciplines.filter((d) => !d.closed_text);
-    const text = 'Current points (out of 100):\n' + ds.map((d) => `${d.subject} — ${d.points}, threshold ${d.pass_threshold}${d.gap ? `, ${d.gap} more needed` : ', threshold reached'}${d.overdue.length ? `; overdue: ${d.overdue.map((w) => w.title).join(', ')}` : ''}`).join('\n') + '\nAdmission to the session is a demo rule: the threshold of current points is reached.';
+    const text = 'Current points (out of 100):\n' + ds.map((d) => `${d.subject} – ${d.points}, threshold ${d.pass_threshold}${d.gap ? `, ${d.gap} more needed` : ', threshold reached'}${d.overdue.length ? `; overdue: ${d.overdue.map((w) => w.title).join(', ')}` : ''}`).join('\n') + '\nAdmission to the session is a demo rule: the threshold of current points is reached.';
     return set('grades', text, [{ label: 'Open grades', href: '/study/grades' }], true);
   }
   // Расписание на день
@@ -78,7 +78,7 @@ function intents(question, data) {
       const ps = data.dayPairs(key).filter((p) => !p.cancelled);
       const ex = (data.session || []).filter((x) => x.date_key === key);
       const lines = [...ex.map((x) => `${x.start} ${kind(x.kind)}: ${x.subject}, room ${x.room}`), ...ps.map((p) => `${p.start}–${p.end} ${p.subject}, ${p.online ? 'online' : 'room ' + p.room}${p.old_room || p.old_start ? ' (changed)' : ''}`)];
-      return set('schedule', lines.length ? `${wd(key)}, ${dm(key)}:\n${lines.join('\n')}` : `${wd(key)}, ${dm(key)} — no classes.`, [{ label: 'Day schedule', href: `/study?d=${key}` }], true);
+      return set('schedule', lines.length ? `${wd(key)}, ${dm(key)}:\n${lines.join('\n')}` : `${wd(key)}, ${dm(key)} – no classes.`, [{ label: 'Day schedule', href: `/study?d=${key}` }], true);
     }
     const n = data.next;
     return set('schedule', n ? `Your next class: ${n.subject}, ${wd(T.dateKey(n.startsAt))} ${dm(T.dateKey(n.startsAt))}, ${T.timeOf(n.startsAt)}, ${n.online ? 'online' : 'room ' + n.room}.` : 'No classes in the next two weeks.', [{ label: 'Schedule', href: '/study' }], true);
@@ -94,14 +94,14 @@ function intents(question, data) {
   if (has(q, ['student id', 'student card', 'record book', 'grade book', 'transcript card'])) {
     const u = data.user;
     const b = data.book;
-    return set('idcard', `Student ID and record book: ${u.full_name}, ${u.faculty}, year ${u.course}, group ${u.group_name}, No. ${u.record_book}.${b && b.avg ? ` Record-book average — ${b.avg.toFixed(2)}.` : ''} Open them in “My documents”.`, [{ label: 'My documents', href: '/me/docs' }, { label: 'Record book', href: '/study/record' }], true);
+    return set('idcard', `Student ID and record book: ${u.full_name}, ${u.faculty}, year ${u.course}, group ${u.group_name}, No. ${u.record_book}.${b && b.avg ? ` Record-book average – ${b.avg.toFixed(2)}.` : ''} Open them in “My documents”.`, [{ label: 'My documents', href: '/me/docs' }, { label: 'Record book', href: '/study/record' }], true);
   }
   // Стипендия
   if (has(q, ['scholarship', 'stipend'])) {
     const st = data.stipends || [];
     if (data.user.funding !== 'бюджет') return set('stipend', 'You study under a contract, so the academic scholarship is not paid and there is no scholarship certificate.', [{ label: 'My dean’s office', href: '/me' }], true);
     const last = st[st.length - 1];
-    return set('stipend', last ? `State academic scholarship — ${rub(last.amount)} per month; ${rub(st.reduce((a, x) => a + x.amount, 0))} over the last ${st.length} months. You can order a scholarship certificate online.` : 'There are no scholarship payments in your cabinet.', [{ label: 'Order the certificate', href: '/requests/new?type=stipend' }], true);
+    return set('stipend', last ? `State academic scholarship – ${rub(last.amount)} per month; ${rub(st.reduce((a, x) => a + x.amount, 0))} over the last ${st.length} months. You can order a scholarship certificate online.` : 'There are no scholarship payments in your cabinet.', [{ label: 'Order the certificate', href: '/requests/new?type=stipend' }], true);
   }
   // Справки
   if (has(q, ['visa', 'embassy', 'consulate', 'migration', 'registration'])) {
@@ -117,7 +117,7 @@ function intents(question, data) {
 }
 
 function fallbackText() {
-  return 'I’m not sure how to help with this yet. Try: “What classes do I have tomorrow?”, “When are my exams?”, “What is the status of my request?”, “How do I get a certificate of enrollment?” — or contact ' + OFFICE + '.';
+  return 'I’m not sure how to help with this yet. Try: “What classes do I have tomorrow?”, “When are my exams?”, “What is the status of my request?”, “How do I get a certificate of enrollment?” – or contact ' + OFFICE + '.';
 }
 
 module.exports = { isEnglish, intents, fallbackText };

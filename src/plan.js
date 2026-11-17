@@ -1,5 +1,5 @@
 'use strict';
-// План на 7 дней. Время ставит программа по расписанию, состав — по журналу.
+// План на 7 дней. Время ставит программа по расписанию, состав – по журналу.
 // Модель не назначает слоты и не придумывает работы: в прошлый раз она «досчитала» баллы до 212.
 const T = require('./time');
 
@@ -30,7 +30,7 @@ function queue(ds, session, gender) {
       tasks.push({
         discipline_id: d.id, kind: 'clarify',
         title: `Уточнить у преподавателя: ${d.subject}`,
-        detail: `Просрочено: ${names}.${rest} Преподаватель — ${d.teacher}`,
+        detail: `Просрочено: ${names}.${rest} Преподаватель – ${d.teacher}`,
       });
     } else if (!upcoming) {
       tasks.push({

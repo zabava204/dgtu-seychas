@@ -39,7 +39,7 @@ function client() {
 }
 async function login(name) { const c = client(); const r = await c.post('/login', { login: name, password: 'demo2026' }); assert.equal(r.status, 302); return c; }
 
-test('неверный пароль — понятная ошибка, без входа', async () => {
+test('неверный пароль – понятная ошибка, без входа', async () => {
   const c = client();
   const r = await c.post('/login', { login: 'anna', password: 'wrong' });
   assert.equal(r.status, 401);
@@ -153,7 +153,7 @@ test('RAG-lite: в факты для LLM не попадают баллы и с�
   };
   const taxFacts = assistant.retrieveFacts('как оформить вычет', data);
   assert.ok(taxFacts.some((b) => b.id === 'tax'));
-  assert.ok(taxFacts.every((b) => !/47|96\s*000|2024-048|Бизнес-планирование — 47/.test(b.text)));
+  assert.ok(taxFacts.every((b) => !/47|96\s*000|2024-048|Бизнес-планирование – 47/.test(b.text)));
   const termFacts = assistant.retrieveFacts('что такое академическая разница', data);
   assert.ok(termFacts.some((b) => b.id === 'terms'));
   assert.ok(termFacts.every((b) => !/\b47\b|96000/.test(b.text)));
@@ -217,8 +217,8 @@ test('уведомление об изменении аудитории ведё
 test('сессия: даты, допуск, зачётная книжка, вопрос помощнику', async () => {
   const anna = await login('anna'); const ilya = await login('ilya');
   const g = await (await anna.get('/study/grades')).text();
-  assert.match(g, /первый зачёт — \d+ декабря/);
-  assert.match(g, /Что можно сделать/);
+  assert.match(g, /первый зачёт – \d+ декабря/);
+  assert.match(g, /Как получить допуск/);
   assert.match(g, /Бизнес-планирование[\s\S]*до допуска 38 баллов/);
   assert.match(g, /Маркетинг[\s\S]*допуск есть/);
   assert.match(g, /Зачётная книжка/);
@@ -243,7 +243,7 @@ test('напоминания о сроках в ленте и фильтр «С�
   const anna = await login('anna');
   const f = await (await anna.get('/notifications?c=deadlines')).text();
   assert.match(f, /Через 2 дня: реферат по маркетингу/);
-  assert.doesNotMatch(f, /Экономика организации — ауд/); // другие категории скрыты фильтром
+  assert.doesNotMatch(f, /Экономика организации – ауд/); // другие категории скрыты фильтром
 });
 
 test('повторный проход сценария: ИНН подставлен без черновика, сброс демо возвращает черновик', async () => {
@@ -275,7 +275,7 @@ test('жизненная ситуация: пакет справок по дан
   assert.match(p, /Справка о размере стипендии/);
   assert.match(p, /Заказать выбранные справки/);
   const ip = await (await ilya.get('/situations/housing')).text();
-  assert.match(ip, /на договоре академическая стипендия не назначается/); // контракт — без справки о стипендии
+  assert.match(ip, /на договоре академическая стипендия не назначается/); // контракт – без справки о стипендии
   const r = await anna.post('/situations/housing', new URLSearchParams([['items', 'study'], ['items', 'stipend']]));
   assert.equal(r.status, 302);
   const list = await (await anna.get('/requests')).text();
@@ -286,7 +286,7 @@ test('жизненная ситуация: пакет справок по дан
   const q = await (await dk.get('/staff?f=new')).text();
   const id = q.match(/\/staff\/requests\/(\d+)[^]*?Справка о размере стипендии/);
   assert.ok(id);
-  // У деканата две справки пакета — одной строкой очереди, на странице заявки — ссылка на вторую справку
+  // У деканата две справки пакета – одной строкой очереди, на странице заявки – ссылка на вторую справку
   assert.equal((q.match(/Пакет · 2 справки/g) || []).length, 1);
   assert.match(q, /Семья оформляет субсидию на ЖКУ/);
   const ids = [...q.matchAll(/class="clickable bundle" data-href="\/staff\/requests\/(\d+)"/g)].map((m) => m[1]);
@@ -388,7 +388,7 @@ test('план на 7 дней не пересекает пары, не став
   assert.match(page, /Подготовиться самой/);
   assert.match(page, /Уточнить у преподавателя: Бизнес-планирование/);
   assert.match(page, /баллы не меняет/);
-  assert.match(page, /В плане учтены работы из журнала и расписание пар/);
+  assert.match(page, /В плане учтены работы из журнала и расписание учебных занятий/);
   const slots = [...page.matchAll(/data-date="(\d{4}-\d{2}-\d{2})" data-start="(\d+)" data-end="(\d+)"/g)];
   assert.ok(slots.length >= 1 && slots.length <= 7);
   const today = Tm.dateKey();
@@ -462,7 +462,7 @@ test('разбор допуска: свои баллы, чужая дисцип�
   const im = il.match(/href="(\/study\/session-support\/\d+)"/);
   const ip = await (await ilya.get(im[1])).text();
   assert.match(ip, /Не хватает 19/);
-  assert.match(ip, /Этого хватит на порог/);
+  assert.match(ip, /Этого хватит, чтобы набрать минимум для допуска/);
   assert.equal((await client().get(m[1])).status, 302);
   const ask = await (await anna.post('/api/assistant', { message: 'Сколько баллов не хватает по бизнес-планированию?' }, true)).json();
   assert.equal(ask.source, 'calc');
@@ -476,7 +476,7 @@ test('четыре вопроса помощника: план, письмо, о
   assert.match(chips, /До сессии/);
   assert.match(chips, /Письмо преподавателю/);
   assert.match(chips, /Перенос срока сдачи/);
-  assert.match(chips, /Если пары вечером/);
+  assert.match(chips, /Если занятия вечером/);
   const before = await ask(anna, 'Что сделать до сессии?');
   assert.equal(before.source, 'calc');
   assert.match(before.text, /Плана ещё нет/);
@@ -494,18 +494,18 @@ test('четыре вопроса помощника: план, письмо, о
   assert.equal(ext.source, 'calc');
   assert.match(ext.text, /дату не подставляю/);
   assert.doesNotMatch(ext.text, /\[дата\]/);
-  const day = await ask(anna, 'Пары вечером, когда готовиться?');
+  const day = await ask(anna, 'Занятия вечером, когда готовиться?');
   assert.equal(day.source, 'calc');
-  assert.match(day.text, /Твои пары днём/);
+  assert.match(day.text, /Твои учебные занятия днём/);
   assert.match(day.text, /18:00–22:00/);
   assert.equal((await anna.post('/study/plan', { minutes: '60', part: 'day' })).status, 302);
   const next = await ask(anna, 'Что сделать до сессии?');
   assert.match(next.text, /Ближайшее по плану/);
   assert.doesNotMatch(next.text, /\[дата\]|212/);
   const ilya = await login('ilya');
-  const eve = await ask(ilya, 'Пары вечером, когда готовиться?');
+  const eve = await ask(ilya, 'Занятия вечером, когда готовиться?');
   assert.equal(eve.source, 'calc');
-  assert.match(eve.text, /Пары у тебя вечером/);
+  assert.match(eve.text, /Учебные занятия у тебя вечером/);
   assert.ok(eve.actions.some((a) => a.href.includes('part=evening')));
   const en = await ask(anna, 'What should I do before the session?');
   assert.equal(en.lang, 'en');
@@ -519,7 +519,7 @@ test('четыре вопроса помощника: план, письмо, о
   assert.equal((await dean.post('/staff/reset')).status, 302);
 });
 
-test('лупа ищет разделы, помощник — чат по своим данным', async () => {
+test('лупа ищет разделы, помощник – чат по своим данным', async () => {
   const anna = await login('anna');
   const home = await (await anna.get('/')).text();
   assert.match(home, /href="\/find"/); // лупа в шапке
@@ -540,8 +540,10 @@ test('лупа ищет разделы, помощник — чат по сво�
   assert.match(help, /Ответы основаны на данных кабинета/);
   const hard = await (await anna.get('/hard')).text();
   assert.match(hard, /Психологическая помощь/);
-  assert.match(hard, /Служба поддержки/);
-  assert.match(hard, /support@example\.com/);
+  assert.match(hard, /href="\/support"/);
+  const sup = await (await anna.get('/support')).text();
+  assert.match(sup, /<h1>Служба поддержки<\/h1>/);
+  assert.match(sup, /support@example\.com/);
   assert.doesNotMatch(hard, /<h1>Если тяжело<\/h1>|Если тяжело прямо сейчас/);
 });
 
@@ -559,7 +561,7 @@ test('студенческий билет и зачётка: экран доку
   assert.match(docs, /Приказ о зачислении/);
   assert.match(docs, /Дата выдачи/);
   assert.match(docs, /Уровень образования/);
-  assert.match(docs, /Высшее — бакалавриат/);
+  assert.match(docs, /Высшее – бакалавриат/);
   assert.match(docs, /href="\/study\/record"/);
   assert.doesNotMatch(docs, /не заменяет оригинал|военкомат|ОБРАЗЕЦ/);
   assert.equal((await ilya.get('/me/docs')).status, 200);
@@ -615,8 +617,9 @@ test('главная: первая задача видна, вычет и доп
   assert.match(a.split('attention-primary')[1].split('<details')[0], /Допуск к сессии: Бизнес-планирование/);
   assert.doesNotMatch(a.split('attention-primary')[1].split('<details')[0], /соцзащит/);
   const me = await (await anna.get('/me')).text();
-  assert.match(me, /Помощь и поддержка/);
+  assert.ok(me.indexOf('Служба поддержки') > -1 && me.indexOf('Служба поддержки') < me.indexOf('Психологическая помощь')); // сначала поддержка, потом психологическая помощь
   assert.equal((me.match(/href="\/hard"/g) || []).length, 1);
+  assert.equal((me.match(/href="\/support"/g) || []).length, 1);
   assert.doesNotMatch(me, /Куда обратиться/);
   for (const c of [anna, ilya]) {
     const p = await (await c.get('/situations/military')).text();

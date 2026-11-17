@@ -84,7 +84,7 @@ function model(db) {
       });
     },
     // ---------- Сессия ----------
-    // Допуск — демо-правило концепта: набран порог текущих баллов по дисциплине
+    // Допуск – демо-правило концепта: набран порог текущих баллов по дисциплине
     session(studentId, ds = m.disciplines(studentId)) {
       return q('SELECT * FROM session_items WHERE student_id = ? ORDER BY date_key, start').all(studentId).map((s) => {
         const d = ds.find((x) => x.id === s.discipline_id) || null;
@@ -158,7 +158,7 @@ function model(db) {
     // Другие справки того же пакета (жизненная ситуация, заказ одной кнопкой)
     bundleOf: (r) => (r && r.bundle ? q('SELECT * FROM requests WHERE bundle = ? AND id != ? ORDER BY id').all(r.bundle, r.id).map(m.decorate) : []),
 
-    // Право доступа: студент — только к своим заявкам, сотрудник — ко всем
+    // Право доступа: студент – только к своим заявкам, сотрудник – ко всем
     canSee(user, r) { return !!(user && r && (user.role === 'staff' || r.student_id === user.id)); },
 
     nextNumber() {

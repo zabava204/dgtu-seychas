@@ -26,9 +26,9 @@
     close.addEventListener('click', () => toast.remove()); toast.appendChild(close);
   }
 
-  // Строки таблицы деканата — целиком кликабельны
+  // Строки таблицы деканата – целиком кликабельны
   $$('tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) location.href = tr.dataset.href; }));
-  // Защита от двойной отправки — только для настоящей отправки формы (чат помощника отправляет сам и не блокируется)
+  // Защита от двойной отправки – только для настоящей отправки формы (чат помощника отправляет сам и не блокируется)
   $$('form').forEach((f) => f.addEventListener('submit', (e) => { if (f.dataset.askPermission !== undefined || f.dataset.confirm || f.id === 'ask') return; setTimeout(() => { if (e.defaultPrevented) return; f.querySelectorAll('button[type=submit], button:not([type])').forEach((b) => { b.disabled = true; }); }, 0); }));
   $$('form[data-confirm]').forEach((f) => f.addEventListener('submit', (e) => { if (!window.confirm(f.dataset.confirm)) e.preventDefault(); }));
 
@@ -72,7 +72,7 @@
     f.addEventListener('change', update); update();
   });
 
-  // Разрешение на уведомления браузера — только в контексте (после отправки заявки или в настройках)
+  // Разрешение на уведомления браузера – только в контексте (после отправки заявки или в настройках)
   const askPermission = async () => { if (!('Notification' in window)) return 'unsupported'; if (Notification.permission !== 'default') return Notification.permission; try { return await Notification.requestPermission(); } catch { return 'denied'; } };
   $$('form[data-ask-permission]').forEach((f) => f.addEventListener('submit', async (e) => {
     if (f.dataset.done) return; e.preventDefault(); await askPermission(); f.dataset.done = '1'; f.submit();
@@ -82,7 +82,7 @@
   showPerm();
   $$('[data-ask-permission-btn]').forEach((b) => b.addEventListener('click', async () => { await askPermission(); showPerm(); }));
 
-  // Пока кабинет открыт — проверяем новые уведомления раз в 30 секунд
+  // Пока кабинет открыт – проверяем новые уведомления раз в 30 секунд
   if ($('.tabbar') && 'Notification' in window && Notification.permission === 'granted') {
     const poll = async () => {
       try {
@@ -147,7 +147,7 @@
         }
         const src = document.createElement('span'); src.className = 'src'; const en = j.lang === 'en'; src.textContent = j.source === 'gigachat' ? (en ? 'GigaChat answer based on cabinet data' : 'Ответ GigaChat с учётом справки кабинета') : j.source === 'calc' ? (en ? 'Calculated from your cabinet data' : 'Расчёт по данным кабинета') : (en ? 'Answer by cabinet rules' : 'Ответ по правилам кабинета'); wait.appendChild(src);
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
-        wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
+        wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа – в видимой зоне, не под панелью ввода
       } catch {
         wait.textContent = 'Не удалось получить ответ. Проверь подключение и нажми «Повторить».';
         const box = document.createElement('div'); box.className = 'actions';

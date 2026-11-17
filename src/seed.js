@@ -30,19 +30,19 @@ function seed(db) {
     login: 'anna', pass_hash: hash, role: 'student', full_name: 'Орлова Анна Сергеевна', short_name: 'Анна Орлова',
     name_dat: 'Орловой Анне Сергеевне', first_name: 'Анна', gender: 'f', group_name: 'МН-31', course: 3, level: 'бакалавриат',
     program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '230471', curator: 'Петрова И. В.',
-    demo_note: 'бакалавр · 3 курс · дневные пары',
+    demo_note: 'бакалавр · 3 курс · дневные занятия',
   });
   const ilya = user({
     login: 'ilya', pass_hash: hash, role: 'student', full_name: 'Смирнов Илья Андреевич', short_name: 'Илья Смирнов',
     name_dat: 'Смирнову Илье Андреевичу', first_name: 'Илья', gender: 'm', group_name: 'ММН-21', course: 2, level: 'магистратура',
     program: '38.04.02 Менеджмент', form: 'очно-заочная', funding: 'контракт', record_book: '251186', curator: 'Ким А. С.',
-    demo_note: 'магистрант · 2 курс, контракт · вечерние пары, НИР',
+    demo_note: 'магистрант · 2 курс, контракт · вечерние занятия, НИР',
   });
   const staff = user({
     login: 'dekanat', pass_hash: hash, role: 'staff', full_name: 'Соколова Елена Викторовна', short_name: 'Соколова Е. В.',
     first_name: 'Елена', gender: 'f', position: 'специалист деканата', demo_note: 'обработка заявок',
   });
-  // Студенты без входа — чтобы очередь деканата была живой
+  // Студенты без входа – чтобы очередь деканата была живой
   const others = {
     petrov: user({ role: 'student', full_name: 'Петров Денис Олегович', short_name: 'Денис Петров', name_dat: 'Петрову Денису Олеговичу', gender: 'm', group_name: 'МН-32', course: 3, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '230518' }),
     kim: user({ role: 'student', full_name: 'Ким Лиана Робертовна', short_name: 'Лиана Ким', name_dat: 'Ким Лиане Робертовне', gender: 'f', group_name: 'МН-21', course: 2, level: 'бакалавриат', program: '38.03.02 Менеджмент', form: 'очная', funding: 'бюджет', record_book: '240233' }),
@@ -75,7 +75,7 @@ function seed(db) {
   const innovThu = S('ММН-21', 4, 'all', '18:00', '19:35', 'Инновационные подходы к принятию решений', 'практика', '2-318', 'Соколов Д. А.');
   S('ММН-21', 6, 'all', '10:15', '11:50', 'Методы анализа в менеджменте', 'практика', null, 'Белова Е. Н.', 1);
 
-  // Изменения: ближайшая «Экономика организации» во вторник — другая аудитория; у Ильи перенос в четверг
+  // Изменения: ближайшая «Экономика организации» во вторник – другая аудитория; у Ильи перенос в четверг
   const nextOn = (wd, endMin) => {
     for (let i = 0; i < 8; i++) {
       const k = T.addDays(today, i);
@@ -124,7 +124,7 @@ function seed(db) {
   SS(ilya, 'Иностранный язык в профессиональной сфере', 'зачёт', Dk(12, 25), '18:00', '2-405');
   exam(ilya, 'Инновационные подходы к принятию решений', Dk(1, 13), '18:00', '2-501');
 
-  // Зачётная книжка: прошлые семестры (нечётный — сессия в январе, чётный — в июне)
+  // Зачётная книжка: прошлые семестры (нечётный – сессия в январе, чётный – в июне)
   const insB = db.prepare('INSERT INTO record_book (student_id, semester, subject, control, mark, date_key, teacher) VALUES (?,?,?,?,?,?,?)');
   const book = (sid, course, sems) => {
     const start = Y - (course - 1);
@@ -229,21 +229,21 @@ function seed(db) {
   // ---------- Уведомления ----------
   const insNt = db.prepare('INSERT INTO notifications (user_id, at, category, title, body, link, read) VALUES (?,?,?,?,?,?,?)');
   const tueKey = nextOn(2, T.parseHHMM('10:35'));
-  insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации — ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, `/study?d=${tueKey}#pair-${econTue}`, 0);
-  insNt.run(anna, ago(19), 'requests', `Справка об обучении — в обработке`, `Заявка № ${num(48)}. Ожидаемый срок — ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
+  insNt.run(anna, ago(2.5), 'schedule', 'Экономика организации – ауд. 1-405', `${T.dayMonthKey(tueKey)}, 9:00. Было: 8-202, время прежнее.`, `/study?d=${tueKey}#pair-${econTue}`, 0);
+  insNt.run(anna, ago(19), 'requests', `Справка об обучении – в обработке`, `Заявка № ${num(48)}. Ожидаемый срок – ${T.relDateTime(T.at(T.addWorkdays(today, 1), 15 * 60))}.`, `/requests/${r48}`, 0);
   insNt.run(anna, ago(2 * 24 + 2.9), 'requests', 'Материальная помощь: нужен документ', `Заявка № ${num(31)}: загрузи справку о составе семьи.`, `/requests/${r31}`, 1);
-  insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов — в разделе «Заявки».', '/requests/new?type=aid', 1);
-  insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы — перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, `/study?d=${nextOn(4, T.parseHHMM('21:05'))}#pair-${innovThu}`, 0);
-  insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета — онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);
+  insNt.run(anna, ago(4 * 24), 'announcements', 'Приём заявлений на материальную помощь', 'До 30 ноября. Условия и список документов – в разделе «Заявки».', '/requests/new?type=aid', 1);
+  insNt.run(ilya, ago(17), 'schedule', 'Инновационные подходы – перенос', `Четверг: 19:30–21:05, ауд. 2-501. Было: 18:00, ауд. 2-318.`, `/study?d=${nextOn(4, T.parseHHMM('21:05'))}#pair-${innovThu}`, 0);
+  insNt.run(ilya, ago(26), 'announcements', 'Справки для налогового вычета – онлайн', 'Справку об оплате обучения для налоговой теперь можно заказать в «Заявках».', '/requests/new?type=tax', 0);
   insNt.run(ilya, ago(30), 'grades', 'НИР: этап «Научный поиск» вернули на доработку', 'Смотри комментарий руководителя.', '/study/nir', 0);
 
   // Напоминания о сроках (категория «Дедлайны»): за 2 дня и в день сдачи
   const dl = (sid, subj) => `/study/grades#d-${did(sid, subj).id}`;
   insNt.run(anna, ago(1.5), 'deadlines', 'Через 2 дня: реферат по маркетингу', `До ${T.dayMonthKey(T.addDays(today, 2))}, 23:59 · сдать в Moodle · до 20 баллов`, dl(anna, 'Маркетинг'), 0);
-  insNt.run(anna, ago(3 * 24 + 1), 'deadlines', 'Бизнес-планирование: сегодня срок финансового плана', 'До 23:59 · до 20 баллов. Если не успеваешь — помощник подскажет, как попросить отсрочку.', dl(anna, 'Бизнес-планирование'), 1);
+  insNt.run(anna, ago(3 * 24 + 1), 'deadlines', 'Бизнес-планирование: сегодня срок финансового плана', 'До 23:59 · до 20 баллов. Если не успеваешь – помощник подскажет, как попросить отсрочку.', dl(anna, 'Бизнес-планирование'), 1);
   insNt.run(ilya, ago(2 * 24 + 3), 'deadlines', 'Методы анализа: сегодня срок работы 4', 'До 23:59 · до 10 баллов', dl(ilya, 'Методы анализа в менеджменте'), 1);
-  insNt.run(ilya, ago(2), 'deadlines', 'НИР: доработать «Научный поиск»', `Срок — ${T.dayMonthKey(T.addDays(today, 6))} · комментарий руководителя в разделе НИР`, '/study/nir', 0);
-  for (const sid of [anna, ilya]) insNt.run(sid, ago(5), 'announcements', 'Опубликовано расписание зимней сессии', 'Даты зачётов, экзаменов и консультаций — в «Оценках». Там же видно, есть ли допуск.', '/study/grades#session', 0);
+  insNt.run(ilya, ago(2), 'deadlines', 'НИР: доработать «Научный поиск»', `Срок – ${T.dayMonthKey(T.addDays(today, 6))} · комментарий руководителя в разделе НИР`, '/study/nir', 0);
+  for (const sid of [anna, ilya]) insNt.run(sid, ago(5), 'announcements', 'Опубликовано расписание зимней сессии', 'Даты зачётов, экзаменов и консультаций – в «Оценках». Там же видно, есть ли допуск.', '/study/grades#session', 0);
 
   // Настройки уведомлений по умолчанию
   const insSet = db.prepare('INSERT INTO settings (user_id, key, value) VALUES (?,?,?)');
