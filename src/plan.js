@@ -30,7 +30,7 @@ function queue(ds, session, gender) {
       tasks.push({
         discipline_id: d.id, kind: 'clarify',
         title: `Уточнить у преподавателя: ${d.subject}`,
-        detail: `Просрочено: ${names}.${rest} Преподаватель — ${d.teacher}.`,
+        detail: `Просрочено: ${names}.${rest} Преподаватель — ${d.teacher}`,
       });
     } else if (!upcoming) {
       tasks.push({

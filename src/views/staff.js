@@ -6,7 +6,7 @@ const { TYPES, purposeOf, formatOf } = require('../catalog');
 const TAX = require('../tax');
 
 const TAG = { submitted: ['blue', 'Новая'], in_work: ['', 'В работе'], need_student: ['amber', 'Ждёт студента'], ready: ['green', 'Готова'], rejected: ['red', 'Отклонена'] };
-const tag = (s) => html`<span class="tag ${TAG[s][0]}">${TAG[s][1]}</span>`;
+const tag = (s, cert = true) => html`<span class="tag ${TAG[s][0]}">${s === 'ready' && !cert ? 'Решение принято' : TAG[s][1]}</span>`;
 
 function shell({ title, ctx, cur, body }) {
   const c = ctx.counts;
@@ -23,7 +23,7 @@ ${nav.map(([k, l, n]) => html`<a href="/staff?f=${k}" ${cur === k ? raw('aria-cu
 <main>${ctx.flash ? html`<div class="note green" role="status" style="margin-bottom:16px">${ctx.flash.text}</div>` : ''}
 <div class="small muted" style="margin-bottom:12px">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
 ${demoSwitcher(ctx)}
-${body}</main></div><script src="/app.js?v=10" defer></script></body></html>`;
+${body}</main></div><script src="/app.js?v=11" defer></script></body></html>`;
 }
 
 function queue(ctx) {
@@ -37,7 +37,7 @@ function queue(ctx) {
 ${list.length ? list.map((r) => html`<tr class="clickable" data-href="/staff/requests/${r.id}">
 <td data-label="Номер"><a aria-label="Заявка № ${r.number}: ${r.title}" href="/staff/requests/${r.id}">${r.number}</a></td><td data-label="Заявка"><b style="font-weight:600">${r.title}</b>${r.type === 'study' && r.format === 'paper' ? html`<div class="small muted">бумажная</div>` : ''}</td>
 <td data-label="Студент">${r.student_name}<div class="small muted">${r.group_name}</div></td><td data-label="Подана">${T.relDateTime(new Date(r.submitted_at || r.created_at))}</td>
-<td data-label="Срок">${r.eta_at && !['ready', 'rejected'].includes(r.status) ? T.relDateTime(new Date(r.eta_at)) : '—'}</td><td data-label="Статус">${tag(r.status)}${r.assignee ? html`<div class="small muted" style="margin-top:4px">${r.assignee.short_name}</div>` : ''}</td></tr>`)
+<td data-label="Срок">${r.eta_at && !['ready', 'rejected'].includes(r.status) ? T.relDateTime(new Date(r.eta_at)) : '—'}</td><td data-label="Статус">${tag(r.status, TYPES[r.type].producesPdf)}${r.assignee ? html`<div class="small muted" style="margin-top:4px">${r.assignee.short_name}</div>` : ''}</td></tr>`)
     : html`<tr><td colspan="6" class="muted">В этом разделе заявок пока нет. Новые появятся после отправки студентами.</td></tr>`}
 </tbody></table>
 <form method="post" action="/staff/reset" style="margin-top:28px" data-confirm="Вернуть все демо-данные к исходному состоянию? Новые заявки и сообщения удалятся.">
@@ -49,12 +49,12 @@ function detail(ctx) {
   const { r, student, events, files } = ctx;
   const t = TYPES[r.type];
   const purpose = r.type === 'study' ? purposeOf('study', r.purpose) : null;
-  const evText = { submitted: 'Подана студентом', taken: 'Взята в работу', need_doc: 'Запрошен документ', uploaded: 'Студент загрузил документ', ready: 'Готова', rejected: 'Отклонена', message: 'Сообщение' };
+  const evText = { submitted: 'Подана студентом', taken: 'Взята в работу', need_doc: 'Запрошен документ', uploaded: 'Студент загрузил документ', ready: t.producesPdf ? 'Готова' : 'Решение принято', rejected: 'Отклонена', message: 'Сообщение' };
   const open = !['ready', 'rejected'].includes(r.status);
   return shell({
     title: `Заявка ${r.number}`, ctx, cur: { submitted: 'new', in_work: 'work', need_student: 'student' }[r.status] || 'done',
     body: html`<a class="link" style="padding-left:0" href="/staff?f=${{ submitted: 'new', in_work: 'work', need_student: 'student' }[r.status] || 'done'}">← К списку</a>
-<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h1>${r.title}</h1>${tag(r.status)}</div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h1>${r.title}</h1>${tag(r.status, TYPES[r.type].producesPdf)}</div>
 <div class="muted" style="margin-top:4px">№ ${r.number} · подана ${T.stamp(new Date(r.submitted_at || r.created_at))}${r.eta_at && open ? ` · срок ${T.relDateTime(new Date(r.eta_at))}` : ''}</div>
 <div class="grid2" style="margin-top:18px">
 <div>
@@ -67,7 +67,7 @@ function detail(ctx) {
 ${purpose ? html`<div class="kv"><span>Куда</span><span>${purpose.label}</span></div>` : ''}
 ${r.type === 'aid' ? html`<div class="kv"><span>Основание</span><span>${r.purpose}</span></div>` : ''}
 ${r.note ? html`<div class="kv"><span>Примечание студента</span><span>${r.note}</span></div>` : ''}
-${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан — паспортные данные из личного дела'}</span></div>` : ''}
+${r.type === 'tax' ? html`<div class="kv"><span>Год оплаты</span><span>${r.purpose}</span></div><div class="kv"><span>ИНН</span><span>${r.details || 'не указан'}</span></div>` : ''}
 ${r.details && r.type !== 'tax' ? html`<div class="kv"><span>${t.detailsLabel || 'Уточнение'}</span><span>${r.details}</span></div>` : ''}
 ${r.format ? html`<div class="kv"><span>Формат</span><span>${formatOf(r.type, r.format)?.label}</span></div>` : ''}
 ${files.map((f) => html`<div class="kv"><span>Документ</span><span><a href="/files/${f.id}" target="_blank" rel="noopener">${f.name}</a> · ${T.stamp(new Date(f.uploaded_at))}</span></div>`)}
@@ -81,14 +81,14 @@ ${ctx.payments.map((p) => html`<tr><td>${p.paid_on.split('-').reverse().join('.'
 <div>${evText[e.kind] || e.kind}${e.text ? html`: ${e.text}` : ''}</div></div>`)}</div>
 </div>
 <div>
-${r.status === 'submitted' ? html`<div class="card"><b>Действие</b><p class="small muted" style="font-size:14px">Студент видит: «Заказана · ждёт обработки». После взятия в работу — ваше имя и срок.</p>
+${r.status === 'submitted' ? html`<div class="card"><b>Действие</b><p class="small muted" style="font-size:14px">После подтверждения заявка перейдёт в работу. Студент увидит изменение статуса.</p>
 <form method="post" action="/staff/requests/${r.id}/take"><button class="btn block">Взять в работу</button></form></div>` : ''}
 ${r.status === 'in_work' && t.producesPdf ? html`<div class="card"><b>${r.format === 'paper' ? 'Справка готова к выдаче' : 'Сформировать PDF-справку'}</b>
 <p class="small muted" style="font-size:14px">${r.format === 'paper' ? 'Студент получит уведомление «Готова, забрать в каб. 210».' : 'PDF появится в заявке студента, придёт уведомление.'}</p>
 <form method="post" action="/staff/requests/${r.id}/ready"><button class="btn block">${r.format === 'paper' ? 'Отметить: готова к выдаче' : 'Сформировать PDF-справку'}</button></form>
-<a class="link" style="padding-left:0" href="/staff/requests/${r.id}/preview" target="_blank" rel="noopener">Предпросмотр PDF</a></div>` : ''}
+<a class="link" style="padding-left:0" href="/staff/requests/${r.id}/preview" target="_blank" rel="noopener">Посмотреть образец PDF</a></div>` : ''}
 ${r.status === 'in_work' && !t.producesPdf ? html`<div class="card"><b>Решение по заявлению</b>
-<form method="post" action="/staff/requests/${r.id}/ready"><label class="field" style="margin-top:6px">Текст для студента<textarea name="text" required>Материальная помощь назначена, выплата — со стипендией в следующем месяце.</textarea></label>
+<form method="post" action="/staff/requests/${r.id}/ready"><label class="field" style="margin-top:6px">Текст для студента<textarea name="text" required>Демонстрационное решение: материальная помощь назначена.</textarea></label>
 <button class="btn block" style="margin-top:10px">Сообщить решение</button></form></div>` : ''}
 ${r.status === 'submitted' ? html`<p class="small muted" style="margin:4px 4px 0">Запросить документ или отклонить заявку можно после того, как возьмёте её в работу.</p>` : ''}
 ${r.status === 'in_work' ? html`<div class="card"><b>Запросить документ у студента</b>
@@ -106,7 +106,7 @@ ${r.status === 'ready' && t.producesPdf && r.format !== 'paper' ? html`<div clas
 function announce(ctx) {
   return shell({
     title: 'Объявление', ctx, cur: 'announce',
-    body: html`<h1>Объявление студентам</h1><p class="muted">Придёт всем студентам факультета в «Уведомления», категория «Объявления деканата».</p>
+    body: html`<h1>Объявление студентам</h1><p class="muted">Объявление появится в уведомлениях всех студентов демо-кабинета.</p>
 <form method="post" action="/staff/announce" class="card" style="max-width:560px">
 <label class="field" style="margin-top:0">Заголовок<input type="text" name="title" required maxlength="120"></label>
 <label class="field">Текст<textarea name="body" required maxlength="600"></textarea></label>

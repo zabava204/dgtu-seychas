@@ -109,7 +109,7 @@ test('запрос документа и загрузка студентом', a
   assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Новая/); // запросить документ до «Взять в работу» нельзя
   await dk.post(`/staff/requests/${id}/take`, {});
   await dk.post(`/staff/requests/${id}/need`, { text: 'Загрузи справку о составе семьи' });
-  assert.match(await (await anna.get('/requests')).text(), /Нужно твоё действие/);
+  assert.match(await (await anna.get('/requests')).text(), /Нужно дополнить/);
   const fd = new FormData();
   fd.append('doc', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'spravka.pdf');
   const up = await anna.post(`/requests/${id}/upload`, fd);
@@ -118,6 +118,13 @@ test('запрос документа и загрузка студентом', a
   assert.match(page, /Документ загружен/);
   assert.match(page, /spravka\.pdf/);
   assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Студент загрузил документ/);
+  await anna.post(`/requests/${id}/notify`, {});
+  const notified = await (await anna.get(`/requests/${id}`)).text();
+  assert.match(notified, /Уведомления по заявке включены/);
+  assert.doesNotMatch(notified, /Сообщим, когда справка будет готова/);
+  await dk.post(`/staff/requests/${id}/ready`, { text: 'Демонстрационное решение по заявлению' });
+  assert.match(await (await dk.get(`/staff/requests/${id}`)).text(), /Решение принято/);
+  assert.doesNotMatch(await (await anna.get(`/requests/${id}`)).text(), /href="\/requests\/\d+\/pdf"/);
 });
 
 test('помощник без ключа отвечает по правилам и даёт кнопку', async () => {
@@ -155,7 +162,7 @@ test('RAG-lite: в факты для LLM не попадают баллы и с�
 test('основной сценарий: справка для налогового вычета', async () => {
   const ilya = await login('ilya'); const anna = await login('anna'); const dk = await login('dekanat');
   const form = await (await ilya.get('/requests/new?type=tax&draft=1')).text();
-  assert.match(form, /Условия проверены/);
+  assert.match(form, /Договор и оплаты найдены/);
   assert.match(form, /96 000 ₽/);
   assert.match(form, /pattern="\\d\{12\}"/);
   assert.match(form, /12 480 ₽/);
@@ -390,7 +397,7 @@ test('план на 7 дней не пересекает пары, не став
   const slotId = page.match(/data-slot="(\d+)"/)[1];
   assert.equal((await anna.post(`/study/plan/slots/${slotId}/done`)).status, 302);
   assert.equal(points(), before);
-  assert.match(await (await anna.get('/')).text(), /Дальше по плану/);
+  assert.match(await (await anna.get('/')).text(), /Ближайшая задача плана/);
   const ilya = await login('ilya');
   assert.equal((await ilya.post(`/study/plan/slots/${slotId}/done`)).status, 404);
   assert.doesNotMatch(await (await ilya.get('/study/plan')).text(), /Бизнес-планирование/);
@@ -409,10 +416,10 @@ test('план на 7 дней не пересекает пары, не став
   const again = await login('anna');
   assert.doesNotMatch(await (await again.get('/study/plan')).text(), /data-date=/);
   const homeAgain = await (await again.get('/')).text();
-  assert.doesNotMatch(homeAgain, /Дальше по плану/);
+  assert.doesNotMatch(homeAgain, /Ближайшая задача плана/);
   assert.match(homeAgain, /Составить план на 7 дней/);
   assert.match(homeAgain, /href="\/study\/plan\?new=1"/);
-  assert.doesNotMatch(homeAgain, /Быстрые действия[\s\S]*План на 7 дней/);
+  assert.doesNotMatch(homeAgain.match(/<nav class="qa"[\s\S]*?<\/nav>/)[0], /План на 7 дней/);
   const att = homeAgain.match(/id="att-h"[\s\S]*?<\/section>/)[0];
   assert.match(att, /Допуск к сессии: Бизнес-планирование/);
   assert.ok(att.indexOf('Допуск к сессии: Бизнес-планирование') < att.indexOf('Материальная помощь'), 'допуск выше заявок');
@@ -430,7 +437,7 @@ test('разбор допуска: свои баллы, чужая дисцип�
   assert.match(page, /Расчёт кабинета: 50 − 12 = 38/);
   assert.match(page, /12 \+ 35 = 47/);
   assert.match(page, /останется 3/);
-  assert.match(page, /Кабинет не знает/);
+  assert.match(page, /Уточни у преподавателя/);
   assert.match(page, /Не хватает 38|не хватает 38/);
   assert.match(page, /12 из 50/);
   assert.match(page, /admit-prog|progress gap/);
@@ -458,7 +465,7 @@ test('четыре вопроса помощника: план, письмо, о
   const chips = await (await anna.get('/helper')).text();
   assert.match(chips, /До сессии/);
   assert.match(chips, /Письмо преподавателю/);
-  assert.match(chips, /Попросить отсрочку/);
+  assert.match(chips, /Перенос срока сдачи/);
   assert.match(chips, /Если пары вечером/);
   const before = await ask(anna, 'Что сделать до сессии?');
   assert.equal(before.source, 'calc');
@@ -524,7 +531,7 @@ test('лупа ищет разделы, помощник — чат по сво�
   const hard = await (await anna.get('/hard')).text();
   assert.match(hard, /Психологическая помощь/);
   assert.match(hard, /Служба поддержки/);
-  assert.match(hard, /support@demo\.dgtu-seychas\.ru/);
+  assert.match(hard, /support@example\.com/);
   assert.doesNotMatch(hard, /<h1>Если тяжело<\/h1>|Если тяжело прямо сейчас/);
 });
 
@@ -581,16 +588,17 @@ test('версия для слабовидящих: включается и вы
   assert.doesNotMatch(await (await anna.get('/me')).text(), /class="lv"/);
 });
 
-test('главная: один следующий шаг, черновик Ильи и навигатор обращения', async () => {
+test('главная: сворачиваемые задачи, черновик Ильи и навигатор обращения', async () => {
   const anna = await login('anna'), ilya = await login('ilya');
   const a = await (await anna.get('/')).text(), i = await (await ilya.get('/')).text();
   for (const page of [a, i]) {
-    assert.match(page, /Следующий шаг/);
-    const visible = page.split('overview-attention')[1].split('<details')[0];
+    assert.match(page, /Задачи и заявки/);
+    assert.match(page, /<details class="attention-panel" open data-disclosure="today-tasks-\d+"/);
+    const visible = page.split('attention-content')[1].split('<details')[0];
     assert.equal((visible.match(/class="row attention-row"/g) || []).length, 1);
     assert.match(page, /Другие задачи/);
   }
-  assert.match(i.split('overview-attention')[1].split('<details')[0], /Справка для налогового вычета/);
+  assert.match(i.split('attention-content')[1].split('<details')[0], /Справка для налогового вычета/);
   for (const c of [anna, ilya]) {
     const p = await (await c.get('/situations/military')).text();
     assert.match(p, /Воинский учёт и отсрочка/);

@@ -242,8 +242,8 @@ function createApp(opts = {}) {
     M.replaceStudyPlan(req.user.id, { minutes, part }, placed);
     const when = part === 'day' ? 'днём, с 8:00 до 17:00' : 'вечером, с 18:00 до 22:00';
     flash(req, placed.length
-      ? `План на ${minutes} минут ${when}. Задач в окнах: ${placed.length}${left.length ? `, ещё ${left.length} не поместились` : ''}. Отметка «сделано» баллы не меняет.`
-      : 'В выбранном окне на ближайшие 7 дней нет места между парами. Баллы не изменились.');
+      ? `План составлен: до ${minutes} минут в день ${when}. Задач запланировано: ${placed.length}${left.length ? `. Осталось распределить: ${left.length}` : ''}. Отметка «Сделано» не меняет баллы.`
+      : tasks.length ? 'Не получилось распределить работы на выбранное время. Попробуй другой период.' : 'Задач для подготовки сейчас нет.');
     res.redirect('/study/plan');
   });
   app.post('/study/plan/slots/:id/done', student, (req, res) => {
@@ -318,7 +318,7 @@ function createApp(opts = {}) {
     M.db.prepare('UPDATE requests SET notify_ready = 1 WHERE id = ?').run(req.r.id);
     M.setSetting(req.user.id, 'notif_requests', '1');
     if (req.is('json')) return res.json({ ok: true });
-    flash(req, 'Сообщим, когда справка будет готова');
+    flash(req, 'Уведомления по заявке включены');
     res.redirect(`/requests/${req.r.id}`);
   });
   app.get('/requests/:id', needAuth(), loadRequest, (req, res) => {

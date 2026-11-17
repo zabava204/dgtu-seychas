@@ -20,7 +20,7 @@ function login({ error, loginValue, demo, notice }) {
 <button type="button" class="icon-btn" data-toggle-password aria-label="Показать пароль" style="position:absolute;right:4px;top:4px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B6577" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>
 ${error ? html`<div class="err" role="alert" id="login-err">${error}</div>` : ''}
 <button class="btn block" type="submit" style="margin-top:18px">Войти</button>
-<div style="text-align:center"><a class="link" href="/forgot">Забыл пароль?</a></div>
+<div style="text-align:center"><a class="link" href="/forgot">Не помнишь пароль?</a></div>
 <div style="text-align:center"><a class="link" href="/a11y"><span class="lv-off">Версия для слабовидящих</span><span class="lv-on">Обычная версия</span></a></div>
 </form>
 <section aria-labelledby="demo-h" style="margin-top:8px">
@@ -35,8 +35,7 @@ ${demo.map((u) => html`<form method="post" action="/login/demo"><input type="hid
 
 function forgot() {
   return shell('Восстановление доступа', html`<h1>Восстановление доступа</h1>
-<p>В рабочей версии пароль восстанавливается через единую учётную запись вуза: ссылка придёт на почту, указанную в личном деле, или пароль сбросят в деканате по студенческому билету.</p>
-<div class="note">В демо-версии письма не отправляются. Войди через демо-доступ на странице входа.</div>
+<p>В демо-версии восстановление пароля недоступно. На странице входа можно выбрать Анну, Илью или сотрудника без ввода пароля.</p>
 <a class="btn block" href="/login">Вернуться ко входу</a>`);
 }
 

@@ -13,6 +13,7 @@ const ICON = {
 };
 const svg = (inner, size = 24, extra = '') => raw(`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`);
 const I = {
+  helper: svg('<path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9l-5 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 9h8M8 13h5"/>', 22),
   eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 22),
   search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 22),
   bell: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>', 22),
@@ -32,7 +33,7 @@ function head(title, cabinet = 'Личный кабинет студента') {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · ${cabinet}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=16">
+<link rel="stylesheet" href="/app.css?v=18">
 </head>`;
 }
 
@@ -58,7 +59,7 @@ ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
 </main></div>
-<script src="/app.js?v=10" defer></script>${scripts}
+<script src="/app.js?v=11" defer></script>${scripts}
 </body></html>`;
 }
 
@@ -72,7 +73,7 @@ function demoSwitcher(ctx) {
 }
 
 function backBar(href, label) {
-  return html`<div class="back"><a href="${href}" aria-label="Назад: ${label}">${I.back}<span>${label}</span></a></div>`;
+  return html`<div class="back"><a href="${href}" aria-label="${label === 'Назад' ? 'Назад' : `Назад: ${label}`}">${I.back}<span>${label}</span></a></div>`;
 }
 
 // Понятная страница ошибки в стиле кабинета: что случилось и куда идти дальше

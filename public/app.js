@@ -4,6 +4,14 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* приватный режим */ } } };
 
+  // Выбор вида задач хранится только в этом браузере и отдельно для каждого аккаунта.
+  $$('details[data-disclosure]').forEach((panel) => {
+    const key = 'dgtu_' + panel.dataset.disclosure;
+    const saved = store.get(key);
+    if (saved === 'closed') panel.open = false;
+    panel.addEventListener('toggle', () => store.set(key, panel.open ? 'open' : 'closed'));
+  });
+
   // Показать пароль
   $$('[data-toggle-password]').forEach((b) => b.addEventListener('click', () => {
     const i = b.parentElement.querySelector('input');
@@ -126,7 +134,7 @@
       pending = true; const send = $('button[type=submit]', form); send.disabled = true; form.setAttribute('aria-busy', 'true');
       const sg = $('#suggest'); if (sg) sg.hidden = true;
       const me = add('me', q); input.value = '';
-      const wait = add('bot', 'Думаю…');
+      const wait = add('bot', 'Готовлю ответ…');
       try {
         const r = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, history }) });
         if (!r.ok) throw new Error('assistant');
@@ -137,7 +145,7 @@
           j.actions.forEach((a) => { const l = document.createElement('a'); l.className = 'btn small'; l.href = a.href; l.textContent = a.label; box.appendChild(l); });
           wait.appendChild(box);
         }
-        const src = document.createElement('span'); src.className = 'src'; const en = j.lang === 'en'; src.textContent = j.source === 'gigachat' ? (en ? 'GigaChat answer based on cabinet data' : 'Ответ GigaChat по данным кабинета') : j.source === 'calc' ? (en ? 'Calculated from your cabinet data' : 'Расчёт по данным кабинета') : (en ? 'Answer by cabinet rules' : 'Ответ по правилам кабинета'); wait.appendChild(src);
+        const src = document.createElement('span'); src.className = 'src'; const en = j.lang === 'en'; src.textContent = j.source === 'gigachat' ? (en ? 'GigaChat answer based on cabinet data' : 'Ответ GigaChat с учётом справки кабинета') : j.source === 'calc' ? (en ? 'Calculated from your cabinet data' : 'Расчёт по данным кабинета') : (en ? 'Answer by cabinet rules' : 'Ответ по правилам кабинета'); wait.appendChild(src);
         history.push({ role: 'user', content: q }, { role: 'assistant', content: j.text || '' });
         wait.scrollIntoView({ block: 'start', behavior: 'smooth' }); // начало ответа — в видимой зоне, не под панелью ввода
       } catch {
