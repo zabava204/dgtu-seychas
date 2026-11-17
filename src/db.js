@@ -94,6 +94,8 @@ function open(file = process.env.DB_FILE || path.join(DATA_DIR, 'dgtu.sqlite')) 
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
   try { db.exec('ALTER TABLE requests ADD COLUMN note TEXT'); } catch { /* колонка уже есть */ }
+  // Пакет из жизненной ситуации: справки, заказанные одной кнопкой, деканат видит одной строкой
+  try { db.exec('ALTER TABLE requests ADD COLUMN bundle TEXT'); } catch { /* колонка уже есть */ }
   db.dataDir = DATA_DIR;
   const count = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
   if (count === 0) seed(db);

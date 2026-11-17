@@ -160,4 +160,6 @@
     $$('#suggest [data-q]').forEach((b) => b.addEventListener('click', () => ask(b.dataset.q)));
     if (input.value) ask(input.value);
   }
+  // Поле с ошибкой внутри свёрнутого блока: раскрыть блок, чтобы браузер показал подсказку
+  document.addEventListener('invalid', (e) => { const d = e.target.closest && e.target.closest('details'); if (d) d.open = true; }, true);
 })();

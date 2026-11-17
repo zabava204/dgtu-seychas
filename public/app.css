@@ -718,3 +718,7 @@ input, textarea { caret-color: var(--blue-dark); }
 @media (min-width: 840px) { .student-view .demo-switcher { margin-inline: 0; } }
 @media (max-width: 600px) { .demo-accounts { grid-template-columns: 1fr; } .demo-account { gap: 2px; } }
 .lv .demo-account-name { font-size: 18px; }
+
+/* v3.6: справка для вычета — кнопка сразу под итогом, данные договора и ИНН в раскрывающемся блоке */
+.tax-more > summary { flex-direction: column; align-items: flex-start; justify-content: center; cursor: pointer; gap: 2px; }
+.note.valid-note { display: block; }

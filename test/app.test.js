@@ -170,6 +170,9 @@ test('основной сценарий: справка для налогово�
   assert.match(form, /Справка об оплате образовательных услуг для ИФНС \(КНД 1151158\)/);
   assert.match(form, /ФИО заказчика/);
   assert.match(form, new RegExp(`value="${DEMO_INN}"`)); // демо-ИНН подставлен в черновик
+  // Первый экран: итог и кнопка заказа выше данных договора; данные свёрнуты, когда ИНН уже есть
+  assert.ok(form.indexOf('Заказать справку') < form.indexOf('Данные для справки и ИНН'));
+  assert.match(form, /<details class="card tax-more"[^>]*>\s*<summary>/); assert.doesNotMatch(form, /<details class="card tax-more"[^>]*open/);
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '123456789012' })).status, 400); // неверный ИНН
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: year, format: 'pdf', details: '' })).status, 400); // ИНН обязателен
   assert.equal((await ilya.post('/requests', { type: 'tax', purpose: '2019', format: 'pdf', details: DEMO_INN })).status, 400); // нет оплат за год
@@ -283,6 +286,13 @@ test('жизненная ситуация: пакет справок по дан
   const q = await (await dk.get('/staff?f=new')).text();
   const id = q.match(/\/staff\/requests\/(\d+)[^]*?Справка о размере стипендии/);
   assert.ok(id);
+  // У деканата две справки пакета — одной строкой очереди, на странице заявки — ссылка на вторую справку
+  assert.equal((q.match(/Пакет · 2 справки/g) || []).length, 1);
+  assert.match(q, /Семья оформляет субсидию на ЖКУ/);
+  const ids = [...q.matchAll(/class="clickable bundle" data-href="\/staff\/requests\/(\d+)"/g)].map((m) => m[1]);
+  assert.equal(ids.length, 1);
+  const d = await (await dk.get(`/staff/requests/${ids[0]}`)).text();
+  assert.match(d, /Пакет «Семья оформляет субсидию на ЖКУ»/);
 });
 
 test('помощник: факты из аудита 14.11 считает программа', async () => {
@@ -651,4 +661,19 @@ test('демо-переключение не доступно произволь
   await outsider.post('/login/demo', { login: 'ordinary-test' });
   assert.equal((await outsider.get('/me')).status, 302);
   db.prepare("DELETE FROM users WHERE login='ordinary-test'").run(); db.close();
+});
+
+test('готовая справка: срок, когда её обычно принимают, и без повторного заказа', async () => {
+  const anna = await login('anna');
+  const list = await (await anna.get('/requests')).text();
+  assert.match(list, /подойдёт до \d+ [а-я]+/);
+  const ready = list.match(/href="\/requests\/(\d+)"[^>]*>Справка об обучении по месту работы/);
+  assert.ok(ready);
+  const d = await (await anna.get(`/requests/${ready[1]}`)).text();
+  assert.match(d, /Подойдёт до \d+ [а-я]+/);
+  assert.match(d, /демо-правило/);
+  const job = await (await anna.get('/situations/job')).text();
+  assert.match(job, /Уже выдана: № \d{4}-007, подойдёт до/);
+  const tax = await login('ilya');
+  assert.doesNotMatch(await (await tax.get('/requests')).text(), /возможно, устарела/);
 });

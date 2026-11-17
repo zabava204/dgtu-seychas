@@ -309,7 +309,8 @@ function createApp(opts = {}) {
     const want = [].concat(req.body.items || []);
     const picked = s.available.filter((o) => want.includes(o.key));
     if (!picked.length) { flash(req, 'Отметь хотя бы одну справку'); return res.redirect(`/situations/${s.id}`); }
-    for (const o of picked) M.submitRequest(req.user, { type: o.type, purpose: o.purpose, format: 'pdf', details: o.details || '', note: `Ситуация: ${s.title}` });
+    const bundle = picked.length > 1 ? `${s.id}:${req.user.id}:${Date.now()}` : null;
+    for (const o of picked) M.submitRequest(req.user, { type: o.type, purpose: o.purpose, format: 'pdf', details: o.details || '', note: `Ситуация: ${s.title}`, bundle });
     flash(req, picked.length === 1 ? 'Справка заказана. Сообщим, когда будет готова.' : `Заказано ${picked.length} ${picked.length < 5 ? 'справки' : 'справок'}. Сообщим, когда будут готовы.`);
     res.redirect('/requests');
   });
@@ -407,7 +408,7 @@ function createApp(opts = {}) {
     const filter = ['new', 'work', 'student', 'done'].includes(req.query.f) ? req.query.f : 'new';
     send(res, S.queue(staffCtx(req, { list: M.staffQueue(filter), filter })));
   });
-  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id), stipends: M.stipends(req.r.student_id) }))));
+  app.get('/staff/requests/:id', staff, loadRequest, (req, res) => send(res, S.detail(staffCtx(req, { r: req.r, student: M.user(req.r.student_id), events: M.events(req.r.id), files: M.files(req.r.id), payments: M.payments(req.r.student_id), stipends: M.stipends(req.r.student_id), siblings: M.bundleOf(req.r) }))));
   app.get('/staff/requests/:id/preview', staff, loadRequest, (req, res) => {
     const r = req.r;
     if (!TYPES[r.type].producesPdf) return fail(req, res, 404, 'Для этой заявки PDF не формируется', 'Это заявление, а не справка: решение придёт в карточку заявки.', [[`/staff/requests/${r.id}`, 'Вернуться к заявке']]);

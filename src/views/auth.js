@@ -8,7 +8,7 @@ function shell(title, body) {
 <div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
 <div style="padding:32px 20px 0;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;align-items:center;gap:12px">${I.logo}<div><div style="font-size:22px;font-weight:700">ДГТУ.Сейчас</div><div class="small muted">Личный кабинет студента</div></div></div>
-${body}</div></div><script src="/app.js?v=10" defer></script></body></html>`;
+${body}</div></div><script src="/app.js?v=20" defer></script></body></html>`;
 }
 
 function login({ error, loginValue, demo, notice }) {

@@ -2,7 +2,7 @@
 const { html, raw } = require('./html');
 const { page, backBar, demoSwitcher, I } = require('./layout');
 const T = require('../time');
-const { TYPES, DOC_HELP, purposeOf, formatOf } = require('../catalog');
+const { TYPES, DOC_HELP, purposeOf, formatOf, validity } = require('../catalog');
 const { NOTIF_CATEGORIES } = require('../model');
 const TAX = require('../tax');
 
@@ -338,7 +338,7 @@ ${wait.length ? wait.map(reqRowWaiting) : html`<p class="muted small">Заяво
 <section class="section"><h2 class="label">Завершённые</h2>
 ${done.length ? done.map((r) => html`<div class="row"><div class="body">
 <div class="req-head"><a href="/requests/${r.id}" class="title strong" style="color:inherit;text-decoration:none">${r.title}</a><span class="num">№ ${r.number}</span></div>
-<div style="font-size:14px">${r.status === 'ready' ? `${TYPES[r.type].producesPdf ? 'Готова' : 'Решение принято'} · ${T.dayMonth(new Date(r.closed_at))}` : `Отклонена · ${r.reject_reason || ''}`}</div>
+<div style="font-size:14px">${r.status === 'ready' ? `${TYPES[r.type].producesPdf ? 'Готова' : 'Решение принято'} · ${T.dayMonth(new Date(r.closed_at))}${validity(r)?.kind === 'days' ? (validity(r).fresh ? ` · подойдёт до ${T.dayMonthKey(validity(r).until)}` : ' · возможно, устарела') : ''}` : `Отклонена · ${r.reject_reason || ''}`}</div>
 ${r.status === 'ready' && TYPES[r.type].producesPdf && r.format !== 'paper' ? html`<div class="actions"><a class="btn secondary small" href="/requests/${r.id}/pdf" target="_blank" rel="noopener" style="color:var(--blue)">${I.file}Открыть PDF</a></div>`
     : r.status === 'ready' && r.format === 'paper' ? html`<div class="meta">Забрать в деканате: корпус 1, каб. 210</div>` : ''}
 </div></div>`) : html`<p class="muted small">Завершённых заявок пока нет.</p>`}</section>`,
@@ -412,12 +412,13 @@ ${t.formats && t.formats.length > 1 ? html`<fieldset class="field" style="border
 <div class="options">${t.formats.map((f) => html`<label><input type="radio" name="format" value="${f.id}" ${v.format === f.id ? raw('checked') : ''}><span class="opt">${f.label}<small>${f.hint}</small></span></label>`)}</div></fieldset>`
     : html`<input type="hidden" name="format" value="${t.formats?.[0].id || ''}">${t.formats ? html`<p class="small muted">${t.formats[0].label}: ${t.formats[0].hint}</p>` : ''}`}
 ${isTax ? taxFields(payments, taxYears, v, user) : ''}
+${isTax && taxYears.some((y) => y.closed) ? '' : html`
 ${t.requiredDocs ? html`<label class="field">${t.requiredDocs[0]} <span class="hint">PDF или фото, до 5 МБ. Можно загрузить позже.</span>
 <span class="filepick"><input type="file" name="doc" accept=".pdf,.jpg,.jpeg,.png"><span class="btn secondary small" aria-hidden="true">Выбрать файл</span><span class="fname" data-fname>Файл не выбран</span></span></label>
 <a class="link" style="padding-left:0" href="/help/doc?name=${encodeURIComponent(t.requiredDocs[0])}&back=${encodeURIComponent('/requests/new?type=' + type)}">Где взять справку</a>` : ''}
 <div class="card" style="margin-top:16px"><div class="req-head"><span class="small muted">Данные из профиля</span><a class="small" style="display:inline-flex;align-items:center;min-height:44px;margin:-12px 0" href="/help/data">Ошибка в данных?</a></div>
 <div style="font-size:15px;margin-top:6px">${user.full_name}<br>${user.course} курс, ${user.group_name} · ${user.form}, ${user.funding}</div></div>
-<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>${t.producesPdf ? 'Заказать справку' : 'Подать заявление'}</button>
+<button class="btn block" type="submit" style="margin-top:18px" ${isTax && !taxYears.some((y) => y.closed) ? raw('disabled') : ''}>${t.producesPdf ? 'Заказать справку' : 'Подать заявление'}</button>`}
 </form>`,
   });
 }
@@ -437,16 +438,22 @@ function taxFields(payments, years, v, user) {
 ${self ? ok('Заказчик по договору — ты') : ''}
 ${ok('Справка об оплате нужна для оформления вычета')}</div></div>
 <fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">За какой год оплаты <span class="hint">справку выдают за закончившийся год</span></legend>
-<div class="options" style="grid-template-columns:1fr">${[...closed, ...years.filter((y) => !y.closed)].map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
+<div class="options" style="grid-template-columns:1fr">${(closed.length ? closed : years).map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
 <span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Возможный возврат — до ${TAX.rub(y.refund)}*</small></span></label>`
     : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года.` : ''}</small></div>`)}</div></fieldset>
-${closed.length ? html`<div class="card" style="margin-top:16px"><div class="small muted">Данные для справки — из договора</div>
+${closed.length ? html`<button class="btn block" type="submit" style="margin-top:18px">Заказать справку</button>
+${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет будет считаться с ${TAX.rub(TAX.OWN_LIMIT)} — это лимит года.` : ''}</p>`)}
+<details class="card tax-more" style="margin-top:16px" ${/^\d{12}$/.test(v.details) ? '' : raw('open')}><summary><b>Данные для справки и ИНН</b><span class="small muted" style="display:block;font-weight:400">Заполнено из договора и профиля${/^\d{12}$/.test(v.details) ? ' · можно проверить' : ' · нужен ИНН'}</span></summary>
+<div style="margin-top:10px"><div class="small muted">Из договора</div>
 <div class="kv"><span>ФИО обучающегося</span><span>${user.full_name}</span></div>
 <div class="kv"><span>ФИО заказчика</span><span>${customer}</span></div>
-<div class="kv"><span>Номер договора</span><span>${contract}</span></div></div>
+<div class="kv"><span>Номер договора</span><span>${contract}</span></div>
+<div class="kv"><span>Курс и группа</span><span>${user.course} курс, ${user.group_name} · ${user.form}</span></div>
+<a class="small" style="display:inline-flex;align-items:center;min-height:44px" href="/help/data">Ошибка в данных?</a></div>
 <label class="field">ИНН обучающегося и заказчика <span class="hint">обязательно · 12 цифр${self ? ' · ты одновременно обучающийся и заказчик' : ''}${v.details === TAX.DEMO_INN ? ' · в демо подставлен тестовый ИНН' : ''}</span>
 <input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" required value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
 <label class="field">Примечание <span class="hint">необязательно</span><textarea name="note" maxlength="500" style="min-height:72px">${v.note || ''}</textarea></label>
+</details>
 <p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт) — если доход облагается по ставке 13%.</p>` : ''}
 <a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
 <p class="small muted" style="margin:6px 0 0">Если заказчик по договору — родители или супруг(а), справку оформляют на их имя — в прототипе такая заявка недоступна.</p>`;
@@ -520,6 +527,7 @@ function requestDetail(ctx) {
 <div class="page-head" style="display:flex;flex-direction:column;gap:6px"><h1>${r.title}</h1><div class="small muted">Заявка № ${r.number}</div><div style="font-size:16px">${actor}</div>
 ${r.eta_at && !['ready', 'rejected'].includes(r.status) ? html`<div class="muted" style="font-size:14px">${isAid ? 'Срок рассмотрения' : 'Ожидаемая готовность'} — ${T.relDateTime(new Date(r.eta_at))}</div>` : ''}</div>
 ${pdfOk ? html`<div style="padding:16px 20px 0"><a class="btn block" href="/requests/${r.id}/pdf" target="_blank" rel="noopener">${I.file}Открыть PDF</a></div>` : ''}
+${validity(r) ? html`<div class="note ${validity(r).kind === 'days' && !validity(r).fresh ? 'amber' : 'green'} valid-note" style="margin:12px 20px 0"><b>${validity(r).kind === 'year' ? 'Срок не ограничен' : validity(r).fresh ? `Подойдёт до ${T.dayMonthKey(validity(r).until)}` : 'Возможно, уже устарела'}</b><div class="small" style="margin-top:4px">${validity(r).text}</div>${validity(r).kind === 'days' && !validity(r).fresh ? html`<div class="actions"><a class="btn small" href="/requests/new?type=${r.type}${r.type === 'study' && r.purpose ? `&purpose=${r.purpose}` : ''}">Заказать новую</a></div>` : ''}</div>` : ''}
 <div class="stages">
 ${stage('', isAid ? 'Подана' : 'Заказана', by(ev('submitted')))}
 ${isAid ? (r.taken_at ? stage('', 'Взята в работу', by(ev('taken'))) : stage(r.status === 'submitted' ? 'current' : 'todo', 'Ждёт сотрудника', r.status === 'submitted' ? 'сейчас · демо-срок указан выше' : ''))

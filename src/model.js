@@ -155,6 +155,8 @@ function model(db) {
     events: (rid) => q('SELECT e.*, u.short_name AS actor_name, u.role AS actor_role FROM events e LEFT JOIN users u ON u.id = e.actor_id WHERE request_id = ? ORDER BY at, e.id').all(rid),
     files: (rid) => q('SELECT * FROM request_files WHERE request_id = ? ORDER BY id').all(rid),
     file: (id) => q('SELECT * FROM request_files WHERE id = ?').get(id),
+    // Другие справки того же пакета (жизненная ситуация, заказ одной кнопкой)
+    bundleOf: (r) => (r && r.bundle ? q('SELECT * FROM requests WHERE bundle = ? AND id != ? ORDER BY id').all(r.bundle, r.id).map(m.decorate) : []),
 
     // Право доступа: студент — только к своим заявкам, сотрудник — ко всем
     canSee(user, r) { return !!(user && r && (user.role === 'staff' || r.student_id === user.id)); },
@@ -177,9 +179,9 @@ function model(db) {
       const draft = m.draftOf(student.id);
       const tx = db.transaction(() => {
         if (draft && draft.type === data.type) q('DELETE FROM requests WHERE id = ?').run(draft.id);
-        const id = q(`INSERT INTO requests (number, student_id, type, purpose, details, format, status, created_at, submitted_at, eta_at, note)
-          VALUES (?,?,?,?,?,?, 'submitted', ?, ?, ?, ?)`).run(number, student.id, data.type, data.purpose || null, data.details || null,
-          data.format || null, iso(now), iso(now), iso(estimateEta(data.type, data.format, now)), data.note || null).lastInsertRowid;
+        const id = q(`INSERT INTO requests (number, student_id, type, purpose, details, format, status, created_at, submitted_at, eta_at, note, bundle)
+          VALUES (?,?,?,?,?,?, 'submitted', ?, ?, ?, ?, ?)`).run(number, student.id, data.type, data.purpose || null, data.details || null,
+          data.format || null, iso(now), iso(now), iso(estimateEta(data.type, data.format, now)), data.note || null, data.bundle || null).lastInsertRowid;
         q('INSERT INTO events (request_id, at, actor_id, kind) VALUES (?,?,?,?)').run(id, iso(now), student.id, 'submitted');
         return id;
       });

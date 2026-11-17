@@ -88,4 +88,18 @@ function estimateEta(type, format, from = T.now()) {
   return T.at(T.addWorkdays(key, 5), 15 * 60); // матпомощь: решение комиссии
 }
 
-module.exports = { TYPES, DOC_HELP, purposeOf, formatOf, requestTitle, estimateEta };
+// Сколько дней готовую справку обычно принимают организации. Демо-правило концепта:
+// многие просят справку не старше 30 дней; точный срок назначает организация, куда её несут.
+const VALID_DAYS = { study: 30, stipend: 30 };
+function validity(r, now = T.now()) {
+  if (!r || r.status !== 'ready' || !r.closed_at) return null;
+  const issued = T.dateKey(new Date(r.closed_at));
+  if (r.type === 'tax') return { kind: 'year', issued, text: `Справка за ${r.purpose} год не устаревает — повторно заказывать не нужно.` };
+  const days = VALID_DAYS[r.type];
+  if (!days) return null;
+  const until = T.addDays(issued, days);
+  const fresh = until >= T.dateKey(now);
+  return { kind: 'days', issued, until, fresh, text: fresh ? `Обычно принимают до ${T.dayMonthKey(until)}: многие организации просят справку не старше ${days} дней. Точный срок уточни там, куда её несёшь (демо-правило). До этой даты новую заказывать не нужно.` : `Выдана ${T.dayMonthKey(issued)} — больше ${days} дней назад. Если организация просит свежую справку, закажи новую.` };
+}
+
+module.exports = { TYPES, DOC_HELP, purposeOf, formatOf, requestTitle, estimateEta, validity, VALID_DAYS };

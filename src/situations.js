@@ -5,6 +5,7 @@
 const T = require('./time');
 const pl = (n) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'балл' : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 'балла' : 'баллов'; };
 const TAX = require('./tax');
+const { validity } = require('./catalog');
 
 const SITUATIONS = [
   { id: 'housing', title: 'Семья оформляет субсидию на ЖКУ', lead: 'Соцзащита учитывает, что ты учишься очно, и твою стипендию как доход семьи.', icon: 'home' },
@@ -21,10 +22,11 @@ function build(id, data) {
   const s = SITUATIONS.find((x) => x.id === id);
   if (!s) return null;
   const { user, payments = [], stipends = [], disciplines = [], session = [], requests = [] } = data;
-  const busy = (type, purpose) => requests.find((r) => r.type === type && (purpose == null || r.purpose === purpose) && ['submitted', 'in_work', 'need_student', ...(type === 'tax' ? ['ready'] : [])].includes(r.status));
+  // Занята: заявка ещё в работе, справка для вычета уже выдана за этот год или готовая справка ещё не устарела
+  const busy = (type, purpose) => requests.find((r) => r.type === type && (purpose == null || r.purpose === purpose) && (['submitted', 'in_work', 'need_student'].includes(r.status) || (r.status === 'ready' && (type === 'tax' || (validity(r) || {}).fresh))));
   const order = (key, type, purpose, title, hint, extra = {}) => {
     const b = busy(type, purpose);
-    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? (b.status === 'ready' ? `Уже выдана: № ${b.number} — PDF в «Заявках»` : `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}`) : extra.reason, ...extra };
+    return { key, kind: 'order', type, purpose, title, hint, available: !b && extra.available !== false, reason: b ? (b.status === 'ready' ? `Уже выдана: № ${b.number}${validity(b)?.until ? `, подойдёт до ${T.dayMonthKey(validity(b).until)}` : ''} — PDF в «Заявках»` : `Уже заказана: № ${b.number}, ${b.statusText.toLowerCase()}`) : extra.reason, ...extra };
   };
   const out = { ...s, orders: [], todo: [], notes: [], links: [] };
 

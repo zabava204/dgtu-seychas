@@ -33,7 +33,7 @@ function head(title, cabinet = 'Личный кабинет студента') {
 <meta name="theme-color" content="#F5F7FA">
 <title>${title} · ДГТУ.Сейчас · ${cabinet}</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/app.css?v=19">
+<link rel="stylesheet" href="/app.css?v=20">
 </head>`;
 }
 
@@ -59,7 +59,7 @@ ${noNav ? '' : tabbar(active, ctx && ctx.needsAction)}
 ${flash ? html`<div class="toast" role="status">${flash.text}${flash.link ? html`<a href="${flash.link}">${flash.linkText || 'Открыть'}</a>` : ''}</div>` : ''}
 ${body}
 </main></div>
-<script src="/app.js?v=11" defer></script>${scripts}
+<script src="/app.js?v=20" defer></script>${scripts}
 </body></html>`;
 }
 
