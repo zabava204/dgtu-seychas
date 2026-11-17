@@ -107,7 +107,8 @@ function intents(question, data) {
       const ex = (data.session || []).filter((x) => x.date_key === key);
       const room = (p) => (p.online ? 'онлайн' : `ауд. ${p.room}`);
       const rel = key === nowKey ? 'Сегодня' : key === T.addDays(nowKey, 1) ? 'Завтра' : key === T.addDays(nowKey, 2) ? 'Послезавтра' : '';
-      const head = `${rel ? rel + ', ' : ''}${T.wdLongKey(key)[0].toUpperCase() + T.wdLongKey(key).slice(1)}, ${T.dayMonthKey(key)}`;
+      const wd = T.wdLongKey(key).toLowerCase();
+      const head = rel ? `${rel}, ${wd}, ${T.dayMonthKey(key)}` : `${wd[0].toUpperCase() + wd.slice(1)}, ${T.dayMonthKey(key)}`;
       const lines = [...ex.map((x) => `${x.start} ${x.kind}: ${x.subject}, ауд. ${x.room}`), ...ps.map((p) => `${p.start}–${p.end} ${p.subject}, ${room(p)}${p.old_room || p.old_start ? ' (изменение)' : ''}`)];
       return set('schedule', lines.length ? `${head}:\n${lines.join('\n')}` : `${head} — пар нет.`, [{ label: 'Расписание дня', href: `/study?d=${key}` }]);
     }
