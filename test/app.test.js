@@ -77,6 +77,13 @@ test('студент не может выполнять действия дек�
   assert.equal((await anna.post('/staff/reset', {})).status, 403);
 });
 
+test('HEAD без входа ведёт на вход, пустой POST не роняет сервер', async () => {
+  const h = await fetch(base + '/', { method: 'HEAD', redirect: 'manual' });
+  assert.equal(h.status, 302);
+  const p = await fetch(base + '/login', { method: 'POST', redirect: 'manual' });
+  assert.ok(p.status < 500, `статус ${p.status}`);
+});
+
 test('POST с чужого сайта отклоняется', async () => {
   const res = await fetch(base + '/login', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/x-www-form-urlencoded' }, body: 'login=anna&password=demo2026', redirect: 'manual' });
   assert.equal(res.status, 403);
@@ -153,10 +160,10 @@ test('RAG-lite: в факты для LLM не попадают баллы и с�
   };
   const taxFacts = assistant.retrieveFacts('как оформить вычет', data);
   assert.ok(taxFacts.some((b) => b.id === 'tax'));
-  assert.ok(taxFacts.every((b) => !/47|96\s*000|2024-048|Бизнес-планирование – 47/.test(b.text)));
+  assert.ok(taxFacts.every((b) => !/47|96\s*000|2024-048|Бизнес-планирование – 47/.test(b.text.replace(/^Сегодня:.*$/m, '')))); // строка с текущим временем может содержать «47» минут
   const termFacts = assistant.retrieveFacts('что такое академическая разница', data);
   assert.ok(termFacts.some((b) => b.id === 'terms'));
-  assert.ok(termFacts.every((b) => !/\b47\b|96000/.test(b.text)));
+  assert.ok(termFacts.every((b) => !/\b47\b|96000/.test(b.text.replace(/^Сегодня:.*$/m, ''))));
 });
 
 test('основной сценарий: справка для налогового вычета', async () => {
@@ -190,9 +197,24 @@ test('основной сценарий: справка для налогово�
   const pdf = await ilya.get(`/requests/${id}/pdf`);
   assert.equal(pdf.status, 200);
   assert.equal((await anna.get(`/requests/${id}/pdf`)).status, 404);
+  // Замечание проверки 18.11: помощник видит уже выданную справку и год из вопроса
   const a = await (await ilya.post('/api/assistant', { message: 'как вернуть налог за учёбу?' }, true)).json();
-  assert.ok(a.actions.some((x) => x.href === '/requests/new?type=tax'));
+  assert.equal(a.source, 'calc');
+  assert.match(a.text, new RegExp(`за ${year} год уже готова`));
   assert.match(a.text, /12 480 ₽/);
+  assert.ok(a.actions.some((x) => x.href === `/requests/${id}`));
+  // Замечание проверки 18.11: форма не предлагает заказать уже выданный год
+  const again = await (await ilya.get('/requests/new?type=tax')).text();
+  assert.match(again, new RegExp(`Справка за этот год уже выдана: <a href="/requests/${id}">`));
+  assert.doesNotMatch(again, new RegExp(`name="purpose" value="${year}"`));
+  assert.doesNotMatch(a.text, /Закажи справку/);
+  const c = await (await ilya.post('/api/assistant', { message: `Можно получить вычет за ${cur}?` }, true)).json();
+  assert.match(c.text, new RegExp(`с января ${Number(cur) + 1}`));
+  assert.doesNotMatch(c.text, new RegExp(`за ${year} год`));
+  const en = await (await ilya.post('/api/assistant', { message: 'Is my tax certificate ready?' }, true)).json();
+  assert.match(en.text, /is ready: No\./);
+  const pay = await (await ilya.post('/api/assistant', { message: 'Где посмотреть оплату за обучение?' }, true)).json();
+  assert.equal(pay.source, 'calc'); assert.match(pay.text, /96 000 ₽/); assert.match(pay.text, /Отдельного раздела/);
 });
 
 test('помощник: баллы считает программа (регрессия «212 баллов»)', async () => {
@@ -248,7 +270,6 @@ test('напоминания о сроках в ленте и фильтр «С�
 
 test('повторный проход сценария: ИНН подставлен без черновика, сброс демо возвращает черновик', async () => {
   const ilya = await login('ilya');
-  assert.match(await (await ilya.get('/requests/new?type=tax')).text(), new RegExp(`value="${DEMO_INN}"`));
   const anon = await client().post('/demo/reset', {});
   assert.equal(anon.headers.get('location'), '/login'); // без входа сброса нет
   const r = await ilya.post('/demo/reset', {});
@@ -256,6 +277,8 @@ test('повторный проход сценария: ИНН подставл�
   assert.equal(r.headers.get('location'), '/');
   const again = await login('ilya');
   assert.match(await (await again.get('/requests')).text(), /Черновики[\s\S]*Справка для налогового вычета/);
+  // После сброса справку можно заказать снова: ИНН подставлен и без черновика
+  assert.match(await (await again.get('/requests/new?type=tax')).text(), new RegExp(`value="${DEMO_INN}"`));
 });
 
 test('помощник: пары на завтра считает программа, подсказки под студента', async () => {
@@ -336,9 +359,12 @@ test('помощник отвечает по-английски: факты сч
   assert.equal(mon.lang, 'en'); assert.equal(mon.source, 'calc'); assert.match(mon.text, /^Monday, \d+ [A-Z][a-z]+:/); assert.match(mon.text, /room /);
   const ex = await ask(anna, 'When are my exams?'); assert.equal(ex.source, 'calc'); assert.match(ex.text, /credit test|exam/); assert.doesNotMatch(ex.text, /зачёт:|экзамен:/);
   const st = await ask(anna, 'What is the status of my request?'); assert.equal(st.source, 'calc'); assert.match(st.text, /No\. \d{4}-048/);
-  const tx = await ask(ilya, 'Can I get a tax deduction?'); assert.equal(tx.source, 'calc'); assert.match(tx.text, /RUB/);
+  const tx = await ask(ilya, 'Can I get a tax deduction?'); assert.equal(tx.source, 'calc'); assert.match(tx.text, /RUB|already ordered|is ready/);
   const ce = await ask(anna, 'How do I get a certificate of enrollment?'); assert.ok(ce.actions.some((a) => a.href === '/requests/new?type=study'));
   const ru = await ask(anna, 'Какие пары в понедельник?'); assert.equal(ru.lang, 'ru');
+  // Замечание проверки 18.11: дисциплина по-английски
+  const bp = await ask(anna, 'How many points do I have in Business planning?');
+  assert.equal(bp.source, 'calc'); assert.match(bp.text, /^Бизнес-планирование: 12 of 100 points/); assert.match(bp.text, /Still ahead: Защита \(up to 50/);
 });
 
 test('план на 7 дней не пересекает пары, не ставит прошлое и не меняет баллы', async () => {
@@ -448,6 +474,12 @@ test('разбор допуска: свои баллы, чужая дисцип�
   assert.match(page, /12 \+ 35 = 47/);
   assert.match(page, /останется 3/);
   assert.match(page, /Уточни у преподавателя/);
+  // Замечание проверки 18.11: «останется 3» не должно выглядеть тупиком, впереди «Защита» до 50
+  assert.match(page, /Ещё впереди: «Защита» до 50 баллов[\s\S]{0,120}минимум для допуска набрать можно/);
+  const home = await (await anna.get('/')).text();
+  assert.match(home, /до порога останется 3\. Их можно добрать работой «Защита»/);
+  const g = await (await anna.post('/api/assistant', { message: 'Сколько баллов по бизнес-планированию?' }, true)).json();
+  assert.doesNotMatch(g.text, /Даже за просроченные/);
   assert.match(page, /Не хватает 38|не хватает 38/);
   assert.match(page, /12 из 50/);
   assert.match(page, /admit-prog|progress gap/);

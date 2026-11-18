@@ -62,6 +62,8 @@ function createApp(opts = {}) {
   app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
   app.use(express.json({ limit: '20kb' }));
+  // Express 5: у POST без тела req.body не задан; пустой объект вместо ошибки 500
+  app.use((req, res, next) => { if (req.body === undefined) req.body = {}; next(); });
   const secret = process.env.SESSION_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-secret-only-for-local-run');
   if (!secret) throw new Error('Задайте SESSION_SECRET в переменных окружения');
   app.use(cookieSession({ name: 'dgtu', keys: [secret], httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 12 * 3600e3 }));
@@ -94,7 +96,7 @@ function createApp(opts = {}) {
   const NOT_YOURS = 'Такой заявки нет среди твоих. Если ссылку прислали, проверь, что вошёл(а) под своим логином.';
 
   const needAuth = (role) => (req, res, next) => {
-    if (!req.user) return req.accepts('html') && req.method === 'GET' ? res.redirect('/login') : res.status(401).json({ error: 'Нужно войти' });
+    if (!req.user) return req.accepts('html') && ['GET', 'HEAD'].includes(req.method) ? res.redirect('/login') : res.status(401).json({ error: 'Нужно войти' });
     if (role && req.user.role !== role) return req.user.role === 'staff' ? res.redirect('/staff') : fail(req, res, 403, 'Нет доступа', 'Этот раздел только для сотрудников деканата.');
     next();
   };
@@ -182,7 +184,7 @@ function createApp(opts = {}) {
     for (const t of M.tasks(u.id).filter((x) => new Date(x.due_at) - T.now() < 10 * T.DAY_MS)) {
       const d = ds.find((x) => t.title.toLowerCase().includes(x.subject.toLowerCase().slice(0, 6)));
       const ok = d && d.gap === 0;
-      (ok ? later : todo).push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}${ok ? ' · на балл, допуск уже есть' : ''}`, low: ok });
+      (ok ? later : todo).push({ title: t.title, meta: `До ${T.relDateTime(new Date(t.due_at))}${t.note ? ' · ' + t.note : ''}${ok ? ' · допуск уже есть, работа повысит итоговый балл' : ''}`, low: ok });
     }
     todo.push(...later);
     send(res, V.today(ctxOf(req, { next: M.nextPair(u.group_name), ds, todo, session: M.session(u.id, ds), todayPairs: M.dayPairs(u.group_name, T.dateKey()), nextSlot: M.nextStudySlot(u.id) })));
@@ -258,6 +260,11 @@ function createApp(opts = {}) {
   app.get('/study/nir', student, (req, res) => (req.user.level !== 'магистратура' ? res.redirect('/study') : send(res, V.nir(ctxOf(req, { stages: M.nir(req.user.id) })))));
 
   app.get('/requests', student, (req, res) => send(res, V.requestsList(ctxOf(req, { list: M.requestsOf(req.user.id) }))));
+  // Годы для справки на вычет: за какой год справка уже заказана или выдана, форма покажет без кнопки заказа
+  const taxYears = (userId, payments) => {
+    const reqs = M.requestsOf(userId).filter((r) => r.type === 'tax' && !['draft', 'rejected'].includes(r.status));
+    return TAX.yearsFromPayments(payments).map((y) => ({ ...y, taken: reqs.find((r) => String(r.purpose) === String(y.year)) || null }));
+  };
   app.get('/requests/new', student, (req, res) => {
     const type = req.query.type;
     if (!TYPES[type]) return send(res, V.newRequestChoose(ctxOf(req, { situations: SIT.SITUATIONS })));
@@ -267,12 +274,12 @@ function createApp(opts = {}) {
     const payments = M.payments(req.user.id);
     // Демо: тестовый ИНН подставляется и без черновика, чтобы сценарий можно было пройти повторно
     const values = { purpose: req.query.purpose, details: type === 'tax' && payments.length ? TAX.DEMO_INN : '' };
-    send(res, V.newRequestForm(ctxOf(req, { type, draft, values, payments, years: TAX.yearsFromPayments(payments) })));
+    send(res, V.newRequestForm(ctxOf(req, { type, draft, values, payments, years: taxYears(req.user.id, payments) })));
   });
   app.post('/requests', student, withUpload, (req, res) => {
     const type = req.body.type; const t = TYPES[type];
     const payments = M.payments(req.user.id);
-    const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error, payments, years: TAX.yearsFromPayments(payments) }))); };
+    const fail = (error) => { if (req.file) fs.rmSync(req.file.path, { force: true }); res.status(400); send(res, V.newRequestForm(ctxOf(req, { type: t ? type : 'study', values: req.body, error, payments, years: taxYears(req.user.id, payments) }))); };
     if (!t) return fail('Выбери тип заявки');
     if (t.budgetOnly && req.user.funding !== 'бюджет') return fail('Справка о стипендии выдаётся студентам, которые получают стипендию');
     if (req.uploadError) return fail(req.uploadError + '. Подойдут PDF, JPG или PNG до 5 МБ.');

@@ -80,7 +80,8 @@ function model(db) {
         else if (gap > 0) light = 'amber';
         const autoGap = d.auto_threshold ? Math.max(0, d.auto_threshold - points) : null;
         const overdueMax = overdue.reduce((s, w) => s + w.max, 0);
-        return { ...d, works, points, gap, light, overdue, upcoming, autoGap, overdueMax, afterOverdue: gap - overdueMax };
+        const upcomingMax = upcoming.reduce((s, w) => s + w.max, 0);
+        return { ...d, works, points, gap, light, overdue, upcoming, autoGap, overdueMax, afterOverdue: gap - overdueMax, upcomingMax };
       });
     },
     // ---------- Сессия ----------
@@ -212,6 +213,7 @@ function model(db) {
     needsAction: (studentId) => q("SELECT COUNT(*) AS n FROM requests WHERE student_id = ? AND status = 'need_student'").get(studentId).n > 0,
 
     // ---------- Деканат ----------
+    // «Новые» и «Готово»: сначала свежие (сотрудник сразу видит только что поданную заявку); «В работе» и «Ждём студента»: сначала давние
     staffQueue(filter) {
       const where = {
         new: "r.status = 'submitted'",
@@ -220,7 +222,7 @@ function model(db) {
         done: "r.status IN ('ready','rejected')",
       }[filter] || "r.status = 'submitted'";
       return q(`SELECT r.*, u.full_name AS student_name, u.group_name FROM requests r JOIN users u ON u.id = r.student_id
-        WHERE ${where} ORDER BY COALESCE(r.submitted_at, r.created_at) ${filter === 'done' ? 'DESC' : 'ASC'}`).all().map(m.decorate);
+        WHERE ${where} ORDER BY COALESCE(r.submitted_at, r.created_at) ${filter === 'done' || filter === 'new' ? 'DESC' : 'ASC'}`).all().map(m.decorate);
     },
     staffCounts() {
       const o = { new: 0, work: 0, student: 0, done: 0 };

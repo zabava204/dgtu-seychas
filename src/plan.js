@@ -24,9 +24,11 @@ function queue(ds, session, gender) {
     const upcoming = (d.upcoming || [])[0];
     if (d.overdue.length) {
       const names = d.overdue.map((w) => `${w.title} (до ${w.max})`).join(', ');
-      const rest = d.afterOverdue > 0
-        ? ` Даже если их примут на максимум, до порога останется ${d.afterOverdue}. Спроси, какие ещё задания можно получить: в журнале этого списка нет.`
-        : ' Спроси, примут ли их после срока.';
+      const rest = d.afterOverdue <= 0
+        ? ' Спроси, примут ли их после срока.'
+        : upcoming && d.upcomingMax >= d.afterOverdue
+          ? ` Если их примут на максимум, до порога останется ${d.afterOverdue}: это можно добрать работой «${upcoming.title}». Спроси, примут ли просроченные работы после срока.`
+          : ` Даже если их примут на максимум, до порога останется ${d.afterOverdue}. Спроси, какие ещё задания можно получить: в журнале этого списка нет.`;
       tasks.push({
         discipline_id: d.id, kind: 'clarify',
         title: `Уточнить у преподавателя: ${d.subject}`,

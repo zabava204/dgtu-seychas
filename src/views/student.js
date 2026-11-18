@@ -45,14 +45,17 @@ const inDays = (n) => (n === 0 ? 'сегодня' : n === 1 ? 'завтра' : `
 // Что делать с недобором: сначала действие, потом число
 function riskText(d) {
   if (!d) return '';
+  const nx = d.upcoming[0];
+  const ahead = nx ? `«${nx.title}» до ${T.dayMonthKey(nx.due_key)} (до ${nx.max} ${plural(nx.max, 'балла', 'баллов', 'баллов')})` : '';
   if (d.overdue.length) {
     const names = d.overdue.map((w) => w.title.toLowerCase()).join(' и ');
     const cap = names[0].toUpperCase() + names.slice(1);
     const verb = d.overdue.length > 1 ? 'дают' : 'даёт';
-    return d.afterOverdue > 0 ? `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')}, после них до порога останется ${d.afterOverdue}` : `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')}, этого хватит, чтобы набрать минимум для допуска`;
+    const head = `${cap} ${verb} до ${d.overdueMax} ${plural(d.overdueMax, 'балла', 'баллов', 'баллов')}`;
+    if (d.afterOverdue <= 0) return `${head}, этого хватит, чтобы набрать минимум для допуска`;
+    return `${head}, после них до порога останется ${d.afterOverdue}${nx && d.upcomingMax >= d.afterOverdue ? `. Их можно добрать работой ${ahead}` : ''}`;
   }
-  const nx = d.upcoming[0];
-  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `. Ближайшая работа: ${nx.title.toLowerCase()} до ${T.dayMonthKey(nx.due_key)}` : ''}`;
+  return `Не хватает ${d.gap} ${plural(d.gap, 'балла', 'баллов', 'баллов')}${nx ? `. Ближайшая работа: ${ahead}` : ''}`;
 }
 const KIND_CAP = { зачёт: 'Зачёт', экзамен: 'Экзамен', консультация: 'Консультация' };
 function admitTag(s) {
@@ -432,16 +435,18 @@ function taxFields(payments, years, v, user) {
   const ok = (text) => html`<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px"><span aria-hidden="true" style="color:var(--green);font-weight:700">✓</span><span>${text}</span></div>`;
   if (!years.length) return html`<div class="note amber" style="margin-top:16px">В кабинете нет оплат по договору за 2024 год и позже. Если обучение платное, уточни данные договора в деканате.</div>`;
   const closed = years.filter((y) => y.closed);
-  const sel = closed.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : closed[0] ? String(closed[0].year) : '';
+  const free = closed.filter((y) => !y.taken);
+  const sel = free.some((y) => String(y.year) === String(v.purpose)) ? String(v.purpose) : free[0] ? String(free[0].year) : '';
   return html`<div class="card" style="margin-top:16px;background:var(--green-soft);border-color:#BFE3CB"><b>Договор и оплаты найдены в кабинете</b>
 <div style="font-size:14px;line-height:1.4">${ok(`Платное обучение по договору № ${contract}`)}
 ${self ? ok('Ты заказчик по договору') : ''}
 ${ok('Справка об оплате нужна для оформления вычета')}</div></div>
 <fieldset class="field" style="border:0;padding:0;margin:16px 0 0"><legend style="padding:0;margin-bottom:6px">Отчётный год <span class="hint">год, в котором оплачено обучение; справку выдают после его окончания</span></legend>
-<div class="options" style="grid-template-columns:1fr">${(closed.length ? closed : years).map((y) => y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
+<div class="options" style="grid-template-columns:1fr">${(closed.length ? closed : years).map((y) => y.taken ? html`<div class="opt" style="background:#EEF1F5;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справка за этот год уже ${y.taken.status === 'ready' ? 'выдана' : 'заказана'}: <a href="/requests/${y.taken.id}">№ ${y.taken.number}</a>${y.taken.status === 'ready' ? ', PDF в заявке' : `, ${y.taken.statusText.toLowerCase()}`}</small></div>`
+    : y.closed ? html`<label><input type="radio" name="purpose" value="${y.year}" ${sel === String(y.year) ? raw('checked') : ''}>
 <span class="opt">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Можно вернуть до ${TAX.rub(y.refund)}*</small></span></label>`
     : html`<div class="opt" style="background:#EEF1F5;border-style:dashed;cursor:default" aria-disabled="true">${y.year} · оплачено ${TAX.rub(y.sum)}<small>Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет посчитают с ${TAX.rub(TAX.OWN_LIMIT)}, это лимит года.` : ''}</small></div>`)}</div></fieldset>
-${closed.length ? html`<button class="btn block" type="submit" style="margin-top:18px">Заказать справку</button>
+${free.length ? html`<button class="btn block" type="submit" style="margin-top:18px">Заказать справку</button>
 ${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:10px 0 0">${y.year}: оплачено ${TAX.rub(y.sum)}. Справку за ${y.year} год можно заказать с января ${y.year + 1} года.${y.sum > TAX.OWN_LIMIT ? ` Вычет посчитают с ${TAX.rub(TAX.OWN_LIMIT)}, это лимит года.` : ''}</p>`)}
 <details class="card tax-more" style="margin-top:16px" ${/^\d{12}$/.test(v.details) ? '' : raw('open')}><summary><b>Данные для справки и ИНН</b><span class="small muted" style="display:block;font-weight:400">Заполнено из договора и профиля${/^\d{12}$/.test(v.details) ? ' · можно проверить' : ' · нужен ИНН'}</span></summary>
 <div style="margin-top:10px"><div class="small muted">Из договора</div>
@@ -454,7 +459,8 @@ ${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="m
 <input type="text" name="details" inputmode="numeric" maxlength="12" pattern="\\d{12}" required value="${/^\d{12}$/.test(v.details) ? v.details : ''}" autocomplete="off"></label>
 <label class="field">Примечание <span class="hint">необязательно</span><textarea name="note" maxlength="500" style="min-height:72px">${v.note || ''}</textarea></label>
 </details>
-<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт), если доход облагается по ставке 13%.</p>` : ''}
+<p class="small muted" style="margin-top:10px">* 13% от оплаты, но не больше 13% от ${TAX.rub(TAX.OWN_LIMIT)} в год вместе с другими социальными вычетами (лечение, спорт), если доход облагается по ставке 13%.</p>` : closed.length ? html`<p class="small muted" style="margin:12px 0 0">За все закончившиеся годы справка уже заказана. Открой её в «Заявках».</p>
+${years.filter((y) => !y.closed).map((y) => html`<p class="small muted" style="margin:6px 0 0">Справку за ${y.year} год можно заказать с января ${y.year + 1} года.</p>`)}` : ''}
 <a class="link" style="padding-left:0" href="/help/tax">Как получить вычет по справке</a>
 <p class="small muted" style="margin:6px 0 0">Если заказчиком по договору выступают родители или супруг(а), справку оформляют на их имя. В прототипе такая заявка недоступна.</p>`;
 }
@@ -812,7 +818,7 @@ function sessionList(ctx) {
   return page({
     title: 'Допуск к сессии', active: 'study', ctx,
     body: html`${backBar('/study/grades', 'Оценки')}<div class="page-head"><h1>Допуск к сессии</h1>
-<p class="muted" style="margin:6px 0 0">Здесь видно, сколько баллов не хватает до допуска. Дополнительные задания, которых нет в списке работ, ему неизвестны.</p></div>
+<p class="muted" style="margin:6px 0 0">Здесь видно, сколько баллов не хватает до допуска. Кабинет считает только работы из журнала. О дополнительных заданиях спроси у преподавателя.</p></div>
 <section class="section">${risks.length ? html`<div class="group">${risks.map((d) => html`<a class="row" href="/study/session-support/${d.id}"><span class="bar amber"></span>
 <span class="body"><span class="title">${d.subject}</span><span class="meta">Сейчас ${d.points} из ${d.pass_threshold} · не хватает ${d.gap}</span></span>${I.chev}</a>`)}</div>`
     : html`<div class="card"><b>Порог набран по всем дисциплинам</b><div class="small muted" style="margin-top:4px">Итоговые оценки ещё не выставлены.</div></div>`}</section>`,
@@ -837,12 +843,13 @@ function sessionSupport(ctx) {
 </div>
 <div class="kv"><span>Сейчас</span><span>${d.points}</span></div>
 <div class="kv"><span>Порог допуска</span><span>${d.pass_threshold}</span></div>
-<div class="kv"><span>Не хватает</span><span>${d.gap}</span></div>
+<div class="kv"><span>Не хватает</span><span>${d.gap || 'нет, порог набран'}</span></div>
 <div class="small muted" style="margin-top:8px">Расчёт кабинета: ${d.pass_threshold} − ${d.points} = ${d.gap}. Это баллы до допуска к ${control}, не итоговая оценка.</div>
 </div></section>
 <section class="section" aria-labelledby="works-h"><h2 class="label" id="works-h">Что есть в журнале</h2>
 <div class="card">${open.length ? open.map((w) => html`<div style="padding:6px 0"><b style="font-weight:600">${w.title}</b><div class="small muted">до ${w.max} ${plural(w.max, 'балла', 'баллов', 'баллов')} · ${when(w)}</div></div>`) : html`<div class="small">Несданных работ в журнале нет.</div>`}
 ${d.overdue.length ? html`<div class="small" style="margin-top:8px">Если просроченные работы примут на максимум: ${d.points} + ${math.overdueSum} = ${math.ifOverdueMax}. ${math.covers ? 'Этого хватит, чтобы набрать минимум для допуска.' : `До порога останется ${math.leftAfter}.`}</div>` : ''}
+${d.gap > 0 && !math.covers && d.upcoming.length ? html`<div class="small" style="margin-top:6px">${d.upcomingMax >= (d.overdue.length ? math.leftAfter : d.gap) ? `Ещё впереди: ${d.upcoming.map((w) => `«${w.title}» до ${w.max} ${plural(w.max, 'балла', 'баллов', 'баллов')}, срок ${T.dayMonthKey(w.due_key)}`).join('; ')}. Вместе с ${d.upcoming.length > 1 ? 'ними' : 'этой работой'} минимум для допуска набрать можно.` : `Ещё впереди работы до ${d.upcomingMax} ${plural(d.upcomingMax, 'балла', 'баллов', 'баллов')}, этого не хватит без дополнительных заданий.`}</div>` : ''}
 <div class="note" style="margin-top:10px">Уточни у преподавателя, можно ли сдать работы после срока и получить дополнительные задания.</div>
 </div></section>
 <section class="section" aria-labelledby="do-h"><h2 class="label" id="do-h">Следующие шаги</h2>

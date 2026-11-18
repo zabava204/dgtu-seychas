@@ -31,4 +31,17 @@ function withChecksum(ten) {
   return d.join('') + c2;
 }
 const DEMO_INN = withChecksum('0071482596');
-module.exports = { OWN_LIMIT, RATE, FIRST_YEAR, yearsFromPayments, rub, innOk, DEMO_INN };
+// Что ответить на вопрос о вычете: год из вопроса (или последний закончившийся),
+// оплаты за него и уже заказанная или выданная справка. Считает программа, не модель.
+function situation(question, payments = [], requests = [], today = T.dateKey()) {
+  const years = yearsFromPayments(payments, today).filter((y) => y.eligibleForm);
+  const m = String(question || '').match(/20\d\d/);
+  const asked = m ? Number(m[0]) : null;
+  const y = asked ? years.find((x) => x.year === asked) || null : years.find((x) => x.closed) || null;
+  const cur = years.find((x) => !x.closed) || null;
+  const year = asked || (y && y.year) || null;
+  const req = year ? requests.filter((r) => r.type === 'tax' && String(r.purpose) === String(year) && r.status !== 'rejected' && r.status !== 'draft')[0] || null : null;
+  return { asked, year, y, cur, req, any: years.length > 0 };
+}
+
+module.exports = { situation, OWN_LIMIT, RATE, FIRST_YEAR, yearsFromPayments, rub, innOk, DEMO_INN };

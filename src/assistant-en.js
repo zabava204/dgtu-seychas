@@ -23,6 +23,26 @@ function title(r) {
   if (r.type === 'aid') return 'Financial aid application';
   return 'Request';
 }
+// Английские названия дисциплин демо-плана: вопрос по-английски находит русскую дисциплину
+const EN_SUBJECTS = [
+  [['business plan'], 'Бизнес-планирование'],
+  [['organisation economics', 'organization economics', 'economics'], 'Экономика организации'],
+  [['marketing'], 'Маркетинг'],
+  [['statistic'], 'Статистика'],
+  [['personnel', 'human resource', 'hr management', 'people management'], 'Управление персоналом'],
+  [['professional english', 'foreign language for', 'professional foreign'], 'Иностранный язык в профессиональной сфере'],
+  [['foreign language', 'english class', 'english course'], 'Иностранный язык'],
+  [['analysis methods', 'methods of analysis', 'management analysis'], 'Методы анализа в менеджменте'],
+  [['innovative', 'decision making', 'decision-making'], 'Инновационные подходы к принятию решений'],
+  [['financial analysis', 'finance analysis'], 'Финансовый анализ'],
+];
+function findSubject(q, ds) {
+  for (const [keys, subject] of EN_SUBJECTS) {
+    if (keys.some((k) => q.includes(k))) { const d = ds.find((x) => x.subject === subject); if (d) return d; }
+  }
+  return null;
+}
+const pts = (n) => `${n} ${n === 1 ? 'point' : 'points'}`;
 const OFFICE = 'the dean’s office (building 1, room 210, Mon–Fri 9:00–17:00)';
 
 // Вопрос на английском: латиницы больше, чем кириллицы
@@ -55,11 +75,26 @@ function intents(question, data) {
     const text = open.length || ready.length ? [open.length ? `Open requests:\n${open.map(line).join('\n')}` : 'No open requests.', ready.length ? `Ready: ${ready.map((r) => `No. ${r.number} “${title(r)}”`).join(', ')}.` : ''].filter(Boolean).join('\n') : 'You have no requests yet.';
     return set('status', text, open.length === 1 ? [{ label: `Open request No. ${open[0].number}`, href: `/requests/${open[0].id}` }] : [{ label: 'My requests', href: '/requests' }], true);
   }
+  const one = findSubject(q, data.disciplines || []);
   // Сессия: зачёты и экзамены
   if (has(q, ['exam', 'credit test', 'session', 'finals']) && (data.session || []).length) {
-    const items = data.session.filter((s) => s.kind !== 'консультация');
+    const items = data.session.filter((s) => s.kind !== 'консультация' && (!one || s.discipline_id === one.id));
     const text = 'Exam session in your cabinet:\n' + items.map((s) => `${dm(s.date_key)} (${wd(s.date_key)}), ${s.start}, room ${s.room}, ${kind(s.kind)}: ${s.subject}${s.admitted ? ' · admitted' : ` · ${s.gap} more points needed for admission`}`).join('\n');
     return set('session', text, [{ label: 'Session and admission', href: '/study/grades#session' }], true);
+  }
+  // Баллы по одной дисциплине: название по-английски
+  if (one && !has(q, ['class', 'lesson', 'schedule', 'timetable', 'room', 'exam date', 'when is'])) {
+    const d = one;
+    if (d.closed_text) return set('grades', `${d.subject}: the course is already completed («${d.closed_text}»).`, [{ label: 'Open grades', href: `/study/grades#d-${d.id}` }], true);
+    const parts = [`${d.subject}: ${d.points} of 100 points, admission threshold ${d.pass_threshold}.`];
+    if (!d.gap) parts.push('The threshold is reached.');
+    else {
+      parts.push(`${pts(d.gap)} more needed for admission.`);
+      if (d.overdue.length) parts.push(`Overdue: ${d.overdue.map((w) => `${w.title} (up to ${w.max}, due ${dm(w.due_key)})`).join(', ')}. If they are accepted at the maximum, you will have ${d.points + d.overdueMax}${d.afterOverdue > 0 ? `, ${d.afterOverdue} short of the threshold` : ', enough for admission'}.`);
+      if (d.upcoming.length) parts.push(`Still ahead: ${d.upcoming.map((w) => `${w.title} (up to ${w.max}, due ${dm(w.due_key)})`).join(', ')}.`);
+    }
+    parts.push('Course and work titles stay in Russian, as in the curriculum.');
+    return set('grades', parts.join(' '), d.gap ? [{ label: 'Sort out admission', href: `/study/session-support/${d.id}` }, { label: 'Open grades', href: `/study/grades#d-${d.id}` }] : [{ label: 'Open grades', href: `/study/grades#d-${d.id}` }], true);
   }
   // Баллы
   if (has(q, ['point', 'score', 'grade', 'mark', 'admission', 'admitted', 'threshold'])) {
@@ -85,11 +120,18 @@ function intents(question, data) {
   }
   // Налоговый вычет
   if (has(q, ['tax', 'deduction', 'refund'])) {
-    const ys = TAX.yearsFromPayments(data.payments || []).filter((y) => y.eligibleForm);
-    const y = ys.filter((x) => x.closed).pop();
-    const cur = ys.find((x) => !x.closed);
-    return set('tax', y ? `In ${y.year} you paid ${rub(y.sum)} under your contract, so you can get back up to ${rub(y.refund)} if your income is taxed at 13%. Order the certificate for ${y.year} and attach it to the 3-NDFL declaration in the taxpayer’s personal account.${cur ? ` The certificate for ${cur.year} can be ordered from January ${cur.year + 1}.` : ''}` : 'The tax deduction is for paid (contract) studies. Your cabinet has no contract payments.', y ? [{ label: 'Order the certificate', href: '/requests/new?type=tax' }] : [{ label: 'My dean’s office', href: '/me' }], true);
+    const t = TAX.situation(question, data.payments || [], data.requests || []);
+    const help = { label: 'How to get the deduction', href: '/help/tax' };
+    if (!t.any) return set('tax', 'The tax deduction is for paid (contract) studies. Your cabinet has no contract payments.', [{ label: 'My dean’s office', href: '/me' }], true);
+    if (t.req) return set('tax', t.req.status === 'ready'
+      ? `Your tax deduction certificate for ${t.year} is ready: No. ${t.req.number}, the PDF is in “Requests”. Attach it to the 3-NDFL declaration in the taxpayer’s personal account.${t.y ? ` You can get back up to ${rub(t.y.refund)} if your income is taxed at 13%.` : ''}`
+      : `Your tax deduction certificate for ${t.year} is already ordered: No. ${t.req.number}, ${STATUS[t.req.status]}. No need to order it again.`, [{ label: `Open request No. ${t.req.number}`, href: `/requests/${t.req.id}` }, help], true);
+    if (t.asked && !t.y) return set('tax', `There are no contract payments for ${t.asked} in your cabinet.`, [help], true);
+    const open = t.y && !t.y.closed ? t.y : !t.y ? t.cur : null;
+    if (open) return set('tax', `The certificate for ${open.year} can be ordered from January ${open.year + 1}, when the year is over. Paid so far: ${rub(open.sum)}.`, [help], true);
+    return set('tax', `In ${t.y.year} you paid ${rub(t.y.sum)} under your contract, so you can get back up to ${rub(t.y.refund)} if your income is taxed at 13%. Order the certificate for ${t.y.year} and attach it to the 3-NDFL declaration in the taxpayer’s personal account.${!t.asked && t.cur ? ` The certificate for ${t.cur.year} can be ordered from January ${t.cur.year + 1}.` : ''}`, [{ label: 'Order the certificate', href: '/requests/new?type=tax' }, help], true);
   }
+
   // Student ID / record book
   if (has(q, ['student id', 'student card', 'record book', 'grade book', 'transcript card'])) {
     const u = data.user;

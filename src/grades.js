@@ -54,7 +54,8 @@ function explain(d, asked = []) {
     const overdue = open.filter((w) => w.due_key && w.due_key < today);
     if (overdue.length && d.gap > 0) {
       const t = d.points + overdue.reduce((s, w) => s + w.max, 0);
-      parts.push(t >= d.pass_threshold ? `Если сдать просроченные работы на максимум, будет ${t}, порог набран.` : `Даже за просроченные работы на максимум будет ${t}, до порога останется ${balls(d.pass_threshold - t)}.`);
+      const ahead = open.filter((w) => !overdue.includes(w)); const aheadMax = ahead.reduce((s, w) => s + w.max, 0);
+      parts.push(t >= d.pass_threshold ? `Если сдать просроченные работы на максимум, будет ${t}, порог набран.` : `Если сдать просроченные работы на максимум, будет ${t}, до порога останется ${balls(d.pass_threshold - t)}.${ahead.length && aheadMax >= d.pass_threshold - t ? ` Остаток можно набрать на работах, срок которых ещё не прошёл: ${ahead.map((w) => w.title).join(', ')}.` : ''}`);
     }
   }
   if (d.auto_threshold && d.points < d.auto_threshold) parts.push(`До автомата (${d.auto_threshold}) не хватает ${balls(d.auto_threshold - d.points)}.`);
