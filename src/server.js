@@ -150,7 +150,7 @@ function createApp(opts = {}) {
     req.session.uid = u.id;
     res.redirect(u.role === 'staff' ? '/staff' : '/');
   });
-  // Переключение разрешено только между тремя вымышленными демо-аккаунтами.
+  // Переключение разрешено только между тремя синтетическими демо-аккаунтами.
   app.post('/demo/switch', needAuth(), (req, res) => {
     const demo = M.demoUsers();
     const target = demo.find((u) => u.login === String(req.body.login || ''));

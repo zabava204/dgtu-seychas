@@ -5,7 +5,7 @@ const { DEMO_PASSWORD } = require('../seed');
 
 function shell(title, body) {
   return html`${head(title)}<body><div class="app no-nav">
-<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>
+<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные синтетические</div>
 <div style="padding:32px 20px 0;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;align-items:center;gap:12px">${I.logo}<div><div style="font-size:22px;font-weight:700">ДГТУ.Сейчас</div><div class="small muted">Личный кабинет студента</div></div></div>
 ${body}</div></div><script src="/app.js?v=20" defer></script></body></html>`;

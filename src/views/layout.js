@@ -49,8 +49,8 @@ function page({ title, active, ctx, body, noNav = false, scripts = '' }) {
   const flash = ctx && ctx.flash;
   return html`${head(title)}<body class="${noNav ? 'standalone-view' : 'student-view'}">
 <a class="skip-link" href="#main-content">К содержимому</a>
-${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные вымышленные</div>`}
-${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас, на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><span class="demo-badge" title="Концепт для конкурса, не официальный сервис ДГТУ, данные вымышленные">Демо</span>
+${!noNav && ctx && ctx.user ? '' : html`<div class="demo-strip">Концепт для конкурса · не официальный сервис ДГТУ · данные синтетические</div>`}
+${!noNav && ctx && ctx.user ? html`<header class="appbar"><a class="brand" href="/" aria-label="ДГТУ.Сейчас, на главную">${I.logoSm}<span>ДГТУ.Сейчас</span></a><span class="demo-badge" title="Концепт для конкурса, не официальный сервис ДГТУ, данные синтетические">Демо</span>
 <div class="ab-act"><a class="icon-btn" href="/a11y" aria-label="Версия для слабовидящих: включить или выключить">${I.eye}<span class="desktop-label">Доступность</span></a><a class="icon-btn" href="/find" aria-label="Найти раздел в кабинете">${I.search}<span class="desktop-label">Поиск</span></a>
 <a class="icon-btn" href="/notifications" aria-label="Уведомления${ctx.unread ? `, новых: ${ctx.unread}` : ''}">${I.bell}<span class="desktop-label">Уведомления</span>${ctx.unread ? html`<span class="dot"></span>` : ''}</a></div></header>` : ''}
 <div class="student-workspace">

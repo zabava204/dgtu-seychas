@@ -650,7 +650,7 @@ ${linkRow('/support', 'Служба поддержки', 'Вопросы по к
 ${linkRow('/hard', 'Психологическая помощь', 'Контакты психологической службы и телефон помощи')}
 <form method="post" action="/logout"><button class="row logout-btn" type="submit"><span class="body"><span class="title strong">Выйти из кабинета</span></span>${I.chev}</button></form></div></section>
 </div></div>
-<section class="section demo-settings"><details class="card"><summary>Демонстрационный режим${I.chev}</summary><p class="small muted">Все данные вымышленные и общие для проверяющих. Они возвращаются к началу каждую ночь в 3:00 МСК.</p>
+<section class="section demo-settings"><details class="card"><summary>Демонстрационный режим${I.chev}</summary><p class="small muted">Все данные синтетические и общие для проверяющих. Они возвращаются к началу каждую ночь в 3:00 МСК.</p>
 <form method="post" action="/demo/reset" data-confirm="Вернуть заявки, уведомления и сообщения всех демо-аккаунтов к исходному состоянию? Это сбросит данные и для других проверяющих."><p class="small muted">Сброс затронет заявки и сообщения всех демо-аккаунтов.</p><button class="btn secondary small" type="submit">Начать сценарий заново</button></form></details>
 <p id="about" class="small muted">Концепт для MGIMO AI Challenge. Не официальный сервис ДГТУ.</p></section>`,
   });
@@ -735,7 +735,7 @@ function route(ctx) {
 <div class="stage"><div class="st">Корпус ${b}</div><div class="when">Вход с главной площади кампуса</div></div>
 <div class="stage"><div class="st">${r[0]} этаж</div><div class="when">Лестница или лифт справа от входа</div></div>
 <div class="stage current"><div class="st">Аудитория ${room}</div><div class="when">Номера идут по возрастанию от лестницы налево</div></div></div>` : html`<p>Аудитория не указана.</p>`}
-<div class="note" style="margin-top:8px">Пример маршрута. Расположение входов и аудиторий вымышлено.</div></section>`,
+<div class="note" style="margin-top:8px">Пример маршрута. Расположение входов и аудиторий условное.</div></section>`,
   });
 }
 

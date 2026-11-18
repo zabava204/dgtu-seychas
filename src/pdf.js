@@ -21,7 +21,7 @@ function certificate({ r, student, staff, payments = [], stipends = [] }, stream
   const issued = new Date(r.closed_at || T.now());
   const w = doc.page.width - 72 - 64;
   doc.fillColor('#B42318').font('S').fontSize(9).text('ДЕМОНСТРАЦИОННЫЙ ОБРАЗЕЦ — НЕ ЯВЛЯЕТСЯ ОФИЦИАЛЬНЫМ ДОКУМЕНТОМ ДГТУ', 72, 40, { width: w, align: 'center' });
-  doc.fillColor('#14213D').font('S').fontSize(11).text('Концепт «ДГТУ.Сейчас» · факультет «Экономика и управление» (вымышленное подразделение)', 72, 72, { width: w });
+  doc.fillColor('#14213D').font('S').fontSize(11).text('Концепт «ДГТУ.Сейчас» · факультет «Экономика и управление» (условное подразделение)', 72, 72, { width: w });
   doc.font('R').fontSize(10).fillColor('#5B6577').text('Деканат: корпус 1, каб. 210', { width: w });
   doc.moveDown(2);
 
@@ -71,12 +71,12 @@ function certificate({ r, student, staff, payments = [], stipends = [] }, stream
   doc.fontSize(10).fillColor('#5B6577').text('Подпись и печать в демо-версии не ставятся.');
 
   doc.font('R').fontSize(8.5).fillColor('#5B6577').text(
-    'Сформировано в прототипе «ДГТУ.Сейчас» для конкурса MGIMO AI Challenge («Цифровой деканат будущего»). Все люди и данные вымышленные. Документ не имеет юридической силы.',
+    'Сформировано в прототипе «ДГТУ.Сейчас» для конкурса MGIMO AI Challenge («Цифровой деканат будущего»). Все данные синтетические. Документ не имеет юридической силы.',
     72, doc.page.height - 100, { width: w, align: 'center' });
   doc.end();
 }
 
-// Небольшой PDF-заглушка для демо-вложения («справка о составе семьи» у вымышленной студентки)
+// Небольшой PDF-заглушка для демо-вложения («справка о составе семьи» у синтетической студентки)
 function samplePdf(stream) {
   const doc = new PDFDocument({ size: 'A5', margin: 48 });
   doc.registerFont('R', path.join(FONT, 'Inter_400Regular.ttf'));
@@ -111,7 +111,7 @@ function studentIdPdf({ user, meta }, stream) {
   row('Группа:', user.group_name);
   row('Факультет:', user.faculty);
   doc.font('R').fontSize(8.5).fillColor('#5B6577').text(
-    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные вымышленные. Документ не имеет юридической силы.',
+    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные синтетические. Документ не имеет юридической силы.',
     56, doc.page.height - 72, { width: w, align: 'center' });
   doc.end();
 }
@@ -136,7 +136,7 @@ function recordBookPdf({ user, book }, stream) {
     }
   }
   doc.font('R').fontSize(8.5).fillColor('#5B6577').text(
-    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные вымышленные. Документ не имеет юридической силы.',
+    'Сформировано в прототипе «ДГТУ.Сейчас». Все данные синтетические. Документ не имеет юридической силы.',
     56, doc.page.height - 72, { width: w, align: 'center' });
   doc.end();
 }

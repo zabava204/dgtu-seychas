@@ -11,7 +11,7 @@ scenes=[('next-step-desktop.jpg','Илья: один следующий шаг',
 for i,(filename,title,body,duration) in enumerate(scenes):
  im=Image.new('RGB',(1920,1080),'#F5F7FA');d=ImageDraw.Draw(im)
  d.text((42,36),'ДГТУ.Сейчас',font=bold(42),fill='#36557F')
- d.text((42,98),'Демонстрация по кадрам · локальный прототип · вымышленные данные',font=font(25),fill='#526078')
+ d.text((42,98),'Демонстрация по кадрам · локальный прототип · синтетические данные',font=font(25),fill='#526078')
  y=220
  for line in textwrap.wrap(title,18):d.text((42,y),line,font=bold(37),fill='#14213D');y+=50
  y+=24
