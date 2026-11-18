@@ -67,7 +67,7 @@ function demoSwitcher(ctx) {
   const users = ctx.demoUsers || [];
   if (!users.some((u) => u.id === ctx.user?.id)) return '';
   return html`<nav class="demo-switcher" aria-label="Переключение демо-аккаунта">
-<div class="demo-switch-title">Демо-аккаунты</div><p class="small muted">Выбери, чей кабинет посмотреть. Данные и заявки сохранятся.</p>
+<div class="demo-switch-title">Демо-аккаунты</div><p class="small muted">Выбери демо-аккаунт для просмотра. При переключении заявки не сбрасываются: справку, заказанную за Илью, можно сразу открыть у сотрудника деканата.</p>
 <form method="post" action="/demo/switch" class="demo-accounts">${users.map((u) => html`<button class="demo-account" type="submit" name="login" value="${u.login}" ${u.id === ctx.user.id ? raw('disabled aria-current="true"') : ''}>
 <span class="demo-account-name">${u.role === 'staff' ? 'Сотрудник деканата' : u.short_name}</span><span class="small muted">${u.role === 'staff' ? u.short_name : u.demo_note}</span><span class="demo-account-state">${u.id === ctx.user.id ? 'Сейчас открыт' : 'Переключиться'}</span></button>`)}</form></nav>`;
 }

@@ -641,7 +641,7 @@ ${demoSwitcher(ctx)}
 </div><div>
 <section class="section" aria-labelledby="dean-h"><h2 class="label" id="dean-h">Мой деканат</h2><div class="card">
 <div class="req-head"><b>Корпус 1, каб. 210</b><span class="tag">Демо-контакты</span></div>
-<p class="small muted">Пн–пт, 9:00–17:00 · московское время</p><p class="small">${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</p>
+<p class="small muted">Время работы: пн–пт, 9:00–17:00</p><p class="small">${user.level === 'магистратура' ? 'Руководитель НИР' : 'Куратор группы'}: ${user.curator}</p>
 <div class="actions"><a class="btn small" href="/requests/new">Новая заявка</a></div></div></section>
 <section class="section" aria-labelledby="settings-h"><h2 class="label" id="settings-h">Настройки и помощь</h2><div class="group">
 ${linkRow('/me/notifications', 'Настройки уведомлений', 'Темы и уведомления в браузере')}
