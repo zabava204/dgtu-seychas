@@ -3,7 +3,7 @@
 from pathlib import Path
 from html import escape
 from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether, Flowable
+from reportlab.platypus import CondPageBreak, SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether, Flowable
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.colors import HexColor, white
 from reportlab.pdfbase import pdfmetrics
@@ -16,15 +16,15 @@ CODE=subprocess.run(['git','log','-1','--format=%h','--','src','public','test','
 _d=datetime.date.today(); MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']
 TODAY=f'{_d.day} {MONTHS[_d.month-1]} {_d.year} года'; TODAY_SHORT=_d.strftime('%d.%m.%Y')
 for name,f in [('Inter','Inter_400Regular.ttf'),('InterBold','Inter_700Bold.ttf')]:pdfmetrics.registerFont(TTFont(name,str(R/'fonts'/f)))
-OUT=R/'docs/process.pdf'; W,H=595.28,841.89; blue=HexColor('#36557F'); ink=HexColor('#14213D'); muted=HexColor('#526078')
+OUT=R/'docs/process.pdf'; W,H=595.28,841.89; blue=HexColor('#36557F'); ink=HexColor('#14213D'); muted=HexColor('#3E4A60')
 styles={
  'title':ParagraphStyle('title',fontName='InterBold',fontSize=28,leading=34,textColor=blue,spaceAfter=18),
  'h':ParagraphStyle('h',fontName='InterBold',fontSize=21,leading=27,textColor=blue,spaceAfter=15),
- 'sub':ParagraphStyle('sub',fontName='InterBold',fontSize=12,leading=17,textColor=ink,spaceBefore=10,spaceAfter=7),
- 'body':ParagraphStyle('body',fontName='Inter',fontSize=10,leading=15,textColor=ink,spaceAfter=9),
- 'small':ParagraphStyle('small',fontName='Inter',fontSize=8,leading=11,textColor=muted,spaceAfter=6),
- 'cell':ParagraphStyle('cell',fontName='Inter',fontSize=9,leading=13,textColor=ink),
- 'th':ParagraphStyle('th',fontName='InterBold',fontSize=9,leading=13,textColor=white)}
+ 'sub':ParagraphStyle('sub',fontName='InterBold',fontSize=13,leading=18,textColor=ink,spaceBefore=10,spaceAfter=7),
+ 'body':ParagraphStyle('body',fontName='Inter',fontSize=11,leading=16.5,textColor=ink,spaceAfter=9),
+ 'small':ParagraphStyle('small',fontName='Inter',fontSize=9,leading=12.5,textColor=muted,spaceAfter=6),
+ 'cell':ParagraphStyle('cell',fontName='Inter',fontSize=10,leading=14,textColor=ink),
+ 'th':ParagraphStyle('th',fontName='InterBold',fontSize=10,leading=14,textColor=white)}
 class Cascade(Flowable):
  def __init__(self):
   super().__init__(); self.width=499; self.height=135
@@ -39,7 +39,8 @@ story=[];md=[]
 def p(s,style='body'):return Paragraph(escape(s).replace('\n','<br/>'),styles[style])
 def text(s,style='body'):story.append(p(s,style));md.append(s+'\n')
 def page(title,first=False):
- if story:story.append(PageBreak())
+ # Раздел начинается на новой странице, только если на текущей осталось мало места: без полупустых страниц
+ if story:story.append(CondPageBreak(300));story.append(Spacer(1,14))
  text(title,'title' if first else 'h');md[-1]=('# ' if first else '## ')+title+'\n'
 def table(head,rows,widths):
  data=[[p(s,'th') for s in head]]+[[p(str(s),'cell') for s in r] for r in rows]
