@@ -46,11 +46,13 @@ def page(title,first=False,new=False):
   else:story.append(CondPageBreak(300));story.append(Spacer(1,14))
  text(title,'title' if first else 'h');md[-1]=('# ' if first else '## ')+title+'\n'
 styles['li']=ParagraphStyle('li',parent=styles['body'],leftIndent=16,bulletIndent=2,spaceAfter=4)
+# В перечислениях каждая строка, кроме последней, заканчивается точкой с запятой, последняя точкой
+def _ends(items):return [it.rstrip(' ,.;')+(';' if k<len(items)-1 else '.') for k,it in enumerate(items)]
 def bullets(items):
- for it in items:story.append(Paragraph(escape(it),styles['li'],bulletText='•'));md.append('- '+it)
+ for it in _ends(items):story.append(Paragraph(escape(it),styles['li'],bulletText='•'));md.append('- '+it)
  story.append(Spacer(1,6));md.append('')
 def numbered(items):
- for k,it in enumerate(items,1):story.append(Paragraph(escape(it),styles['li'],bulletText=f'{k}.'));md.append(f'{k}. '+it)
+ for k,it in enumerate(_ends(items),1):story.append(Paragraph(escape(it),styles['li'],bulletText=f'{k}.'));md.append(f'{k}. '+it)
  story.append(Spacer(1,6));md.append('')
 def table(head,rows,widths):
  data=[[p(s,'th') for s in head]]+[[p(str(s),'cell') for s in r] for r in rows]
